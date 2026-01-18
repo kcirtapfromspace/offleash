@@ -246,7 +246,7 @@
       "description": "As a developer, I need login/register to work with tenant context.",
       "id": "US-017",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 17,
       "title": "Update auth routes for multi-tenancy"
     },
