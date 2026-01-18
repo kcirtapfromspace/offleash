@@ -274,7 +274,7 @@
       "description": "As a developer, I need booking endpoints scoped to tenant.",
       "id": "US-019",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 19,
       "title": "Update booking routes for multi-tenancy"
     },
