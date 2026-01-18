@@ -12,17 +12,20 @@ impl OrganizationRepository {
     ) -> Result<Organization, sqlx::Error> {
         let id = OrganizationId::new();
         let settings = input.settings.unwrap_or_default();
+        let subdomain = input.subdomain.unwrap_or_else(|| input.slug.clone());
 
         sqlx::query_as::<_, Organization>(
             r#"
-            INSERT INTO organizations (id, name, slug, settings)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, name, slug, settings, created_at, updated_at
+            INSERT INTO organizations (id, name, slug, subdomain, custom_domain, settings)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, name, slug, subdomain, custom_domain, settings, created_at, updated_at
             "#,
         )
         .bind(id.as_uuid())
         .bind(&input.name)
         .bind(&input.slug)
+        .bind(&subdomain)
+        .bind(&input.custom_domain)
         .bind(sqlx::types::Json(&settings))
         .fetch_one(pool)
         .await
@@ -34,7 +37,7 @@ impl OrganizationRepository {
     ) -> Result<Option<Organization>, sqlx::Error> {
         sqlx::query_as::<_, Organization>(
             r#"
-            SELECT id, name, slug, settings, created_at, updated_at
+            SELECT id, name, slug, subdomain, custom_domain, settings, created_at, updated_at
             FROM organizations
             WHERE id = $1
             "#,
@@ -50,7 +53,7 @@ impl OrganizationRepository {
     ) -> Result<Option<Organization>, sqlx::Error> {
         sqlx::query_as::<_, Organization>(
             r#"
-            SELECT id, name, slug, settings, created_at, updated_at
+            SELECT id, name, slug, subdomain, custom_domain, settings, created_at, updated_at
             FROM organizations
             WHERE slug = $1
             "#,
@@ -75,15 +78,17 @@ impl OrganizationRepository {
             SET
                 name = COALESCE($2, name),
                 slug = COALESCE($3, slug),
-                settings = COALESCE($4, settings),
+                custom_domain = COALESCE($4, custom_domain),
+                settings = COALESCE($5, settings),
                 updated_at = NOW()
             WHERE id = $1
-            RETURNING id, name, slug, settings, created_at, updated_at
+            RETURNING id, name, slug, subdomain, custom_domain, settings, created_at, updated_at
             "#,
         )
         .bind(id.as_uuid())
         .bind(&input.name)
         .bind(&input.slug)
+        .bind(&input.custom_domain)
         .bind(settings_json)
         .fetch_optional(pool)
         .await
@@ -96,7 +101,7 @@ impl OrganizationRepository {
     ) -> Result<Vec<Organization>, sqlx::Error> {
         sqlx::query_as::<_, Organization>(
             r#"
-            SELECT id, name, slug, settings, created_at, updated_at
+            SELECT id, name, slug, subdomain, custom_domain, settings, created_at, updated_at
             FROM organizations
             ORDER BY created_at DESC
             LIMIT $1 OFFSET $2

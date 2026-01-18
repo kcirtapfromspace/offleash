@@ -3,7 +3,7 @@ use argon2::{
     Argon2,
 };
 use axum::{
-    extract::{Query, State},
+    extract::{Path, Query, State},
     Json,
 };
 use db::models::{CreateOrganization, CreateTenantDatabase, CreateUser, UserRole};
@@ -71,7 +71,9 @@ pub async fn create_tenant(
         &state.pool,
         CreateOrganization {
             name: req.name,
-            slug: req.slug,
+            slug: req.slug.clone(),
+            subdomain: Some(req.slug),
+            custom_domain: None,
             settings: None, // Use default settings
         },
     )
@@ -156,6 +158,7 @@ pub struct TenantInfo {
     pub id: String,
     pub name: String,
     pub slug: String,
+    pub custom_domain: Option<String>,
     pub settings: TenantSettingsResponse,
     pub status: String,
     pub subscription_tier: String,
@@ -178,6 +181,7 @@ struct TenantRow {
     id: uuid::Uuid,
     name: String,
     slug: String,
+    custom_domain: Option<String>,
     settings: sqlx::types::Json<db::models::OrganizationSettings>,
     created_at: chrono::DateTime<chrono::Utc>,
     updated_at: chrono::DateTime<chrono::Utc>,
@@ -203,6 +207,7 @@ pub async fn list_tenants(
             o.id,
             o.name,
             o.slug,
+            o.custom_domain,
             o.settings,
             o.created_at,
             o.updated_at,
@@ -226,6 +231,7 @@ pub async fn list_tenants(
             id: row.id.to_string(),
             name: row.name,
             slug: row.slug,
+            custom_domain: row.custom_domain,
             settings: TenantSettingsResponse {
                 primary_color: row.settings.primary_color.clone(),
                 secondary_color: row.settings.secondary_color.clone(),
@@ -245,5 +251,167 @@ pub async fn list_tenants(
         total,
         limit,
         offset,
+    }))
+}
+
+// ============================================================================
+// Get Tenant by ID Endpoint
+// ============================================================================
+
+pub async fn get_tenant(
+    _auth: PlatformAdminAuth,
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Json<TenantInfo>> {
+    let tenant_id: uuid::Uuid = id.parse().map_err(|_| {
+        ApiError::from(shared::AppError::Validation(
+            "Invalid tenant ID".to_string(),
+        ))
+    })?;
+
+    // Query organization with joined tenant_database status and organization_settings
+    let row = sqlx::query_as::<_, TenantRow>(
+        r#"
+        SELECT
+            o.id,
+            o.name,
+            o.slug,
+            o.custom_domain,
+            o.settings,
+            o.created_at,
+            o.updated_at,
+            td.status::text as status,
+            os.subscription_tier
+        FROM organizations o
+        LEFT JOIN tenant_databases td ON td.organization_id = o.id
+        LEFT JOIN organization_settings os ON os.organization_id = o.id
+        WHERE o.id = $1
+        "#,
+    )
+    .bind(tenant_id)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| ApiError::from(DomainError::TenantNotFound(id)))?;
+
+    Ok(Json(TenantInfo {
+        id: row.id.to_string(),
+        name: row.name,
+        slug: row.slug,
+        custom_domain: row.custom_domain,
+        settings: TenantSettingsResponse {
+            primary_color: row.settings.primary_color.clone(),
+            secondary_color: row.settings.secondary_color.clone(),
+            logo_url: row.settings.logo_url.clone(),
+            favicon_url: row.settings.favicon_url.clone(),
+            font_family: row.settings.font_family.clone(),
+        },
+        status: row.status.unwrap_or_else(|| "unknown".to_string()),
+        subscription_tier: row.subscription_tier.unwrap_or_else(|| "free".to_string()),
+        created_at: row.created_at.to_rfc3339(),
+        updated_at: row.updated_at.to_rfc3339(),
+    }))
+}
+
+// ============================================================================
+// Update Tenant Endpoint
+// ============================================================================
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateTenantRequest {
+    pub name: Option<String>,
+    pub subscription_tier: Option<String>,
+    pub custom_domain: Option<String>,
+}
+
+pub async fn update_tenant(
+    _auth: PlatformAdminAuth,
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(req): Json<UpdateTenantRequest>,
+) -> ApiResult<Json<TenantInfo>> {
+    let tenant_id: uuid::Uuid = id.parse().map_err(|_| {
+        ApiError::from(shared::AppError::Validation(
+            "Invalid tenant ID".to_string(),
+        ))
+    })?;
+
+    let org_id = shared::types::OrganizationId::from_uuid(tenant_id);
+
+    // Verify tenant exists
+    OrganizationRepository::find_by_id(&state.pool, org_id)
+        .await?
+        .ok_or_else(|| ApiError::from(DomainError::TenantNotFound(id.clone())))?;
+
+    // Update organization if name or custom_domain provided
+    if req.name.is_some() || req.custom_domain.is_some() {
+        OrganizationRepository::update(
+            &state.pool,
+            org_id,
+            db::models::UpdateOrganization {
+                name: req.name.clone(),
+                slug: None,
+                custom_domain: req.custom_domain.clone(),
+                settings: None,
+            },
+        )
+        .await?;
+    }
+
+    // Update subscription_tier in organization_settings if provided
+    if let Some(ref tier) = req.subscription_tier {
+        sqlx::query(
+            r#"
+            INSERT INTO organization_settings (organization_id, subscription_tier)
+            VALUES ($1, $2)
+            ON CONFLICT (organization_id)
+            DO UPDATE SET subscription_tier = $2, updated_at = NOW()
+            "#,
+        )
+        .bind(tenant_id)
+        .bind(tier)
+        .execute(&state.pool)
+        .await?;
+    }
+
+    // Fetch and return updated tenant info
+    let row = sqlx::query_as::<_, TenantRow>(
+        r#"
+        SELECT
+            o.id,
+            o.name,
+            o.slug,
+            o.custom_domain,
+            o.settings,
+            o.created_at,
+            o.updated_at,
+            td.status::text as status,
+            os.subscription_tier
+        FROM organizations o
+        LEFT JOIN tenant_databases td ON td.organization_id = o.id
+        LEFT JOIN organization_settings os ON os.organization_id = o.id
+        WHERE o.id = $1
+        "#,
+    )
+    .bind(tenant_id)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| ApiError::from(DomainError::TenantNotFound(id)))?;
+
+    Ok(Json(TenantInfo {
+        id: row.id.to_string(),
+        name: row.name,
+        slug: row.slug,
+        custom_domain: row.custom_domain,
+        settings: TenantSettingsResponse {
+            primary_color: row.settings.primary_color.clone(),
+            secondary_color: row.settings.secondary_color.clone(),
+            logo_url: row.settings.logo_url.clone(),
+            favicon_url: row.settings.favicon_url.clone(),
+            font_family: row.settings.font_family.clone(),
+        },
+        status: row.status.unwrap_or_else(|| "unknown".to_string()),
+        subscription_tier: row.subscription_tier.unwrap_or_else(|| "free".to_string()),
+        created_at: row.created_at.to_rfc3339(),
+        updated_at: row.updated_at.to_rfc3339(),
     }))
 }
