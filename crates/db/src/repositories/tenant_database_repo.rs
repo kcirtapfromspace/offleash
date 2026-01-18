@@ -62,4 +62,23 @@ impl TenantDatabaseRepository {
         .fetch_optional(pool)
         .await
     }
+
+    pub async fn update_status_by_org_id(
+        pool: &PgPool,
+        organization_id: OrganizationId,
+        status: TenantDbStatus,
+    ) -> Result<Option<TenantDatabase>, sqlx::Error> {
+        sqlx::query_as::<_, TenantDatabase>(
+            r#"
+            UPDATE tenant_databases
+            SET status = $2, updated_at = NOW()
+            WHERE organization_id = $1
+            RETURNING id, organization_id, connection_string, status, created_at, updated_at
+            "#,
+        )
+        .bind(organization_id.as_uuid())
+        .bind(status)
+        .fetch_optional(pool)
+        .await
+    }
 }
