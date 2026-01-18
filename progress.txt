@@ -1,0 +1,27 @@
+
+## 2026-01-18 09:25 - US-001
+- **What was implemented**: Create organizations table migration
+- **Files changed**:
+  - rates/api/src/error.rs
+  - rates/api/src/lib.rs
+  - rates/api/src/routes/auth.rs
+  - rates/api/src/routes/availability.rs
+  - rates/api/src/routes/blocks.rs
+  - rates/api/src/routes/bookings.rs
+  - rates/db/src/models/booking.rs
+  - rates/db/src/models/location.rs
+  - rates/db/src/models/mod.rs
+  - rates/db/src/repositories/booking_repo.rs
+  - rates/db/src/repositories/location_repo.rs
+  - rates/db/src/repositories/mod.rs
+  - rates/db/src/repositories/user_repo.rs
+  - rates/domain/src/availability/engine.rs
+  - rates/domain/src/availability/mod.rs
+  - rates/domain/src/availability/slot.rs
+  - rates/integrations/src/google_maps/client.rs
+  - rates/shared/src/errors/app_error.rs
+  - rates/shared/src/types/mod.rs
+- **Iterations used**: 1
+- **Learnings for future iterations:**
+- Story completed successfully via automated execution
+---
