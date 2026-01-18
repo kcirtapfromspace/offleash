@@ -115,7 +115,7 @@
       "description": "As a developer, I need Rust structs and CRUD operations for organizations.",
       "id": "US-008",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 8,
       "title": "Create Organization model and repository"
     },
