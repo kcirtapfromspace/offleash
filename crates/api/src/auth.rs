@@ -5,6 +5,7 @@ use axum::{
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use shared::types::{OrganizationId, UserId};
+use sqlx::PgPool;
 use std::future::Future;
 
 use crate::state::AppState;
@@ -104,5 +105,58 @@ impl FromRequestParts<AppState> for AuthUser {
         })();
 
         Box::pin(std::future::ready(auth_result))
+    }
+}
+
+/// Extractor for tenant context providing org_id and tenant database pool
+pub struct TenantContext {
+    pub org_id: OrganizationId,
+    pub pool: PgPool,
+}
+
+impl FromRequestParts<AppState> for TenantContext {
+    type Rejection = (StatusCode, &'static str);
+
+    fn from_request_parts<'life0, 'life1, 'async_trait>(
+        parts: &'life0 mut Parts,
+        state: &'life1 AppState,
+    ) -> std::pin::Pin<Box<dyn Future<Output = Result<Self, Self::Rejection>> + Send + 'async_trait>>
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        Self: 'async_trait,
+    {
+        let jwt_secret = state.jwt_secret.clone();
+        let tenant_pool_manager = state.tenant_pool_manager.clone();
+
+        Box::pin(async move {
+            // Extract and validate JWT token
+            let auth_header = parts
+                .headers
+                .get(AUTHORIZATION)
+                .and_then(|h| h.to_str().ok())
+                .ok_or((StatusCode::UNAUTHORIZED, "Missing authorization header"))?;
+
+            let token = auth_header
+                .strip_prefix("Bearer ")
+                .ok_or((StatusCode::UNAUTHORIZED, "Invalid authorization header"))?;
+
+            let claims = verify_token(token, &jwt_secret)
+                .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token"))?;
+
+            // Extract org_id from claims - return 401 if missing
+            let org_id = claims.org_id().ok_or((
+                StatusCode::UNAUTHORIZED,
+                "Organization ID missing from token",
+            ))?;
+
+            // Get tenant pool from TenantPoolManager
+            let pool = tenant_pool_manager
+                .get_pool(org_id)
+                .await
+                .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid organization"))?;
+
+            Ok(TenantContext { org_id, pool })
+        })
     }
 }
