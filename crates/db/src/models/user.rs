@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use shared::types::UserId;
+use shared::types::{OrganizationId, UserId};
 use sqlx::FromRow;
 
 /// User role enum
@@ -26,6 +26,7 @@ impl std::fmt::Display for UserRole {
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct User {
     pub id: UserId,
+    pub organization_id: OrganizationId,
     pub email: String,
     #[serde(skip_serializing)]
     pub password_hash: String,
@@ -59,6 +60,7 @@ impl User {
 /// Input for creating a new user
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateUser {
+    pub organization_id: OrganizationId,
     pub email: String,
     pub password_hash: String,
     pub role: UserRole,
