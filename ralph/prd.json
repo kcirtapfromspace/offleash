@@ -380,7 +380,7 @@
       "description": "As a customer, I need to fetch tenant branding without authentication.",
       "id": "US-026",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 26,
       "title": "Create public branding endpoint"
     },
