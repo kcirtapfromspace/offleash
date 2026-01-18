@@ -327,3 +327,16 @@
 - **Learnings for future iterations:**
 - Story completed successfully via automated execution
 ---
+
+## 2026-01-18 10:33 - US-025
+- **What was implemented**: Create DELETE /admin/tenants/:id endpoint
+- **Files changed**:
+  - rates/api/src/lib.rs
+  - rates/api/src/routes/admin_tenants.rs
+  - rates/db/src/repositories/tenant_database_repo.rs
+  - rogress.txt
+  - alph/prd.json
+- **Iterations used**: 1
+- **Learnings for future iterations:**
+- Story completed successfully via automated execution
+---
