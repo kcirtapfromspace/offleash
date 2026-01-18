@@ -1,0 +1,55 @@
+# Development Dockerfile with cargo-watch for live reloading
+FROM rust:1.75-bookworm
+
+# Install useful tools
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl-dev \
+    pkg-config \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install cargo-watch for live reloading
+RUN cargo install cargo-watch
+
+WORKDIR /app
+
+# Copy dependency files first for better caching
+COPY Cargo.toml Cargo.lock ./
+COPY crates/shared/Cargo.toml crates/shared/
+COPY crates/domain/Cargo.toml crates/domain/
+COPY crates/db/Cargo.toml crates/db/
+COPY crates/integrations/Cargo.toml crates/integrations/
+COPY crates/api/Cargo.toml crates/api/
+
+# Create dummy source files for dependency caching
+RUN mkdir -p crates/shared/src crates/domain/src crates/db/src crates/integrations/src crates/api/src && \
+    echo "fn main() {}" > crates/api/src/main.rs && \
+    echo "pub fn dummy() {}" > crates/shared/src/lib.rs && \
+    echo "pub fn dummy() {}" > crates/domain/src/lib.rs && \
+    echo "pub fn dummy() {}" > crates/db/src/lib.rs && \
+    echo "pub fn dummy() {}" > crates/integrations/src/lib.rs && \
+    echo "pub fn dummy() {}" > crates/api/src/lib.rs
+
+# Build dependencies (cached layer)
+RUN cargo build --bin api 2>/dev/null || true
+
+# Copy actual source code
+COPY crates crates
+COPY migrations migrations
+
+# Touch source files to trigger rebuild
+RUN touch crates/*/src/*.rs
+
+# Build the application
+RUN cargo build --bin api
+
+# Copy the run script
+COPY scripts/run-dev.sh /app/run-dev.sh
+RUN chmod +x /app/run-dev.sh
+
+ENV RUST_LOG=debug
+ENV RUST_BACKTRACE=1
+EXPOSE 8080
+
+CMD ["/app/run-dev.sh"]

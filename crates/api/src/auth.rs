@@ -1,0 +1,95 @@
+use axum::{
+    extract::FromRequestParts,
+    http::{header::AUTHORIZATION, request::Parts, StatusCode},
+};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use serde::{Deserialize, Serialize};
+use shared::types::UserId;
+use std::future::Future;
+
+use crate::state::AppState;
+
+/// JWT claims
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Claims {
+    pub sub: String, // User ID
+    pub exp: usize,  // Expiration time
+    pub iat: usize,  // Issued at
+}
+
+impl Claims {
+    pub fn new(user_id: UserId, expires_in_hours: i64) -> Self {
+        let now = chrono::Utc::now();
+        Self {
+            sub: user_id.to_string(),
+            exp: (now + chrono::Duration::hours(expires_in_hours)).timestamp() as usize,
+            iat: now.timestamp() as usize,
+        }
+    }
+
+    pub fn user_id(&self) -> Option<UserId> {
+        self.sub.parse().ok()
+    }
+}
+
+/// Create a JWT token
+pub fn create_token(user_id: UserId, secret: &str) -> Result<String, jsonwebtoken::errors::Error> {
+    let claims = Claims::new(user_id, 24); // 24 hour expiry
+    encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(secret.as_bytes()),
+    )
+}
+
+/// Verify and decode a JWT token
+pub fn verify_token(token: &str, secret: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
+    let token_data = decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(secret.as_bytes()),
+        &Validation::default(),
+    )?;
+    Ok(token_data.claims)
+}
+
+/// Extractor for authenticated user
+pub struct AuthUser {
+    pub user_id: UserId,
+}
+
+impl FromRequestParts<AppState> for AuthUser {
+    type Rejection = (StatusCode, &'static str);
+
+    fn from_request_parts<'life0, 'life1, 'async_trait>(
+        parts: &'life0 mut Parts,
+        state: &'life1 AppState,
+    ) -> std::pin::Pin<Box<dyn Future<Output = Result<Self, Self::Rejection>> + Send + 'async_trait>>
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        Self: 'async_trait,
+    {
+        let auth_result = (|| {
+            let auth_header = parts
+                .headers
+                .get(AUTHORIZATION)
+                .and_then(|h| h.to_str().ok())
+                .ok_or((StatusCode::UNAUTHORIZED, "Missing authorization header"))?;
+
+            let token = auth_header
+                .strip_prefix("Bearer ")
+                .ok_or((StatusCode::UNAUTHORIZED, "Invalid authorization header"))?;
+
+            let claims = verify_token(token, &state.jwt_secret)
+                .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token"))?;
+
+            let user_id = claims
+                .user_id()
+                .ok_or((StatusCode::UNAUTHORIZED, "Invalid user ID in token"))?;
+
+            Ok(AuthUser { user_id })
+        })();
+
+        Box::pin(std::future::ready(auth_result))
+    }
+}

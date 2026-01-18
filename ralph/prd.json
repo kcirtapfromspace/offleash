@@ -1,0 +1,1330 @@
+{
+  "project": "White-Label Pet Service Platform",
+  "branchName": "ralph/white-label-platform",
+  "description": "Transform single-tenant Dog Walker API into white-label multi-tenant SaaS with Admin Dashboard, Customer Web UI, and iOS app",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create organizations table migration",
+      "description": "As a platform admin, I need an organizations table to store tenant information.",
+      "acceptanceCriteria": [
+        "Create migration file for organizations table with: id (UUID PK), name (VARCHAR), slug (VARCHAR UNIQUE), subdomain (VARCHAR), custom_domain (VARCHAR nullable), created_at, updated_at",
+        "Add index on slug column for fast lookups",
+        "Migration runs successfully",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Create organization_settings table migration",
+      "description": "As a platform admin, I need to store tenant settings including branding configuration.",
+      "acceptanceCriteria": [
+        "Create migration for organization_settings table with: id (UUID PK), organization_id (FK), branding (JSONB), feature_flags (JSONB), subscription_tier (VARCHAR), created_at, updated_at",
+        "Add foreign key constraint to organizations table",
+        "Add unique constraint on organization_id",
+        "Migration runs successfully",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Create tenant_databases table in master DB",
+      "description": "As a platform admin, I need to track database connection info for each tenant.",
+      "acceptanceCriteria": [
+        "Create migration for tenant_databases table with: id (UUID PK), organization_id (FK), connection_string (VARCHAR encrypted), status (VARCHAR: active/inactive/provisioning), created_at, updated_at",
+        "Add unique constraint on organization_id",
+        "Migration runs successfully",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Create platform_admins table",
+      "description": "As a developer, I need a separate table for platform-level admin users.",
+      "acceptanceCriteria": [
+        "Create migration for platform_admins table with: id (UUID PK), email (VARCHAR UNIQUE), password_hash (VARCHAR), created_at, updated_at",
+        "Platform admins are separate from tenant users",
+        "Migration runs successfully",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Add organization_id to users table",
+      "description": "As a developer, I need users scoped to organizations for multi-tenancy.",
+      "acceptanceCriteria": [
+        "Create migration adding organization_id column to users table (UUID, NOT NULL after backfill)",
+        "Add foreign key constraint to organizations",
+        "Add index on organization_id for filtered queries",
+        "Migration runs successfully",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Add organization_id to services table",
+      "description": "As a developer, I need services scoped to organizations.",
+      "acceptanceCriteria": [
+        "Create migration adding organization_id column to services table",
+        "Add foreign key constraint to organizations",
+        "Add index on organization_id",
+        "Migration runs successfully",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Add organization_id to remaining tables",
+      "description": "As a developer, I need all business tables scoped to organizations.",
+      "acceptanceCriteria": [
+        "Add organization_id to: locations, bookings, payments, blocks, working_hours",
+        "Add foreign key constraints to organizations table",
+        "Add indexes on organization_id columns",
+        "Migration runs successfully",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Create Organization model and repository",
+      "description": "As a developer, I need Rust structs and CRUD operations for organizations.",
+      "acceptanceCriteria": [
+        "Create Organization struct in crates/db/src/models/organization.rs",
+        "Create OrganizationSettings struct with branding fields",
+        "Create organization_repo.rs with: create, find_by_id, find_by_slug, update, list",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Create TenantDatabase model and repository",
+      "description": "As a developer, I need to manage tenant database records.",
+      "acceptanceCriteria": [
+        "Create TenantDatabase struct in crates/db/src/models/tenant_database.rs",
+        "Create tenant_database_repo.rs with: create, find_by_org_id, update_status",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Create PlatformAdmin model and repository",
+      "description": "As a developer, I need platform admin CRUD operations.",
+      "acceptanceCriteria": [
+        "Create PlatformAdmin struct in crates/db/src/models/platform_admin.rs",
+        "Create platform_admin_repo.rs with: create, find_by_email, verify_password",
+        "Use Argon2 for password hashing (same as existing users)",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Implement tenant connection pool manager",
+      "description": "As a developer, I need to route database queries to the correct tenant database.",
+      "acceptanceCriteria": [
+        "Create TenantPoolManager struct in crates/db/src/tenant_pool.rs",
+        "Implement get_pool(org_id) that returns the correct connection pool",
+        "Cache connection pools in a HashMap<OrganizationId, PgPool>",
+        "Implement lazy connection pool creation on first access",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Add org_id to JWT claims",
+      "description": "As a developer, I need JWTs to include the organization context.",
+      "acceptanceCriteria": [
+        "Update Claims struct in crates/api/src/auth.rs to include org_id field",
+        "Update create_token to accept org_id parameter",
+        "Update token validation to extract org_id",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Create TenantContext extractor",
+      "description": "As a developer, I need an Axum extractor that provides tenant context to handlers.",
+      "acceptanceCriteria": [
+        "Create TenantContext struct with org_id and pool fields",
+        "Implement FromRequestParts for TenantContext",
+        "Extract org_id from JWT claims",
+        "Get tenant pool from TenantPoolManager",
+        "Return 401 if org_id missing or invalid",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Update user repository for multi-tenancy",
+      "description": "As a developer, I need user queries to filter by organization.",
+      "acceptanceCriteria": [
+        "Update UserRepository to accept TenantContext or org_id parameter",
+        "All user queries include WHERE organization_id = $org_id",
+        "find_by_email scoped to organization",
+        "create includes organization_id",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Update service repository for multi-tenancy",
+      "description": "As a developer, I need service queries scoped to organization.",
+      "acceptanceCriteria": [
+        "Update ServiceRepository methods to filter by organization_id",
+        "list returns only current tenant's services",
+        "create includes organization_id",
+        "Typecheck passes"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Update remaining repositories for multi-tenancy",
+      "description": "As a developer, I need all repositories scoped to organization.",
+      "acceptanceCriteria": [
+        "Update LocationRepository for org_id filtering",
+        "Update BookingRepository for org_id filtering",
+        "Update BlockRepository for org_id filtering",
+        "Update PaymentRepository for org_id filtering",
+        "All queries include organization_id filter",
+        "Typecheck passes"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Update auth routes for multi-tenancy",
+      "description": "As a developer, I need login/register to work with tenant context.",
+      "acceptanceCriteria": [
+        "Update register endpoint to accept org_slug in request or derive from subdomain",
+        "Update login to include org_id in JWT",
+        "Login validates user belongs to organization",
+        "Typecheck passes"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Update service routes for multi-tenancy",
+      "description": "As a developer, I need service endpoints to use tenant context.",
+      "acceptanceCriteria": [
+        "Update GET /services to use TenantContext extractor",
+        "Update GET /services/:id to verify service belongs to tenant",
+        "Services from other tenants return 404",
+        "Typecheck passes"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Update booking routes for multi-tenancy",
+      "description": "As a developer, I need booking endpoints scoped to tenant.",
+      "acceptanceCriteria": [
+        "Update POST /bookings to use TenantContext",
+        "Update GET /bookings/:id to verify booking belongs to tenant",
+        "Update confirm/cancel endpoints for tenant scope",
+        "Typecheck passes"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Update remaining routes for multi-tenancy",
+      "description": "As a developer, I need all endpoints tenant-aware.",
+      "acceptanceCriteria": [
+        "Update location routes for tenant context",
+        "Update availability routes for tenant context",
+        "Update block routes for tenant context",
+        "All endpoints use TenantContext extractor",
+        "Typecheck passes"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Create platform admin auth endpoints",
+      "description": "As a platform admin, I need separate login from tenant users.",
+      "acceptanceCriteria": [
+        "Create POST /platform/auth/login endpoint",
+        "Validate against platform_admins table",
+        "Return JWT with platform_admin claim (no org_id)",
+        "Create PlatformAdminAuth extractor for protected routes",
+        "Typecheck passes"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "Create POST /admin/tenants endpoint",
+      "description": "As a platform admin, I need to create new tenants.",
+      "acceptanceCriteria": [
+        "Create POST /admin/tenants endpoint (platform admin only)",
+        "Accept: name, slug, admin_email, admin_password",
+        "Create organization record",
+        "Create organization_settings with default branding",
+        "Create tenant_database record (status: provisioning)",
+        "Typecheck passes"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Create GET /admin/tenants endpoint",
+      "description": "As a platform admin, I need to list all tenants.",
+      "acceptanceCriteria": [
+        "Create GET /admin/tenants endpoint (platform admin only)",
+        "Return list of all organizations with settings",
+        "Include subscription_tier and status",
+        "Support pagination (limit, offset query params)",
+        "Typecheck passes"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Create GET/PATCH /admin/tenants/:id endpoints",
+      "description": "As a platform admin, I need to view and update tenant details.",
+      "acceptanceCriteria": [
+        "Create GET /admin/tenants/:id endpoint",
+        "Create PATCH /admin/tenants/:id endpoint",
+        "PATCH supports updating: name, subscription_tier, custom_domain",
+        "Return 404 if tenant not found",
+        "Typecheck passes"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Create DELETE /admin/tenants/:id endpoint",
+      "description": "As a platform admin, I need to deactivate tenants.",
+      "acceptanceCriteria": [
+        "Create DELETE /admin/tenants/:id endpoint",
+        "Soft-delete: set status to 'inactive', don't destroy data",
+        "Update tenant_database status to 'inactive'",
+        "Return 404 if tenant not found",
+        "Typecheck passes"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-026",
+      "title": "Create public branding endpoint",
+      "description": "As a customer, I need to fetch tenant branding without authentication.",
+      "acceptanceCriteria": [
+        "Create GET /api/branding endpoint (no auth required)",
+        "Determine tenant from Host header (subdomain or custom domain)",
+        "Return branding config: company_name, logo_url, primary_color, secondary_color, accent_color, support_email",
+        "Return 404 if tenant not found",
+        "Typecheck passes"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-027",
+      "title": "Create tenant branding management endpoints",
+      "description": "As a tenant admin, I need to update my branding.",
+      "acceptanceCriteria": [
+        "Create GET /admin/branding endpoint (tenant admin only)",
+        "Create PUT /admin/branding endpoint",
+        "Validate hex color codes (must match #XXXXXX pattern)",
+        "Update organization_settings.branding JSONB",
+        "Typecheck passes"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-028",
+      "title": "Implement subdomain tenant lookup",
+      "description": "As a developer, I need to resolve tenant from subdomain.",
+      "acceptanceCriteria": [
+        "Create extract_tenant_from_host function in crates/api/src/tenant.rs",
+        "Parse subdomain from Host header (e.g., acme.dogwalker.app -> acme)",
+        "Lookup organization by slug",
+        "Return None if no match",
+        "Typecheck passes"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-029",
+      "title": "Implement custom domain tenant lookup",
+      "description": "As a developer, I need to resolve tenant from custom domain.",
+      "acceptanceCriteria": [
+        "Extend extract_tenant_from_host to check custom_domain field",
+        "If Host doesn't match platform domain, lookup by custom_domain",
+        "Custom domain takes precedence over subdomain",
+        "Typecheck passes"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-030",
+      "title": "Set up Admin Dashboard React project",
+      "description": "As a developer, I need the frontend project structure for admin dashboard.",
+      "acceptanceCriteria": [
+        "Create /apps/admin-dashboard directory",
+        "Initialize with: npm create vite@latest . -- --template react-ts",
+        "Install dependencies: react-router-dom, @tanstack/react-query, tailwindcss",
+        "Configure Tailwind CSS with tailwind.config.js",
+        "Create src/main.tsx entry point",
+        "Typecheck passes",
+        "Verify in browser: shows Vite default page"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-031",
+      "title": "Create Admin Dashboard API client",
+      "description": "As a developer, I need an API client for making authenticated requests.",
+      "acceptanceCriteria": [
+        "Create src/lib/api.ts with fetch wrapper",
+        "Implement token storage in localStorage",
+        "Add Authorization header to requests automatically",
+        "Handle 401 responses by redirecting to login",
+        "Export typed API methods: get, post, put, delete",
+        "Typecheck passes"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-032",
+      "title": "Create Admin Dashboard routing structure",
+      "description": "As a developer, I need the app routing configured.",
+      "acceptanceCriteria": [
+        "Set up React Router in src/App.tsx",
+        "Create routes: /login, /dashboard, /walkers, /services, /bookings, /customers, /settings",
+        "Create placeholder page components for each route",
+        "Add protected route wrapper that redirects to /login if not authenticated",
+        "Typecheck passes",
+        "Verify in browser: navigation between routes works"
+      ],
+      "priority": 32,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-033",
+      "title": "Build Admin Dashboard login page",
+      "description": "As a tenant admin, I need to log in to the dashboard.",
+      "acceptanceCriteria": [
+        "Create src/pages/Login.tsx with email/password form",
+        "Style with Tailwind CSS",
+        "Call POST /auth/login on submit",
+        "Store JWT token on success",
+        "Redirect to /dashboard on success",
+        "Show error message on failure",
+        "Typecheck passes",
+        "Verify in browser: can log in with valid credentials"
+      ],
+      "priority": 33,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-034",
+      "title": "Build Admin Dashboard layout shell",
+      "description": "As a tenant admin, I need a consistent navigation layout.",
+      "acceptanceCriteria": [
+        "Create src/components/DashboardLayout.tsx",
+        "Add sidebar with navigation links to all main sections",
+        "Add header with company name and logout button",
+        "Wrap authenticated routes with layout",
+        "Logout clears token and redirects to login",
+        "Typecheck passes",
+        "Verify in browser: sidebar visible, logout works"
+      ],
+      "priority": 34,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-035",
+      "title": "Build Admin Dashboard home/overview page",
+      "description": "As a tenant admin, I need to see key metrics on the dashboard.",
+      "acceptanceCriteria": [
+        "Create src/pages/Dashboard.tsx",
+        "Display: today's booking count, this week's revenue, pending bookings count",
+        "Fetch data from API (create endpoints if needed)",
+        "Show loading state while fetching",
+        "Typecheck passes",
+        "Verify in browser: metrics display correctly"
+      ],
+      "priority": 35,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-036",
+      "title": "Build walker list page",
+      "description": "As a tenant admin, I need to see all my walkers.",
+      "acceptanceCriteria": [
+        "Create src/pages/Walkers.tsx",
+        "Fetch walkers from GET /users?role=walker",
+        "Display table with: name, email, phone, status (active/inactive)",
+        "Show loading and empty states",
+        "Typecheck passes",
+        "Verify in browser: walker list displays"
+      ],
+      "priority": 36,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-037",
+      "title": "Build add walker form",
+      "description": "As a tenant admin, I need to add new walkers to my team.",
+      "acceptanceCriteria": [
+        "Add 'Add Walker' button to Walkers page",
+        "Create modal or drawer with form: first_name, last_name, email, phone",
+        "Call POST /auth/register with role=walker",
+        "Close modal and refresh list on success",
+        "Show validation errors",
+        "Typecheck passes",
+        "Verify in browser: can add new walker"
+      ],
+      "priority": 37,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-038",
+      "title": "Build service list page",
+      "description": "As a tenant admin, I need to see and manage my services.",
+      "acceptanceCriteria": [
+        "Create src/pages/Services.tsx",
+        "Fetch services from GET /services",
+        "Display table with: name, duration, price, status",
+        "Format price as currency",
+        "Show loading and empty states",
+        "Typecheck passes",
+        "Verify in browser: service list displays"
+      ],
+      "priority": 38,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-039",
+      "title": "Build add/edit service form",
+      "description": "As a tenant admin, I need to create and edit services.",
+      "acceptanceCriteria": [
+        "Add 'Add Service' button to Services page",
+        "Create modal with form: name, description, duration_minutes, base_price_cents, is_active",
+        "Support both create (POST) and edit (PATCH) modes",
+        "Close modal and refresh list on success",
+        "Typecheck passes",
+        "Verify in browser: can add and edit services"
+      ],
+      "priority": 39,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-040",
+      "title": "Build booking list page",
+      "description": "As a tenant admin, I need to see all bookings.",
+      "acceptanceCriteria": [
+        "Create src/pages/Bookings.tsx",
+        "Create GET /bookings endpoint that returns all tenant bookings (admin only)",
+        "Display table with: date, time, customer, walker, service, status",
+        "Add status filter dropdown (all, pending, confirmed, completed, cancelled)",
+        "Typecheck passes",
+        "Verify in browser: booking list displays with filter"
+      ],
+      "priority": 40,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-041",
+      "title": "Build booking detail view",
+      "description": "As a tenant admin, I need to view and manage individual bookings.",
+      "acceptanceCriteria": [
+        "Add click handler to booking rows that opens detail modal",
+        "Show full booking details: customer info, walker, service, location, times, price, notes",
+        "Add action buttons: Confirm (if pending), Cancel, Mark Complete",
+        "Call appropriate API endpoints on action",
+        "Typecheck passes",
+        "Verify in browser: can view and update booking status"
+      ],
+      "priority": 41,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-042",
+      "title": "Build customer list page",
+      "description": "As a tenant admin, I need to see all my customers.",
+      "acceptanceCriteria": [
+        "Create src/pages/Customers.tsx",
+        "Fetch customers from GET /users?role=customer",
+        "Display table with: name, email, phone, booking count",
+        "Add search input that filters by name/email",
+        "Typecheck passes",
+        "Verify in browser: customer list displays with search"
+      ],
+      "priority": 42,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-043",
+      "title": "Build branding settings page",
+      "description": "As a tenant admin, I need to customize my business branding.",
+      "acceptanceCriteria": [
+        "Create src/pages/Settings.tsx with Branding tab",
+        "Fetch current branding from GET /admin/branding",
+        "Form fields: company_name, primary_color, secondary_color, accent_color, support_email, support_phone",
+        "Use color picker inputs for color fields",
+        "Save changes via PUT /admin/branding",
+        "Show success/error toast on save",
+        "Typecheck passes",
+        "Verify in browser: can update and save branding"
+      ],
+      "priority": 43,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-044",
+      "title": "Set up Customer Web React project",
+      "description": "As a developer, I need the frontend project for customer booking.",
+      "acceptanceCriteria": [
+        "Create /apps/customer-web directory",
+        "Initialize with Vite + React + TypeScript",
+        "Install dependencies: react-router-dom, @tanstack/react-query, tailwindcss",
+        "Configure Tailwind CSS",
+        "Create basic project structure",
+        "Typecheck passes",
+        "Verify in browser: shows default page"
+      ],
+      "priority": 44,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-045",
+      "title": "Implement dynamic theming for Customer Web",
+      "description": "As a developer, I need the customer UI to apply tenant branding dynamically.",
+      "acceptanceCriteria": [
+        "Create src/hooks/useBranding.ts hook",
+        "Fetch branding from GET /api/branding on app load",
+        "Create CSS variables from branding colors (--color-primary, etc.)",
+        "Apply CSS variables to document root",
+        "Create BrandingProvider context",
+        "Typecheck passes",
+        "Verify in browser: colors apply from API response"
+      ],
+      "priority": 45,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-046",
+      "title": "Build Customer Web registration page",
+      "description": "As a customer, I need to create an account.",
+      "acceptanceCriteria": [
+        "Create src/pages/Register.tsx",
+        "Form fields: first_name, last_name, email, phone, password, confirm_password",
+        "Validate password match",
+        "Call POST /auth/register on submit",
+        "Store JWT and redirect to home on success",
+        "Apply tenant branding to page",
+        "Typecheck passes",
+        "Verify in browser: can register new account"
+      ],
+      "priority": 46,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-047",
+      "title": "Build Customer Web login page",
+      "description": "As a customer, I need to log in to book services.",
+      "acceptanceCriteria": [
+        "Create src/pages/Login.tsx",
+        "Form fields: email, password",
+        "Call POST /auth/login on submit",
+        "Store JWT and redirect to home on success",
+        "Show error message on failure",
+        "Link to registration page",
+        "Apply tenant branding",
+        "Typecheck passes",
+        "Verify in browser: can log in"
+      ],
+      "priority": 47,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-048",
+      "title": "Build Customer Web service listing",
+      "description": "As a customer, I need to browse available services.",
+      "acceptanceCriteria": [
+        "Create src/pages/Services.tsx as home page for logged-in users",
+        "Fetch services from GET /services",
+        "Display service cards with: name, description, duration, price",
+        "Style cards with tenant branding colors",
+        "Click card to start booking flow",
+        "Typecheck passes",
+        "Verify in browser: service cards display"
+      ],
+      "priority": 48,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-049",
+      "title": "Build Customer Web location management",
+      "description": "As a customer, I need to save my locations for booking.",
+      "acceptanceCriteria": [
+        "Create src/pages/Locations.tsx",
+        "List saved locations from GET /locations",
+        "Add location form with: name, address, city, state, zip, notes",
+        "Save via POST /locations",
+        "Mark location as default",
+        "Edit and delete existing locations",
+        "Typecheck passes",
+        "Verify in browser: can add/edit/delete locations"
+      ],
+      "priority": 49,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-050",
+      "title": "Build Customer Web date/time selection",
+      "description": "As a customer, I need to pick a date and time for my booking.",
+      "acceptanceCriteria": [
+        "Create src/pages/BookingDateTime.tsx",
+        "Date picker showing next 14 days",
+        "Fetch availability from GET /availability/:walker_id?date=X&service_id=Y&location_id=Z",
+        "Display available time slots for selected date",
+        "Select slot to proceed to confirmation",
+        "Show message if no slots available",
+        "Typecheck passes",
+        "Verify in browser: can select date and time slot"
+      ],
+      "priority": 50,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-051",
+      "title": "Build Customer Web booking confirmation",
+      "description": "As a customer, I need to review and confirm my booking.",
+      "acceptanceCriteria": [
+        "Create src/pages/BookingConfirmation.tsx",
+        "Display summary: service, date, time, location, price",
+        "Add notes text field",
+        "Confirm button creates booking via POST /bookings",
+        "Show success page with booking details",
+        "Typecheck passes",
+        "Verify in browser: can complete booking"
+      ],
+      "priority": 51,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-052",
+      "title": "Build Customer Web booking history",
+      "description": "As a customer, I need to view my bookings.",
+      "acceptanceCriteria": [
+        "Create src/pages/MyBookings.tsx",
+        "Fetch bookings from GET /bookings (customer's own)",
+        "Separate tabs: Upcoming, Past",
+        "Show booking details: service, date, time, status",
+        "Add cancel button for pending/confirmed bookings",
+        "Typecheck passes",
+        "Verify in browser: can view and cancel bookings"
+      ],
+      "priority": 52,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-053",
+      "title": "Set up iOS Xcode project",
+      "description": "As a developer, I need the iOS project structure.",
+      "acceptanceCriteria": [
+        "Create /apps/ios directory",
+        "Create Xcode project with SwiftUI App template",
+        "Set minimum deployment target to iOS 16.0",
+        "Create folder structure: Views, Models, Services, Utilities",
+        "Configure app icon placeholder",
+        "App builds successfully in Xcode"
+      ],
+      "priority": 53,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-054",
+      "title": "Create iOS API client",
+      "description": "As a developer, I need a network layer for API calls.",
+      "acceptanceCriteria": [
+        "Create Services/APIClient.swift",
+        "Implement generic request method with async/await",
+        "Support GET, POST, PUT, DELETE methods",
+        "Handle JSON encoding/decoding",
+        "Store auth token in Keychain",
+        "Add token to Authorization header automatically",
+        "App builds successfully"
+      ],
+      "priority": 54,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-055",
+      "title": "Create iOS branding service",
+      "description": "As a developer, I need to fetch and cache tenant branding.",
+      "acceptanceCriteria": [
+        "Create Services/BrandingService.swift",
+        "Fetch branding from GET /api/branding",
+        "Create BrandingConfig model with colors, logo_url, company_name",
+        "Cache branding in UserDefaults for offline access",
+        "Create @Published wrapper for SwiftUI reactivity",
+        "App builds successfully"
+      ],
+      "priority": 55,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-056",
+      "title": "Create iOS dynamic theming",
+      "description": "As a developer, I need UI components to use tenant colors.",
+      "acceptanceCriteria": [
+        "Create Utilities/Theme.swift with Color extensions",
+        "Convert hex strings to SwiftUI Color",
+        "Create ThemeManager ObservableObject",
+        "Expose primary, secondary, accent colors from branding",
+        "Inject via EnvironmentObject",
+        "App builds successfully"
+      ],
+      "priority": 56,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-057",
+      "title": "Build iOS login screen",
+      "description": "As a customer, I need to log in via the iOS app.",
+      "acceptanceCriteria": [
+        "Create Views/LoginView.swift with SwiftUI",
+        "Email and password text fields",
+        "Login button calls POST /auth/login",
+        "Store token in Keychain on success",
+        "Navigate to home on success",
+        "Show error alert on failure",
+        "Apply tenant branding colors",
+        "App builds successfully",
+        "Verify on simulator: can log in"
+      ],
+      "priority": 57,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-058",
+      "title": "Build iOS registration screen",
+      "description": "As a customer, I need to create an account via iOS app.",
+      "acceptanceCriteria": [
+        "Create Views/RegisterView.swift",
+        "Form fields: first name, last name, email, phone, password",
+        "Validate required fields",
+        "Call POST /auth/register on submit",
+        "Navigate to home on success",
+        "Link to login screen",
+        "App builds successfully",
+        "Verify on simulator: can register"
+      ],
+      "priority": 58,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-059",
+      "title": "Build iOS service list",
+      "description": "As a customer, I need to browse services in the app.",
+      "acceptanceCriteria": [
+        "Create Views/ServicesView.swift",
+        "Fetch services from GET /services",
+        "Display as List with service name, duration, price",
+        "Pull-to-refresh functionality",
+        "Loading and error states",
+        "Tap service to start booking",
+        "App builds successfully",
+        "Verify on simulator: services display"
+      ],
+      "priority": 59,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-060",
+      "title": "Build iOS location selection",
+      "description": "As a customer, I need to select a location for my booking.",
+      "acceptanceCriteria": [
+        "Create Views/LocationSelectionView.swift",
+        "Fetch locations from GET /locations",
+        "Display as selectable list",
+        "Add new location button (links to add form)",
+        "Select location to continue booking flow",
+        "App builds successfully",
+        "Verify on simulator: can select location"
+      ],
+      "priority": 60,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-061",
+      "title": "Build iOS add location form",
+      "description": "As a customer, I need to add new locations in the app.",
+      "acceptanceCriteria": [
+        "Create Views/AddLocationView.swift",
+        "Form fields: name, address, city, state, zip, notes",
+        "Save via POST /locations",
+        "Dismiss and refresh list on success",
+        "Show validation errors",
+        "App builds successfully",
+        "Verify on simulator: can add location"
+      ],
+      "priority": 61,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-062",
+      "title": "Build iOS date picker",
+      "description": "As a customer, I need to select a date for my booking.",
+      "acceptanceCriteria": [
+        "Create Views/DateSelectionView.swift",
+        "Show next 14 days as selectable list or calendar",
+        "Highlight dates with availability (optional enhancement)",
+        "Select date to fetch time slots",
+        "App builds successfully",
+        "Verify on simulator: can select date"
+      ],
+      "priority": 62,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-063",
+      "title": "Build iOS time slot selection",
+      "description": "As a customer, I need to pick an available time slot.",
+      "acceptanceCriteria": [
+        "Create Views/TimeSlotSelectionView.swift",
+        "Fetch slots from GET /availability/:walker_id",
+        "Display available slots as buttons/list",
+        "Show slot start time and duration",
+        "Select slot to proceed to confirmation",
+        "Show empty state if no slots",
+        "App builds successfully",
+        "Verify on simulator: can select time slot"
+      ],
+      "priority": 63,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-064",
+      "title": "Build iOS booking confirmation",
+      "description": "As a customer, I need to confirm my booking in the app.",
+      "acceptanceCriteria": [
+        "Create Views/BookingConfirmationView.swift",
+        "Display summary: service, date, time, location, price",
+        "Notes text field",
+        "Confirm button calls POST /bookings",
+        "Show success view with booking details",
+        "Navigate back to home/bookings",
+        "App builds successfully",
+        "Verify on simulator: can complete booking"
+      ],
+      "priority": 64,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-065",
+      "title": "Build iOS bookings list",
+      "description": "As a customer, I need to view my bookings in the app.",
+      "acceptanceCriteria": [
+        "Create Views/MyBookingsView.swift",
+        "Fetch bookings from GET /bookings",
+        "Segment control: Upcoming / Past",
+        "Show booking cards with service, date, time, status",
+        "Pull-to-refresh",
+        "App builds successfully",
+        "Verify on simulator: bookings display"
+      ],
+      "priority": 65,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-066",
+      "title": "Build iOS booking detail and cancellation",
+      "description": "As a customer, I need to view details and cancel bookings.",
+      "acceptanceCriteria": [
+        "Create Views/BookingDetailView.swift",
+        "Show full booking details",
+        "Cancel button for pending/confirmed bookings",
+        "Confirmation alert before cancellation",
+        "Call POST /bookings/:id/cancel",
+        "Update UI on success",
+        "App builds successfully",
+        "Verify on simulator: can view and cancel"
+      ],
+      "priority": 66,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-067",
+      "title": "Implement iOS biometric authentication",
+      "description": "As a customer, I want to use Face ID/Touch ID to log in.",
+      "acceptanceCriteria": [
+        "Create Utilities/BiometricAuth.swift",
+        "Check device biometric capability",
+        "Store flag in UserDefaults if user enabled biometrics",
+        "On app launch, prompt biometric if token exists and biometrics enabled",
+        "Fall back to password if biometric fails",
+        "App builds successfully",
+        "Verify on simulator: biometric prompt appears"
+      ],
+      "priority": 67,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-068",
+      "title": "Implement iOS push notification registration",
+      "description": "As a customer, I want to receive push notifications.",
+      "acceptanceCriteria": [
+        "Request notification permission on first login",
+        "Register for remote notifications",
+        "Send device token to backend via POST /users/device-token",
+        "Create backend endpoint to store device tokens",
+        "App builds successfully"
+      ],
+      "priority": 68,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-069",
+      "title": "Create platform admin web dashboard project",
+      "description": "As a developer, I need a separate dashboard for platform admins.",
+      "acceptanceCriteria": [
+        "Create /apps/platform-admin directory",
+        "Initialize with Vite + React + TypeScript",
+        "Configure Tailwind CSS",
+        "Set up routing: /login, /tenants, /tenants/:id",
+        "Typecheck passes",
+        "Verify in browser: shows default page"
+      ],
+      "priority": 69,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-070",
+      "title": "Build platform admin login",
+      "description": "As a platform admin, I need to log in to manage tenants.",
+      "acceptanceCriteria": [
+        "Create login page calling POST /platform/auth/login",
+        "Store platform admin JWT",
+        "Redirect to tenant list on success",
+        "Different styling from tenant admin dashboard",
+        "Typecheck passes",
+        "Verify in browser: can log in as platform admin"
+      ],
+      "priority": 70,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-071",
+      "title": "Build platform admin tenant list",
+      "description": "As a platform admin, I need to see all tenants.",
+      "acceptanceCriteria": [
+        "Create tenant list page",
+        "Fetch tenants from GET /admin/tenants",
+        "Display table: name, slug, subscription tier, status, created date",
+        "Add 'Create Tenant' button",
+        "Click row to view details",
+        "Typecheck passes",
+        "Verify in browser: tenant list displays"
+      ],
+      "priority": 71,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-072",
+      "title": "Build platform admin create tenant form",
+      "description": "As a platform admin, I need to create new tenants.",
+      "acceptanceCriteria": [
+        "Create tenant form modal/page",
+        "Fields: name, slug, admin_email, admin_password, subscription_tier",
+        "Validate slug is lowercase alphanumeric with hyphens",
+        "Call POST /admin/tenants on submit",
+        "Refresh list on success",
+        "Typecheck passes",
+        "Verify in browser: can create tenant"
+      ],
+      "priority": 72,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-073",
+      "title": "Build platform admin tenant detail page",
+      "description": "As a platform admin, I need to view and edit tenant details.",
+      "acceptanceCriteria": [
+        "Create tenant detail page",
+        "Fetch tenant from GET /admin/tenants/:id",
+        "Show: name, slug, domains, subscription tier, branding preview",
+        "Edit form for updatable fields",
+        "Save via PATCH /admin/tenants/:id",
+        "Deactivate button (soft delete)",
+        "Typecheck passes",
+        "Verify in browser: can view and edit tenant"
+      ],
+      "priority": 73,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-074",
+      "title": "Add Stripe dependency and config",
+      "description": "As a developer, I need Stripe SDK configured for billing.",
+      "acceptanceCriteria": [
+        "Add stripe-rust crate to Cargo.toml",
+        "Add STRIPE_SECRET_KEY to environment variables",
+        "Create StripeClient in crates/integrations/src/stripe/",
+        "Initialize client in AppState",
+        "Typecheck passes"
+      ],
+      "priority": 74,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-075",
+      "title": "Create Stripe customer on tenant creation",
+      "description": "As a platform admin, I need tenants linked to Stripe customers.",
+      "acceptanceCriteria": [
+        "On POST /admin/tenants, create Stripe customer",
+        "Store stripe_customer_id in organization_settings",
+        "Use tenant admin email as Stripe customer email",
+        "Handle Stripe API errors gracefully",
+        "Typecheck passes"
+      ],
+      "priority": 75,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-076",
+      "title": "Create subscription plans in Stripe",
+      "description": "As a developer, I need subscription products configured.",
+      "acceptanceCriteria": [
+        "Document Stripe product/price IDs to create manually in Stripe dashboard",
+        "Create Products: Starter, Growth, Scale",
+        "Create monthly Prices: $49, $99, $199",
+        "Store price IDs in environment variables",
+        "Typecheck passes"
+      ],
+      "priority": 76,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-077",
+      "title": "Create subscription checkout endpoint",
+      "description": "As a tenant admin, I need to subscribe to a plan.",
+      "acceptanceCriteria": [
+        "Create POST /admin/billing/checkout endpoint",
+        "Accept price_id parameter",
+        "Create Stripe Checkout Session",
+        "Return checkout URL for redirect",
+        "Set success and cancel URLs",
+        "Typecheck passes"
+      ],
+      "priority": 77,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-078",
+      "title": "Handle Stripe webhooks",
+      "description": "As a developer, I need to process subscription events.",
+      "acceptanceCriteria": [
+        "Create POST /webhooks/stripe endpoint",
+        "Verify webhook signature",
+        "Handle checkout.session.completed: activate subscription",
+        "Handle customer.subscription.updated: update tier",
+        "Handle customer.subscription.deleted: deactivate tenant",
+        "Typecheck passes"
+      ],
+      "priority": 78,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-079",
+      "title": "Build tenant billing page",
+      "description": "As a tenant admin, I need to manage my subscription.",
+      "acceptanceCriteria": [
+        "Create billing tab in admin dashboard settings",
+        "Show current plan and status",
+        "Create POST /admin/billing/portal endpoint returning Stripe portal URL",
+        "Add 'Manage Billing' button linking to Stripe portal",
+        "Typecheck passes",
+        "Verify in browser: can access billing management"
+      ],
+      "priority": 79,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-080",
+      "title": "Add usage tracking tables",
+      "description": "As a platform admin, I need to track tenant usage.",
+      "acceptanceCriteria": [
+        "Create migration for tenant_usage table: org_id, month, booking_count, customer_count, api_calls",
+        "Add unique constraint on (org_id, month)",
+        "Migration runs successfully",
+        "Typecheck passes"
+      ],
+      "priority": 80,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-081",
+      "title": "Implement usage tracking middleware",
+      "description": "As a developer, I need to count API calls per tenant.",
+      "acceptanceCriteria": [
+        "Create Axum middleware that increments api_calls counter",
+        "Increment on each authenticated request",
+        "Batch updates (don't hit DB on every request)",
+        "Typecheck passes"
+      ],
+      "priority": 81,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-082",
+      "title": "Track booking and customer counts",
+      "description": "As a developer, I need to track booking and customer metrics.",
+      "acceptanceCriteria": [
+        "Increment booking_count on POST /bookings success",
+        "Increment customer_count on new customer registration",
+        "Update tenant_usage table for current month",
+        "Typecheck passes"
+      ],
+      "priority": 82,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-083",
+      "title": "Add usage metrics to platform admin dashboard",
+      "description": "As a platform admin, I need to see tenant usage.",
+      "acceptanceCriteria": [
+        "Create GET /admin/tenants/:id/usage endpoint",
+        "Return usage for last 12 months",
+        "Display usage chart on tenant detail page",
+        "Show current month totals",
+        "Typecheck passes",
+        "Verify in browser: usage metrics display"
+      ],
+      "priority": 83,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

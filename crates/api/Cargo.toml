@@ -1,0 +1,34 @@
+[package]
+name = "api"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "api"
+path = "src/main.rs"
+
+[dependencies]
+shared = { path = "../shared" }
+domain = { path = "../domain" }
+db = { path = "../db" }
+integrations = { path = "../integrations" }
+
+axum = { workspace = true }
+chrono = { workspace = true }
+dotenvy = { workspace = true }
+jsonwebtoken = { workspace = true }
+argon2 = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+uuid = { workspace = true }
+validator = { workspace = true }
+
+[dev-dependencies]
+reqwest = { workspace = true }
