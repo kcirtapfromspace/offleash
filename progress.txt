@@ -203,3 +203,26 @@
 - **Learnings for future iterations:**
 - Story completed successfully via automated execution
 ---
+
+## 2026-01-18 10:04 - US-016
+- **What was implemented**: Update remaining repositories for multi-tenancy
+- **Files changed**:
+  - rates/api/src/routes/availability.rs
+  - rates/api/src/routes/blocks.rs
+  - rates/api/src/routes/bookings.rs
+  - rates/api/src/routes/locations.rs
+  - rates/db/src/models/block.rs
+  - rates/db/src/models/booking.rs
+  - rates/db/src/models/location.rs
+  - rates/db/src/models/payment.rs
+  - rates/db/src/repositories/block_repo.rs
+  - rates/db/src/repositories/booking_repo.rs
+  - rates/db/src/repositories/location_repo.rs
+  - rates/db/src/repositories/mod.rs
+  - rogress.txt
+  - alph/prd.json
+  - crates/db/src/repositories/payment_repo.rs
+- **Iterations used**: 1
+- **Learnings for future iterations:**
+- Story completed successfully via automated execution
+---

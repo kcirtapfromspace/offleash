@@ -232,7 +232,7 @@
       "description": "As a developer, I need all repositories scoped to organization.",
       "id": "US-016",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 16,
       "title": "Update remaining repositories for multi-tenancy"
     },
