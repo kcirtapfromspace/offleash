@@ -55,7 +55,11 @@ pub async fn register(
     let salt = SaltString::generate(&mut OsRng);
     let password_hash = Argon2::default()
         .hash_password(req.password.as_bytes(), &salt)
-        .map_err(|_| ApiError::from(shared::AppError::Internal("Password hashing failed".to_string())))?
+        .map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Password hashing failed".to_string(),
+            ))
+        })?
         .to_string();
 
     // Determine role
@@ -81,8 +85,11 @@ pub async fn register(
     .await?;
 
     // Create token
-    let token = create_token(user.id, &state.jwt_secret)
-        .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
+    let token = create_token(user.id, &state.jwt_secret).map_err(|_| {
+        ApiError::from(shared::AppError::Internal(
+            "Token creation failed".to_string(),
+        ))
+    })?;
 
     Ok(Json(AuthResponse {
         token,
@@ -120,8 +127,11 @@ pub async fn login(
         .map_err(|_| ApiError::from(DomainError::InvalidCredentials))?;
 
     // Create token
-    let token = create_token(user.id, &state.jwt_secret)
-        .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
+    let token = create_token(user.id, &state.jwt_secret).map_err(|_| {
+        ApiError::from(shared::AppError::Internal(
+            "Token creation failed".to_string(),
+        ))
+    })?;
 
     Ok(Json(AuthResponse {
         token,

@@ -1,11 +1,11 @@
-mod user_repo;
-mod service_repo;
-mod location_repo;
-mod booking_repo;
 mod block_repo;
+mod booking_repo;
+mod location_repo;
+mod service_repo;
+mod user_repo;
 
-pub use user_repo::UserRepository;
-pub use service_repo::ServiceRepository;
-pub use location_repo::LocationRepository;
-pub use booking_repo::BookingRepository;
 pub use block_repo::BlockRepository;
+pub use booking_repo::BookingRepository;
+pub use location_repo::LocationRepository;
+pub use service_repo::ServiceRepository;
+pub use user_repo::UserRepository;

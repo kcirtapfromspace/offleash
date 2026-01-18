@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use shared::types::{BookingId, BlockId, DurationMinutes, LocationId};
+use shared::types::{BlockId, BookingId, DurationMinutes, LocationId};
 
 /// An available time slot that can be booked
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,7 +22,11 @@ impl AvailableSlot {
         }
     }
 
-    pub fn with_travel(mut self, travel_minutes: DurationMinutes, confidence: SlotConfidence) -> Self {
+    pub fn with_travel(
+        mut self,
+        travel_minutes: DurationMinutes,
+        confidence: SlotConfidence,
+    ) -> Self {
         self.travel_from_previous = Some(travel_minutes);
         self.confidence = confidence;
         self

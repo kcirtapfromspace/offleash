@@ -81,7 +81,7 @@ impl GoogleMapsClient {
             .ok_or_else(|| GoogleMapsError::Api("No distance in response".to_string()))?;
 
         Ok(TravelTimeResult {
-            duration_minutes: (duration.value / 60) as i32,
+            duration_minutes: duration.value / 60,
             distance_meters: distance.value,
         })
     }
@@ -128,11 +128,13 @@ struct DistanceMatrixElement {
 #[derive(Debug, Deserialize)]
 struct DurationValue {
     value: i32, // seconds
+    #[allow(dead_code)]
     text: String,
 }
 
 #[derive(Debug, Deserialize)]
 struct DistanceValue {
     value: i32, // meters
+    #[allow(dead_code)]
     text: String,
 }

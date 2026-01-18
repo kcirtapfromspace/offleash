@@ -61,7 +61,11 @@ pub async fn create_booking(
 
     // Parse start time
     let start_time = DateTime::parse_from_rfc3339(&req.start_time)
-        .map_err(|_| ApiError::from(AppError::Validation("Invalid start time format".to_string())))?
+        .map_err(|_| {
+            ApiError::from(AppError::Validation(
+                "Invalid start time format".to_string(),
+            ))
+        })?
         .with_timezone(&chrono::Utc);
 
     // Verify walker exists
@@ -70,7 +74,9 @@ pub async fn create_booking(
         .ok_or_else(|| ApiError::from(DomainError::WalkerNotFound(req.walker_id.clone())))?;
 
     if !walker.is_walker() {
-        return Err(ApiError::from(DomainError::WalkerNotFound(req.walker_id.clone())));
+        return Err(ApiError::from(DomainError::WalkerNotFound(
+            req.walker_id.clone(),
+        )));
     }
 
     // Get service for duration and price
