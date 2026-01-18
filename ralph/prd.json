@@ -71,7 +71,7 @@
       "description": "As a developer, I need users scoped to organizations for multi-tenancy.",
       "id": "US-005",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 5,
       "title": "Add organization_id to users table"
     },
