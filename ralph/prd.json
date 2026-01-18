@@ -410,7 +410,7 @@
       "description": "As a developer, I need to resolve tenant from subdomain.",
       "id": "US-028",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 28,
       "title": "Implement subdomain tenant lookup"
     },
