@@ -82,7 +82,7 @@ pub async fn get_availability(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid location ID".to_string())))?;
 
-    let _location = LocationRepository::find_by_id(&state.pool, location_id)
+    let _location = LocationRepository::find_by_id(&tenant.pool, tenant.org_id, location_id)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::LocationNotFound(query.location_id.clone())))?;
 
@@ -105,7 +105,8 @@ pub async fn get_availability(
 
     // Load existing bookings
     let bookings = BookingRepository::find_by_walker_in_range(
-        &state.pool,
+        &tenant.pool,
+        tenant.org_id,
         walker_id_parsed,
         start_of_day,
         end_of_day,
@@ -119,7 +120,8 @@ pub async fn get_availability(
 
     // Load blocks
     let blocks = BlockRepository::find_by_walker_in_range(
-        &state.pool,
+        &tenant.pool,
+        tenant.org_id,
         walker_id_parsed,
         start_of_day,
         end_of_day,

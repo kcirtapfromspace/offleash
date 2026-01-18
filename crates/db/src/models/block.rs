@@ -1,12 +1,13 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use shared::types::{BlockId, UserId};
+use shared::types::{BlockId, OrganizationId, UserId};
 use sqlx::FromRow;
 
 /// Calendar block database model (for lunch, personal time, etc.)
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Block {
     pub id: BlockId,
+    pub organization_id: Option<OrganizationId>,
     pub walker_id: UserId,
     pub reason: String,
     pub start_time: DateTime<Utc>,
@@ -26,6 +27,7 @@ impl Block {
 /// Input for creating a new block
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateBlock {
+    pub organization_id: OrganizationId,
     pub walker_id: UserId,
     pub reason: String,
     pub start_time: DateTime<Utc>,
