@@ -4,7 +4,7 @@ use axum::{
 };
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
-use shared::types::{OrganizationId, UserId};
+use shared::types::{OrganizationId, PlatformAdminId, UserId};
 use sqlx::PgPool;
 use std::future::Future;
 
@@ -13,10 +13,11 @@ use crate::state::AppState;
 /// JWT claims
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String,            // User ID
-    pub org_id: Option<String>, // Organization ID
-    pub exp: usize,             // Expiration time
-    pub iat: usize,             // Issued at
+    pub sub: String,                  // User ID or Platform Admin ID
+    pub org_id: Option<String>,       // Organization ID (None for platform admins)
+    pub platform_admin: Option<bool>, // True if this is a platform admin token
+    pub exp: usize,                   // Expiration time
+    pub iat: usize,                   // Issued at
 }
 
 impl Claims {
@@ -25,6 +26,18 @@ impl Claims {
         Self {
             sub: user_id.to_string(),
             org_id: org_id.map(|id| id.to_string()),
+            platform_admin: None,
+            exp: (now + chrono::Duration::hours(expires_in_hours)).timestamp() as usize,
+            iat: now.timestamp() as usize,
+        }
+    }
+
+    pub fn new_platform_admin(admin_id: PlatformAdminId, expires_in_hours: i64) -> Self {
+        let now = chrono::Utc::now();
+        Self {
+            sub: admin_id.to_string(),
+            org_id: None,
+            platform_admin: Some(true),
             exp: (now + chrono::Duration::hours(expires_in_hours)).timestamp() as usize,
             iat: now.timestamp() as usize,
         }
@@ -37,6 +50,18 @@ impl Claims {
     pub fn org_id(&self) -> Option<OrganizationId> {
         self.org_id.as_ref().and_then(|id| id.parse().ok())
     }
+
+    pub fn is_platform_admin(&self) -> bool {
+        self.platform_admin.unwrap_or(false)
+    }
+
+    pub fn platform_admin_id(&self) -> Option<PlatformAdminId> {
+        if self.is_platform_admin() {
+            self.sub.parse().ok()
+        } else {
+            None
+        }
+    }
 }
 
 /// Create a JWT token
@@ -46,6 +71,19 @@ pub fn create_token(
     secret: &str,
 ) -> Result<String, jsonwebtoken::errors::Error> {
     let claims = Claims::new(user_id, org_id, 24); // 24 hour expiry
+    encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(secret.as_bytes()),
+    )
+}
+
+/// Create a JWT token for platform admin
+pub fn create_platform_admin_token(
+    admin_id: PlatformAdminId,
+    secret: &str,
+) -> Result<String, jsonwebtoken::errors::Error> {
+    let claims = Claims::new_platform_admin(admin_id, 24); // 24 hour expiry
     encode(
         &Header::default(),
         &claims,
@@ -158,5 +196,55 @@ impl FromRequestParts<AppState> for TenantContext {
 
             Ok(TenantContext { org_id, pool })
         })
+    }
+}
+
+/// Extractor for platform admin authentication
+pub struct PlatformAdminAuth {
+    pub admin_id: PlatformAdminId,
+}
+
+impl FromRequestParts<AppState> for PlatformAdminAuth {
+    type Rejection = (StatusCode, &'static str);
+
+    fn from_request_parts<'life0, 'life1, 'async_trait>(
+        parts: &'life0 mut Parts,
+        state: &'life1 AppState,
+    ) -> std::pin::Pin<Box<dyn Future<Output = Result<Self, Self::Rejection>> + Send + 'async_trait>>
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        Self: 'async_trait,
+    {
+        let auth_result = (|| {
+            let auth_header = parts
+                .headers
+                .get(AUTHORIZATION)
+                .and_then(|h| h.to_str().ok())
+                .ok_or((StatusCode::UNAUTHORIZED, "Missing authorization header"))?;
+
+            let token = auth_header
+                .strip_prefix("Bearer ")
+                .ok_or((StatusCode::UNAUTHORIZED, "Invalid authorization header"))?;
+
+            let claims = verify_token(token, &state.jwt_secret)
+                .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token"))?;
+
+            // Verify this is a platform admin token
+            if !claims.is_platform_admin() {
+                return Err((
+                    StatusCode::UNAUTHORIZED,
+                    "Token is not a platform admin token",
+                ));
+            }
+
+            let admin_id = claims
+                .platform_admin_id()
+                .ok_or((StatusCode::UNAUTHORIZED, "Invalid admin ID in token"))?;
+
+            Ok(PlatformAdminAuth { admin_id })
+        })();
+
+        Box::pin(std::future::ready(auth_result))
     }
 }

@@ -28,6 +28,11 @@ pub fn create_app(state: AppState) -> Router {
         // Auth routes
         .route("/auth/register", post(routes::auth::register))
         .route("/auth/login", post(routes::auth::login))
+        // Platform admin auth routes
+        .route(
+            "/platform/auth/login",
+            post(routes::platform_auth::platform_login),
+        )
         // Service routes
         .route("/services", get(routes::services::list_services))
         .route("/services/:id", get(routes::services::get_service))
