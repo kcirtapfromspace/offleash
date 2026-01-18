@@ -24,6 +24,8 @@ pub struct Organization {
     pub id: OrganizationId,
     pub name: String,
     pub slug: String,
+    pub subdomain: String,
+    pub custom_domain: Option<String>,
     pub settings: sqlx::types::Json<OrganizationSettings>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -34,6 +36,8 @@ pub struct Organization {
 pub struct CreateOrganization {
     pub name: String,
     pub slug: String,
+    pub subdomain: Option<String>,
+    pub custom_domain: Option<String>,
     pub settings: Option<OrganizationSettings>,
 }
 
@@ -42,5 +46,6 @@ pub struct CreateOrganization {
 pub struct UpdateOrganization {
     pub name: Option<String>,
     pub slug: Option<String>,
+    pub custom_domain: Option<String>,
     pub settings: Option<OrganizationSettings>,
 }

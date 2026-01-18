@@ -60,6 +60,9 @@ pub enum DomainError {
     #[error("Organization slug already exists: {0}")]
     SlugAlreadyExists(String),
 
+    #[error("Tenant not found: {0}")]
+    TenantNotFound(String),
+
     #[error("Invalid token")]
     InvalidToken,
 
