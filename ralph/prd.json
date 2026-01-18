@@ -260,7 +260,7 @@
       "description": "As a developer, I need service endpoints to use tenant context.",
       "id": "US-018",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 18,
       "title": "Update service routes for multi-tenancy"
     },

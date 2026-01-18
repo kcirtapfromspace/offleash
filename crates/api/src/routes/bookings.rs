@@ -39,7 +39,7 @@ pub struct BookingResponse {
 }
 
 pub async fn create_booking(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     tenant: TenantContext,
     auth: AuthUser,
     Json(req): Json<CreateBookingRequest>,
@@ -70,7 +70,7 @@ pub async fn create_booking(
         .with_timezone(&chrono::Utc);
 
     // Verify walker exists within this organization
-    let walker = UserRepository::find_by_id(&state.pool, tenant.org_id, walker_id)
+    let walker = UserRepository::find_by_id(&tenant.pool, tenant.org_id, walker_id)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::WalkerNotFound(req.walker_id.clone())))?;
 
