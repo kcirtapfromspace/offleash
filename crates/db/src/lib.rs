@@ -1,8 +1,10 @@
 pub mod models;
 pub mod repositories;
+pub mod tenant_pool;
 
 pub use models::*;
 pub use repositories::*;
+pub use tenant_pool::*;
 
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
