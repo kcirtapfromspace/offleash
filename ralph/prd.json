@@ -157,7 +157,7 @@
       "description": "As a developer, I need to route database queries to the correct tenant database.",
       "id": "US-011",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 11,
       "title": "Implement tenant connection pool manager"
     },
