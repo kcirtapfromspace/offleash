@@ -259,3 +259,14 @@
 - **Learnings for future iterations:**
 - Story completed successfully via automated execution
 ---
+
+## 2026-01-18 10:14 - US-020
+- **What was implemented**: Update remaining routes for multi-tenancy
+- **Files changed**:
+  - rates/api/src/routes/availability.rs
+  - rogress.txt
+  - alph/prd.json
+- **Iterations used**: 1
+- **Learnings for future iterations:**
+- Story completed successfully via automated execution
+---
