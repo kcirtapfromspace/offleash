@@ -50,8 +50,8 @@ impl AppError {
                 | DomainError::BookingNotFound(_) => 404, // Not Found
                 DomainError::InvalidCredentials | DomainError::InvalidToken => 401, // Unauthorized
                 DomainError::TokenExpired => 401,
-                DomainError::EmailAlreadyExists => 409, // Conflict
-                _ => 400,                               // Bad Request
+                DomainError::EmailAlreadyExists | DomainError::SlugAlreadyExists(_) => 409, // Conflict
+                _ => 400, // Bad Request
             },
             AppError::Database(_) | AppError::Internal(_) => 500, // Internal Server Error
             AppError::ExternalApi(_) => 503,                      // Service Unavailable
@@ -80,6 +80,7 @@ impl AppError {
                 DomainError::InvalidToken => "INVALID_TOKEN",
                 DomainError::TokenExpired => "TOKEN_EXPIRED",
                 DomainError::EmailAlreadyExists => "EMAIL_EXISTS",
+                DomainError::SlugAlreadyExists(_) => "SLUG_EXISTS",
                 _ => "DOMAIN_ERROR",
             },
             AppError::Database(_) => "DATABASE_ERROR",

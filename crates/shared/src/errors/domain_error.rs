@@ -57,6 +57,9 @@ pub enum DomainError {
     #[error("Organization not found: {0}")]
     OrganizationNotFound(String),
 
+    #[error("Organization slug already exists: {0}")]
+    SlugAlreadyExists(String),
+
     #[error("Invalid token")]
     InvalidToken,
 
