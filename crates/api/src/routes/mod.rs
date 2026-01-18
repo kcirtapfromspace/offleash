@@ -1,3 +1,4 @@
+pub mod admin_tenants;
 pub mod auth;
 pub mod availability;
 pub mod blocks;
