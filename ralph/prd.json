@@ -86,7 +86,7 @@
       "description": "As a developer, I need services scoped to organizations.",
       "id": "US-006",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 6,
       "title": "Add organization_id to services table"
     },
