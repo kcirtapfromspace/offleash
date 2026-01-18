@@ -31,7 +31,10 @@ impl LocationRepository {
         .await
     }
 
-    pub async fn find_by_id(pool: &PgPool, id: LocationId) -> Result<Option<Location>, sqlx::Error> {
+    pub async fn find_by_id(
+        pool: &PgPool,
+        id: LocationId,
+    ) -> Result<Option<Location>, sqlx::Error> {
         sqlx::query_as::<_, Location>(
             r#"
             SELECT id, user_id, name, address, city, state, zip_code, latitude, longitude, notes, is_default, created_at, updated_at
@@ -44,7 +47,10 @@ impl LocationRepository {
         .await
     }
 
-    pub async fn find_by_user(pool: &PgPool, user_id: UserId) -> Result<Vec<Location>, sqlx::Error> {
+    pub async fn find_by_user(
+        pool: &PgPool,
+        user_id: UserId,
+    ) -> Result<Vec<Location>, sqlx::Error> {
         sqlx::query_as::<_, Location>(
             r#"
             SELECT id, user_id, name, address, city, state, zip_code, latitude, longitude, notes, is_default, created_at, updated_at

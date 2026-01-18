@@ -8,7 +8,9 @@ pub struct UserRepository;
 impl UserRepository {
     pub async fn create(pool: &PgPool, input: CreateUser) -> Result<User, sqlx::Error> {
         let id = UserId::new();
-        let timezone = input.timezone.unwrap_or_else(|| "America/Denver".to_string());
+        let timezone = input
+            .timezone
+            .unwrap_or_else(|| "America/Denver".to_string());
 
         sqlx::query_as::<_, User>(
             r#"
@@ -20,7 +22,7 @@ impl UserRepository {
         .bind(id.as_uuid())
         .bind(&input.email)
         .bind(&input.password_hash)
-        .bind(&input.role)
+        .bind(input.role)
         .bind(&input.first_name)
         .bind(&input.last_name)
         .bind(&input.phone)

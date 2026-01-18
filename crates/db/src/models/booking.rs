@@ -64,7 +64,10 @@ impl Booking {
     }
 
     pub fn can_cancel(&self) -> bool {
-        matches!(self.status, BookingStatus::Pending | BookingStatus::Confirmed)
+        matches!(
+            self.status,
+            BookingStatus::Pending | BookingStatus::Confirmed
+        )
     }
 
     pub fn can_confirm(&self) -> bool {

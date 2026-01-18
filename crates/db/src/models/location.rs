@@ -29,7 +29,10 @@ impl Location {
 
     /// Get the full formatted address
     pub fn full_address(&self) -> String {
-        format!("{}, {}, {} {}", self.address, self.city, self.state, self.zip_code)
+        format!(
+            "{}, {}, {} {}",
+            self.address, self.city, self.state, self.zip_code
+        )
     }
 }
 

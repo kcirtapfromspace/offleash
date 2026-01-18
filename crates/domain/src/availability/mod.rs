@@ -1,7 +1,7 @@
+mod config;
 mod engine;
 mod slot;
-mod config;
 
-pub use engine::{AvailabilityEngine, DayHours, TravelTimeMatrix, ScheduleGap};
-pub use slot::{AvailableSlot, BookingSlot, BlockSlot, SlotConfidence};
 pub use config::AvailabilityConfig;
+pub use engine::{AvailabilityEngine, DayHours, ScheduleGap, TravelTimeMatrix};
+pub use slot::{AvailableSlot, BlockSlot, BookingSlot, SlotConfidence};

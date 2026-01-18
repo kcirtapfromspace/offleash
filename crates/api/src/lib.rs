@@ -52,7 +52,10 @@ pub fn create_app(state: AppState) -> Router {
         .route("/locations", get(routes::locations::list_locations))
         // Block routes
         .route("/blocks", post(routes::blocks::create_block))
-        .route("/blocks/:id", axum::routing::delete(routes::blocks::delete_block))
+        .route(
+            "/blocks/:id",
+            axum::routing::delete(routes::blocks::delete_block),
+        )
         // Add middleware
         .layer(TraceLayer::new_for_http())
         .layer(cors)

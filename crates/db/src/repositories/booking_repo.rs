@@ -134,7 +134,7 @@ impl BookingRepository {
             "#,
         )
         .bind(id.as_uuid())
-        .bind(&status)
+        .bind(status)
         .fetch_optional(pool)
         .await
     }
