@@ -33,6 +33,8 @@ pub fn create_app(state: AppState) -> Router {
             "/platform/auth/login",
             post(routes::platform_auth::platform_login),
         )
+        // Admin tenant management routes (platform admin only)
+        .route("/admin/tenants", post(routes::admin_tenants::create_tenant))
         // Service routes
         .route("/services", get(routes::services::list_services))
         .route("/services/:id", get(routes::services::get_service))
