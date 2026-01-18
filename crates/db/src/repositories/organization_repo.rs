@@ -107,4 +107,17 @@ impl OrganizationRepository {
         .fetch_all(pool)
         .await
     }
+
+    /// Count total number of organizations
+    pub async fn count(pool: &PgPool) -> Result<i64, sqlx::Error> {
+        let result: (i64,) = sqlx::query_as(
+            r#"
+            SELECT COUNT(*) as count
+            FROM organizations
+            "#,
+        )
+        .fetch_one(pool)
+        .await?;
+        Ok(result.0)
+    }
 }
