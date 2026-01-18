@@ -26,7 +26,12 @@ impl TravelTimeMatrix {
         Self::default()
     }
 
-    pub fn insert(&mut self, origin: LocationId, destination: LocationId, duration: DurationMinutes) {
+    pub fn insert(
+        &mut self,
+        origin: LocationId,
+        destination: LocationId,
+        duration: DurationMinutes,
+    ) {
         self.times.insert((origin, destination), duration);
     }
 
@@ -34,13 +39,19 @@ impl TravelTimeMatrix {
         self.times.get(&(origin, destination)).copied()
     }
 
-    pub fn get_or_default(&self, origin: LocationId, destination: LocationId, default: DurationMinutes) -> DurationMinutes {
+    pub fn get_or_default(
+        &self,
+        origin: LocationId,
+        destination: LocationId,
+        default: DurationMinutes,
+    ) -> DurationMinutes {
         self.get(origin, destination).unwrap_or(default)
     }
 }
 
 /// Location with coordinates for travel time estimation
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct LocationWithCoords {
     pub id: LocationId,
     pub coords: Coordinates,
@@ -62,6 +73,7 @@ impl AvailabilityEngine {
     /// 4. Remove slots that conflict with blocks
     /// 5. Adjust slots based on travel time from previous appointments
     /// 6. Return remaining valid slots
+    #[allow(clippy::too_many_arguments)]
     pub fn calculate_slots(
         working_hours: Option<&DayHours>,
         existing_bookings: &[BookingSlot],
@@ -89,13 +101,13 @@ impl AvailabilityEngine {
             .from_local_datetime(&work_start_local)
             .single()
             .map(|dt| dt.with_timezone(&Utc))
-            .unwrap_or_else(|| Utc::now());
+            .unwrap_or_else(Utc::now);
 
         let work_end_utc = tz
             .from_local_datetime(&work_end_local)
             .single()
             .map(|dt| dt.with_timezone(&Utc))
-            .unwrap_or_else(|| Utc::now());
+            .unwrap_or_else(Utc::now);
 
         // Step 1: Generate potential slots
         let potential_slots = Self::generate_potential_slots(
@@ -144,7 +156,7 @@ impl AvailabilityEngine {
                 start: current,
                 end: current + service_duration,
             });
-            current = current + interval;
+            current += interval;
         }
 
         slots
@@ -160,9 +172,9 @@ impl AvailabilityEngine {
 
     /// Check if a potential slot conflicts with any block
     fn conflicts_with_blocks(slot: &PotentialSlot, blocks: &[BlockSlot]) -> bool {
-        blocks.iter().any(|block| {
-            slot.start < block.end && slot.end > block.start
-        })
+        blocks
+            .iter()
+            .any(|block| slot.start < block.end && slot.end > block.start)
     }
 
     /// Apply travel time constraints to filter and adjust slots
@@ -184,15 +196,10 @@ impl AvailabilityEngine {
             .into_iter()
             .filter_map(|slot| {
                 // Find the booking that ends most recently before this slot
-                let previous_booking = sorted_bookings
-                    .iter()
-                    .filter(|b| b.end <= slot.start)
-                    .last();
+                let previous_booking = sorted_bookings.iter().rev().find(|b| b.end <= slot.start);
 
                 // Find the booking that starts soonest after this slot
-                let next_booking = sorted_bookings
-                    .iter()
-                    .find(|b| b.start >= slot.end);
+                let next_booking = sorted_bookings.iter().find(|b| b.start >= slot.end);
 
                 // Calculate travel from previous
                 let (travel_from_prev, confidence) = if let Some(prev) = previous_booking {
@@ -542,14 +549,15 @@ mod tests {
 
         // After 11:00 booking, need 30 min travel + 15 min buffer = 45 min
         // So earliest available slot start is 11:45, rounded to 12:00 (30 min intervals)
-        let first_after_booking = slots
-            .iter()
-            .find(|s| s.start.hour() >= 11);
+        let first_after_booking = slots.iter().find(|s| s.start.hour() >= 11);
 
         if let Some(slot) = first_after_booking {
             // Should start at or after 11:45 (rounded to 12:00)
             let minutes_after_eleven = (slot.start.hour() - 11) * 60 + slot.start.minute();
-            assert!(minutes_after_eleven >= 45, "Slot should start at least 45 min after 11:00");
+            assert!(
+                minutes_after_eleven >= 45,
+                "Slot should start at least 45 min after 11:00"
+            );
         }
     }
 
@@ -568,7 +576,7 @@ mod tests {
 
         // Should have 3 gaps: 9-10, 11-14, 15-17
         assert_eq!(gaps.len(), 3);
-        assert_eq!(gaps[0].duration_minutes, 60);  // 9-10
+        assert_eq!(gaps[0].duration_minutes, 60); // 9-10
         assert_eq!(gaps[1].duration_minutes, 180); // 11-14
         assert_eq!(gaps[2].duration_minutes, 120); // 15-17
     }

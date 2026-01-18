@@ -51,7 +51,7 @@ impl AppError {
                 DomainError::InvalidCredentials | DomainError::InvalidToken => 401, // Unauthorized
                 DomainError::TokenExpired => 401,
                 DomainError::EmailAlreadyExists => 409, // Conflict
-                _ => 400,                              // Bad Request
+                _ => 400,                               // Bad Request
             },
             AppError::Database(_) | AppError::Internal(_) => 500, // Internal Server Error
             AppError::ExternalApi(_) => 503,                      // Service Unavailable
@@ -104,4 +104,5 @@ impl From<sqlx::Error> for AppError {
 }
 
 /// Result type alias for application operations
+#[allow(dead_code)]
 pub type AppResult<T> = Result<T, AppError>;

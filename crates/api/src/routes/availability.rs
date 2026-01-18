@@ -3,8 +3,12 @@ use axum::{
     Json,
 };
 use chrono::{Datelike, Duration, NaiveDate, NaiveTime, Utc};
-use db::{BlockRepository, BookingRepository, LocationRepository, ServiceRepository, UserRepository};
-use domain::{AvailabilityConfig, AvailabilityEngine, BlockSlot, BookingSlot, DayHours, TravelTimeMatrix};
+use db::{
+    BlockRepository, BookingRepository, LocationRepository, ServiceRepository, UserRepository,
+};
+use domain::{
+    AvailabilityConfig, AvailabilityEngine, BlockSlot, BookingSlot, DayHours, TravelTimeMatrix,
+};
 use serde::{Deserialize, Serialize};
 use shared::{AppError, DomainError};
 
@@ -15,7 +19,7 @@ use crate::{
 
 #[derive(Debug, Deserialize)]
 pub struct AvailabilityQuery {
-    pub date: String,        // YYYY-MM-DD
+    pub date: String, // YYYY-MM-DD
     pub service_id: String,
     pub location_id: String,
 }
@@ -51,7 +55,9 @@ pub async fn get_availability(
         .ok_or_else(|| ApiError::from(DomainError::WalkerNotFound(walker_id.clone())))?;
 
     if !walker.is_walker() {
-        return Err(ApiError::from(DomainError::WalkerNotFound(walker_id.clone())));
+        return Err(ApiError::from(DomainError::WalkerNotFound(
+            walker_id.clone(),
+        )));
     }
 
     // Parse date
@@ -81,7 +87,7 @@ pub async fn get_availability(
     // Get working hours for this day (simplified - using default 9-5 for now)
     // TODO: Load from working_hours table
     let day_of_week = date.weekday().num_days_from_sunday() as u8;
-    let working_hours = if day_of_week >= 1 && day_of_week <= 5 {
+    let working_hours = if (1..=5).contains(&day_of_week) {
         // Monday-Friday
         Some(DayHours {
             start: NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
