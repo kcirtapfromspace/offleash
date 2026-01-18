@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use shared::{AppError, DomainError};
 
 use crate::{
+    auth::TenantContext,
     error::{ApiError, ApiResult},
     state::AppState,
 };
@@ -41,6 +42,7 @@ pub struct SlotResponse {
 
 pub async fn get_availability(
     State(state): State<AppState>,
+    tenant: TenantContext,
     Path(walker_id): Path<String>,
     Query(query): Query<AvailabilityQuery>,
 ) -> ApiResult<Json<AvailabilityResponse>> {
@@ -49,8 +51,8 @@ pub async fn get_availability(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid walker ID".to_string())))?;
 
-    // Verify walker exists and is a walker
-    let walker = UserRepository::find_by_id(&state.pool, walker_id_parsed)
+    // Verify walker exists and is a walker within this organization
+    let walker = UserRepository::find_by_id(&state.pool, tenant.org_id, walker_id_parsed)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::WalkerNotFound(walker_id.clone())))?;
 

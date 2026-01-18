@@ -6,6 +6,7 @@ use axum::{extract::State, Json};
 use db::models::{CreateUser, UserRole};
 use db::UserRepository;
 use serde::{Deserialize, Serialize};
+use shared::types::OrganizationId;
 use shared::DomainError;
 
 use crate::{
@@ -16,6 +17,7 @@ use crate::{
 
 #[derive(Debug, Deserialize)]
 pub struct RegisterRequest {
+    pub organization_id: OrganizationId,
     pub email: String,
     pub password: String,
     pub first_name: String,
@@ -43,8 +45,8 @@ pub async fn register(
     State(state): State<AppState>,
     Json(req): Json<RegisterRequest>,
 ) -> ApiResult<Json<AuthResponse>> {
-    // Check if email already exists
-    if UserRepository::find_by_email(&state.pool, &req.email)
+    // Check if email already exists in this organization
+    if UserRepository::find_by_email(&state.pool, req.organization_id, &req.email)
         .await?
         .is_some()
     {
@@ -69,10 +71,11 @@ pub async fn register(
         _ => UserRole::Customer,
     };
 
-    // Create user
+    // Create user with organization_id
     let user = UserRepository::create(
         &state.pool,
         CreateUser {
+            organization_id: req.organization_id,
             email: req.email,
             password_hash,
             role,
@@ -84,12 +87,13 @@ pub async fn register(
     )
     .await?;
 
-    // Create token (org_id is None at registration time)
-    let token = create_token(user.id, None, &state.jwt_secret).map_err(|_| {
-        ApiError::from(shared::AppError::Internal(
-            "Token creation failed".to_string(),
-        ))
-    })?;
+    // Create token with org_id
+    let token =
+        create_token(user.id, Some(user.organization_id), &state.jwt_secret).map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Token creation failed".to_string(),
+            ))
+        })?;
 
     Ok(Json(AuthResponse {
         token,
@@ -105,6 +109,7 @@ pub async fn register(
 
 #[derive(Debug, Deserialize)]
 pub struct LoginRequest {
+    pub organization_id: OrganizationId,
     pub email: String,
     pub password: String,
 }
@@ -113,8 +118,8 @@ pub async fn login(
     State(state): State<AppState>,
     Json(req): Json<LoginRequest>,
 ) -> ApiResult<Json<AuthResponse>> {
-    // Find user
-    let user = UserRepository::find_by_email(&state.pool, &req.email)
+    // Find user within organization
+    let user = UserRepository::find_by_email(&state.pool, req.organization_id, &req.email)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::InvalidCredentials))?;
 
@@ -126,12 +131,13 @@ pub async fn login(
         .verify_password(req.password.as_bytes(), &parsed_hash)
         .map_err(|_| ApiError::from(DomainError::InvalidCredentials))?;
 
-    // Create token (org_id can be set later when user selects an organization)
-    let token = create_token(user.id, None, &state.jwt_secret).map_err(|_| {
-        ApiError::from(shared::AppError::Internal(
-            "Token creation failed".to_string(),
-        ))
-    })?;
+    // Create token with org_id
+    let token =
+        create_token(user.id, Some(user.organization_id), &state.jwt_secret).map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Token creation failed".to_string(),
+            ))
+        })?;
 
     Ok(Json(AuthResponse {
         token,
