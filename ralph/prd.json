@@ -1,7 +1,7 @@
 {
-  "project": "White-Label Pet Service Platform",
-  "branchName": "ralph/white-label-platform",
-  "description": "Transform single-tenant Dog Walker API into white-label multi-tenant SaaS with Admin Dashboard, Customer Web UI, and iOS app",
+  "project": "OFFLEASH",
+  "branchName": "ralph/offleash",
+  "description": "Transform single-tenant Dog Walker API into OFFLEASH - a white-label multi-tenant SaaS with Admin Dashboard, Customer Web UI, and iOS app",
   "userStories": [
     {
       "id": "US-001",
@@ -405,7 +405,7 @@
       "description": "As a developer, I need to resolve tenant from subdomain.",
       "acceptanceCriteria": [
         "Create extract_tenant_from_host function in crates/api/src/tenant.rs",
-        "Parse subdomain from Host header (e.g., acme.dogwalker.app -> acme)",
+        "Parse subdomain from Host header (e.g., acme.offleash.app -> acme)",
         "Lookup organization by slug",
         "Return None if no match",
         "Typecheck passes"
