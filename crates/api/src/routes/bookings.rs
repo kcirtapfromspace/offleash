@@ -86,7 +86,7 @@ pub async fn create_booking(
         .ok_or_else(|| ApiError::from(DomainError::ServiceNotFound(req.service_id.clone())))?;
 
     // Verify location exists and belongs to customer
-    let location = LocationRepository::find_by_id(&state.pool, location_id)
+    let location = LocationRepository::find_by_id(&tenant.pool, tenant.org_id, location_id)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::LocationNotFound(req.location_id.clone())))?;
 
@@ -99,8 +99,9 @@ pub async fn create_booking(
 
     // Create booking
     let booking = BookingRepository::create(
-        &state.pool,
+        &tenant.pool,
         CreateBooking {
+            organization_id: tenant.org_id,
             customer_id: auth.user_id,
             walker_id,
             service_id,
@@ -136,7 +137,8 @@ pub async fn create_booking(
 }
 
 pub async fn get_booking(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
+    tenant: TenantContext,
     auth: AuthUser,
     Path(id): Path<String>,
 ) -> ApiResult<Json<BookingResponse>> {
@@ -144,7 +146,7 @@ pub async fn get_booking(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid booking ID".to_string())))?;
 
-    let booking = BookingRepository::find_by_id(&state.pool, booking_id)
+    let booking = BookingRepository::find_by_id(&tenant.pool, tenant.org_id, booking_id)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::BookingNotFound(id)))?;
 
@@ -169,7 +171,8 @@ pub async fn get_booking(
 }
 
 pub async fn confirm_booking(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
+    tenant: TenantContext,
     auth: AuthUser,
     Path(id): Path<String>,
 ) -> ApiResult<Json<BookingResponse>> {
@@ -177,7 +180,7 @@ pub async fn confirm_booking(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid booking ID".to_string())))?;
 
-    let booking = BookingRepository::find_by_id(&state.pool, booking_id)
+    let booking = BookingRepository::find_by_id(&tenant.pool, tenant.org_id, booking_id)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::BookingNotFound(id.clone())))?;
 
@@ -192,7 +195,7 @@ pub async fn confirm_booking(
         )));
     }
 
-    let updated = BookingRepository::confirm(&state.pool, booking_id)
+    let updated = BookingRepository::confirm(&tenant.pool, tenant.org_id, booking_id)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::BookingNotFound(id)))?;
 
@@ -212,7 +215,8 @@ pub async fn confirm_booking(
 }
 
 pub async fn cancel_booking(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
+    tenant: TenantContext,
     auth: AuthUser,
     Path(id): Path<String>,
 ) -> ApiResult<Json<BookingResponse>> {
@@ -220,7 +224,7 @@ pub async fn cancel_booking(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid booking ID".to_string())))?;
 
-    let booking = BookingRepository::find_by_id(&state.pool, booking_id)
+    let booking = BookingRepository::find_by_id(&tenant.pool, tenant.org_id, booking_id)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::BookingNotFound(id.clone())))?;
 
@@ -235,7 +239,7 @@ pub async fn cancel_booking(
         )));
     }
 
-    let updated = BookingRepository::cancel(&state.pool, booking_id)
+    let updated = BookingRepository::cancel(&tenant.pool, tenant.org_id, booking_id)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::BookingNotFound(id)))?;
 

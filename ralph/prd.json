@@ -216,7 +216,7 @@
       "description": "As a developer, I need service queries scoped to organization.",
       "id": "US-015",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 15,
       "title": "Update service repository for multi-tenancy"
     },

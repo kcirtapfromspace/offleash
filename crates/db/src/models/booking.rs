@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use shared::types::{BookingId, LocationId, ServiceId, UserId};
+use shared::types::{BookingId, LocationId, OrganizationId, ServiceId, UserId};
 use sqlx::FromRow;
 
 /// Booking status enum
@@ -32,6 +32,7 @@ impl std::fmt::Display for BookingStatus {
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Booking {
     pub id: BookingId,
+    pub organization_id: Option<OrganizationId>,
     pub customer_id: UserId,
     pub walker_id: UserId,
     pub service_id: ServiceId,
@@ -78,6 +79,7 @@ impl Booking {
 /// Input for creating a new booking
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateBooking {
+    pub organization_id: OrganizationId,
     pub customer_id: UserId,
     pub walker_id: UserId,
     pub service_id: ServiceId,

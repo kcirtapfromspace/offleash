@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use shared::AppError;
 
 use crate::{
-    auth::AuthUser,
+    auth::{AuthUser, TenantContext},
     error::{ApiError, ApiResult},
     state::AppState,
 };
@@ -39,7 +39,8 @@ pub struct LocationResponse {
 }
 
 pub async fn create_location(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
+    tenant: TenantContext,
     auth: AuthUser,
     Json(req): Json<CreateLocationRequest>,
 ) -> ApiResult<Json<LocationResponse>> {
@@ -56,8 +57,9 @@ pub async fn create_location(
     }
 
     let location = LocationRepository::create(
-        &state.pool,
+        &tenant.pool,
         CreateLocation {
+            organization_id: tenant.org_id,
             user_id: auth.user_id,
             name: req.name,
             address: req.address,
@@ -89,10 +91,12 @@ pub async fn create_location(
 }
 
 pub async fn list_locations(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
+    tenant: TenantContext,
     auth: AuthUser,
 ) -> ApiResult<Json<Vec<LocationResponse>>> {
-    let locations = LocationRepository::find_by_user(&state.pool, auth.user_id).await?;
+    let locations =
+        LocationRepository::find_by_user(&tenant.pool, tenant.org_id, auth.user_id).await?;
 
     let response: Vec<LocationResponse> = locations
         .into_iter()

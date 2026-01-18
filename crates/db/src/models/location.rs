@@ -1,12 +1,13 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use shared::types::{Coordinates, LocationId, UserId};
+use shared::types::{Coordinates, LocationId, OrganizationId, UserId};
 use sqlx::FromRow;
 
 /// Location database model
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Location {
     pub id: LocationId,
+    pub organization_id: Option<OrganizationId>,
     pub user_id: UserId,
     pub name: String,
     pub address: String,
@@ -39,6 +40,7 @@ impl Location {
 /// Input for creating a new location
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateLocation {
+    pub organization_id: OrganizationId,
     pub user_id: UserId,
     pub name: String,
     pub address: String,
