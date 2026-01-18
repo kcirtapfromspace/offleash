@@ -40,7 +40,9 @@ pub fn create_app(state: AppState) -> Router {
         )
         .route(
             "/admin/tenants/:id",
-            get(routes::admin_tenants::get_tenant).patch(routes::admin_tenants::update_tenant),
+            get(routes::admin_tenants::get_tenant)
+                .patch(routes::admin_tenants::update_tenant)
+                .delete(routes::admin_tenants::delete_tenant),
         )
         // Service routes
         .route("/services", get(routes::services::list_services))
