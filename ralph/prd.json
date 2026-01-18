@@ -56,7 +56,7 @@
       "description": "As a developer, I need a separate table for platform-level admin users.",
       "id": "US-004",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 4,
       "title": "Create platform_admins table"
     },
