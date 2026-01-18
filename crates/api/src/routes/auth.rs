@@ -4,9 +4,8 @@ use argon2::{
 };
 use axum::{extract::State, Json};
 use db::models::{CreateUser, UserRole};
-use db::UserRepository;
+use db::{OrganizationRepository, UserRepository};
 use serde::{Deserialize, Serialize};
-use shared::types::OrganizationId;
 use shared::DomainError;
 
 use crate::{
@@ -17,7 +16,7 @@ use crate::{
 
 #[derive(Debug, Deserialize)]
 pub struct RegisterRequest {
-    pub organization_id: OrganizationId,
+    pub org_slug: String,
     pub email: String,
     pub password: String,
     pub first_name: String,
@@ -45,8 +44,13 @@ pub async fn register(
     State(state): State<AppState>,
     Json(req): Json<RegisterRequest>,
 ) -> ApiResult<Json<AuthResponse>> {
+    // Look up organization by slug
+    let organization = OrganizationRepository::find_by_slug(&state.pool, &req.org_slug)
+        .await?
+        .ok_or_else(|| ApiError::from(DomainError::OrganizationNotFound(req.org_slug.clone())))?;
+
     // Check if email already exists in this organization
-    if UserRepository::find_by_email(&state.pool, req.organization_id, &req.email)
+    if UserRepository::find_by_email(&state.pool, organization.id, &req.email)
         .await?
         .is_some()
     {
@@ -75,7 +79,7 @@ pub async fn register(
     let user = UserRepository::create(
         &state.pool,
         CreateUser {
-            organization_id: req.organization_id,
+            organization_id: organization.id,
             email: req.email,
             password_hash,
             role,
@@ -109,7 +113,7 @@ pub async fn register(
 
 #[derive(Debug, Deserialize)]
 pub struct LoginRequest {
-    pub organization_id: OrganizationId,
+    pub org_slug: String,
     pub email: String,
     pub password: String,
 }
@@ -118,8 +122,13 @@ pub async fn login(
     State(state): State<AppState>,
     Json(req): Json<LoginRequest>,
 ) -> ApiResult<Json<AuthResponse>> {
-    // Find user within organization
-    let user = UserRepository::find_by_email(&state.pool, req.organization_id, &req.email)
+    // Look up organization by slug
+    let organization = OrganizationRepository::find_by_slug(&state.pool, &req.org_slug)
+        .await?
+        .ok_or_else(|| ApiError::from(DomainError::OrganizationNotFound(req.org_slug.clone())))?;
+
+    // Find user within organization - validates user belongs to this organization
+    let user = UserRepository::find_by_email(&state.pool, organization.id, &req.email)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::InvalidCredentials))?;
 

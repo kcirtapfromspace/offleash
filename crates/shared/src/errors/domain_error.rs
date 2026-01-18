@@ -54,6 +54,9 @@ pub enum DomainError {
     #[error("Email already exists")]
     EmailAlreadyExists,
 
+    #[error("Organization not found: {0}")]
+    OrganizationNotFound(String),
+
     #[error("Invalid token")]
     InvalidToken,
 
