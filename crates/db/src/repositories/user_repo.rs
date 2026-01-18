@@ -1,4 +1,4 @@
-use shared::types::UserId;
+use shared::types::{OrganizationId, UserId};
 use sqlx::PgPool;
 
 use crate::models::{CreateUser, UpdateUser, User};
@@ -14,12 +14,13 @@ impl UserRepository {
 
         sqlx::query_as::<_, User>(
             r#"
-            INSERT INTO users (id, email, password_hash, role, first_name, last_name, phone, timezone)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING id, email, password_hash, role, first_name, last_name, phone, timezone, created_at, updated_at
+            INSERT INTO users (id, organization_id, email, password_hash, role, first_name, last_name, phone, timezone)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING id, organization_id, email, password_hash, role, first_name, last_name, phone, timezone, created_at, updated_at
             "#,
         )
         .bind(id.as_uuid())
+        .bind(input.organization_id.as_uuid())
         .bind(&input.email)
         .bind(&input.password_hash)
         .bind(input.role)
@@ -31,34 +32,45 @@ impl UserRepository {
         .await
     }
 
-    pub async fn find_by_id(pool: &PgPool, id: UserId) -> Result<Option<User>, sqlx::Error> {
+    pub async fn find_by_id(
+        pool: &PgPool,
+        org_id: OrganizationId,
+        id: UserId,
+    ) -> Result<Option<User>, sqlx::Error> {
         sqlx::query_as::<_, User>(
             r#"
-            SELECT id, email, password_hash, role, first_name, last_name, phone, timezone, created_at, updated_at
+            SELECT id, organization_id, email, password_hash, role, first_name, last_name, phone, timezone, created_at, updated_at
             FROM users
-            WHERE id = $1
+            WHERE id = $1 AND organization_id = $2
             "#,
         )
         .bind(id.as_uuid())
+        .bind(org_id.as_uuid())
         .fetch_optional(pool)
         .await
     }
 
-    pub async fn find_by_email(pool: &PgPool, email: &str) -> Result<Option<User>, sqlx::Error> {
+    pub async fn find_by_email(
+        pool: &PgPool,
+        org_id: OrganizationId,
+        email: &str,
+    ) -> Result<Option<User>, sqlx::Error> {
         sqlx::query_as::<_, User>(
             r#"
-            SELECT id, email, password_hash, role, first_name, last_name, phone, timezone, created_at, updated_at
+            SELECT id, organization_id, email, password_hash, role, first_name, last_name, phone, timezone, created_at, updated_at
             FROM users
-            WHERE email = $1
+            WHERE email = $1 AND organization_id = $2
             "#,
         )
         .bind(email)
+        .bind(org_id.as_uuid())
         .fetch_optional(pool)
         .await
     }
 
     pub async fn update(
         pool: &PgPool,
+        org_id: OrganizationId,
         id: UserId,
         input: UpdateUser,
     ) -> Result<Option<User>, sqlx::Error> {
@@ -66,16 +78,17 @@ impl UserRepository {
             r#"
             UPDATE users
             SET
-                first_name = COALESCE($2, first_name),
-                last_name = COALESCE($3, last_name),
-                phone = COALESCE($4, phone),
-                timezone = COALESCE($5, timezone),
+                first_name = COALESCE($3, first_name),
+                last_name = COALESCE($4, last_name),
+                phone = COALESCE($5, phone),
+                timezone = COALESCE($6, timezone),
                 updated_at = NOW()
-            WHERE id = $1
-            RETURNING id, email, password_hash, role, first_name, last_name, phone, timezone, created_at, updated_at
+            WHERE id = $1 AND organization_id = $2
+            RETURNING id, organization_id, email, password_hash, role, first_name, last_name, phone, timezone, created_at, updated_at
             "#,
         )
         .bind(id.as_uuid())
+        .bind(org_id.as_uuid())
         .bind(&input.first_name)
         .bind(&input.last_name)
         .bind(&input.phone)
@@ -84,9 +97,14 @@ impl UserRepository {
         .await
     }
 
-    pub async fn delete(pool: &PgPool, id: UserId) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query("DELETE FROM users WHERE id = $1")
+    pub async fn delete(
+        pool: &PgPool,
+        org_id: OrganizationId,
+        id: UserId,
+    ) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query("DELETE FROM users WHERE id = $1 AND organization_id = $2")
             .bind(id.as_uuid())
+            .bind(org_id.as_uuid())
             .execute(pool)
             .await?;
 
