@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: dog-walker
+data:
+  rust-log: "debug,tower_http=debug,sqlx=warn"

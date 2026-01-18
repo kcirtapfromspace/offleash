@@ -1,0 +1,60 @@
+pub mod auth;
+pub mod error;
+pub mod routes;
+pub mod state;
+
+pub use error::ApiError;
+pub use state::AppState;
+
+use axum::{
+    routing::{get, post},
+    Router,
+};
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::TraceLayer,
+};
+
+/// Create the application router
+pub fn create_app(state: AppState) -> Router {
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+
+    Router::new()
+        // Health check
+        .route("/health", get(routes::health::health_check))
+        // Auth routes
+        .route("/auth/register", post(routes::auth::register))
+        .route("/auth/login", post(routes::auth::login))
+        // Service routes
+        .route("/services", get(routes::services::list_services))
+        .route("/services/:id", get(routes::services::get_service))
+        // Availability routes
+        .route(
+            "/availability/:walker_id",
+            get(routes::availability::get_availability),
+        )
+        // Booking routes
+        .route("/bookings", post(routes::bookings::create_booking))
+        .route("/bookings/:id", get(routes::bookings::get_booking))
+        .route(
+            "/bookings/:id/confirm",
+            post(routes::bookings::confirm_booking),
+        )
+        .route(
+            "/bookings/:id/cancel",
+            post(routes::bookings::cancel_booking),
+        )
+        // Location routes
+        .route("/locations", post(routes::locations::create_location))
+        .route("/locations", get(routes::locations::list_locations))
+        // Block routes
+        .route("/blocks", post(routes::blocks::create_block))
+        .route("/blocks/:id", axum::routing::delete(routes::blocks::delete_block))
+        // Add middleware
+        .layer(TraceLayer::new_for_http())
+        .layer(cors)
+        .with_state(state)
+}

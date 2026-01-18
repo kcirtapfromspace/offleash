@@ -1,0 +1,57 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/main/.schema/devbox.schema.json",
+  "packages": [
+    "rustup@latest",
+    "cargo-watch@latest",
+    "sqlx-cli@latest",
+    "postgresql_16@latest",
+    "docker@latest",
+    "kubectl@latest",
+    "k3d@latest",
+    "tilt@latest"
+  ],
+  "env": {
+    "RUST_LOG": "debug,tower_http=debug,sqlx=warn",
+    "DATABASE_URL": "postgres://dogwalker:dogwalker_dev@localhost:5432/dog_walker"
+  },
+  "shell": {
+    "init_hook": [
+      "echo '🐕 Dog Walker Dev Environment'",
+      "echo ''",
+      "rustup default stable 2>/dev/null || true",
+      "echo 'Rust: '$(rustc --version 2>/dev/null || echo 'not installed yet')",
+      "echo 'Postgres: '$(psql --version 2>/dev/null || echo 'available')",
+      "echo ''",
+      "echo 'Commands:'",
+      "echo '  devbox services up    - Start PostgreSQL'",
+      "echo '  cargo run --bin api   - Run the API server'",
+      "echo '  cargo watch -x run    - Run with live reload'",
+      "echo '  sqlx migrate run      - Run database migrations'"
+    ],
+    "scripts": {
+      "dev": [
+        "cargo watch -x 'run --bin api'"
+      ],
+      "test": [
+        "cargo test"
+      ],
+      "migrate": [
+        "sqlx migrate run --source migrations"
+      ],
+      "db:reset": [
+        "sqlx database drop -y || true",
+        "sqlx database create",
+        "sqlx migrate run --source migrations"
+      ]
+    }
+  },
+  "services": {
+    "postgres": {
+      "command": "pg_ctl start -D $PGDATA -l $PGDATA/logfile -o \"-k $PGHOST\"",
+      "shutdown": "pg_ctl stop -D $PGDATA"
+    }
+  },
+  "include": [
+    "plugin:postgresql"
+  ]
+}

@@ -1,0 +1,34 @@
+# Build artifacts
+target/
+*.pdb
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Test files
+tests/
+*.test.*
+
+# Local dev
+.env
+.env.*
+!.env.example
+
+# K8s dev secrets
+k8s/dev/secrets.yaml
+
+# Misc
+*.log
+.DS_Store
+Thumbs.db

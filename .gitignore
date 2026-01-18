@@ -1,0 +1,46 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.*.swp
+
+# macOS
+.DS_Store
+*.DS_Store
+
+# SQLx offline mode
+.sqlx/
+
+# Nix/devenv
+.devenv/
+.devenv.flake.nix
+devenv.local.nix
+.direnv/
+result
+
+# Devbox
+.devbox/
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+*.profraw
+lcov.info
+coverage/
+
+# Local secrets (never commit these)
+k8s/dev/secrets.yaml.local
+*.pem
+*.key
