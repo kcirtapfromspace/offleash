@@ -81,7 +81,7 @@ pub async fn create_booking(
     }
 
     // Get service for duration and price
-    let service = ServiceRepository::find_by_id(&state.pool, service_id)
+    let service = ServiceRepository::find_by_id(&tenant.pool, tenant.org_id, service_id)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::ServiceNotFound(req.service_id.clone())))?;
 

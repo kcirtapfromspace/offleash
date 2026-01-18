@@ -173,3 +173,18 @@
 - **Learnings for future iterations:**
 - Story completed successfully via automated execution
 ---
+
+## 2026-01-18 09:55 - US-014
+- **What was implemented**: Update user repository for multi-tenancy
+- **Files changed**:
+  - rates/api/src/routes/auth.rs
+  - rates/api/src/routes/availability.rs
+  - rates/api/src/routes/bookings.rs
+  - rates/db/src/models/user.rs
+  - rates/db/src/repositories/user_repo.rs
+  - rogress.txt
+  - alph/prd.json
+- **Iterations used**: 1
+- **Learnings for future iterations:**
+- Story completed successfully via automated execution
+---
