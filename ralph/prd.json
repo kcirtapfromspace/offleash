@@ -128,7 +128,7 @@
       "description": "As a developer, I need to manage tenant database records.",
       "id": "US-009",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 9,
       "title": "Create TenantDatabase model and repository"
     },
