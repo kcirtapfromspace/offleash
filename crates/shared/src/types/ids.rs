@@ -58,6 +58,7 @@ define_id!(BlockId, "Unique identifier for a calendar block");
 define_id!(PaymentId, "Unique identifier for a payment");
 define_id!(OrganizationId, "Unique identifier for an organization");
 define_id!(TenantDatabaseId, "Unique identifier for a tenant database");
+define_id!(PlatformAdminId, "Unique identifier for a platform admin");
 
 #[cfg(test)]
 mod tests {

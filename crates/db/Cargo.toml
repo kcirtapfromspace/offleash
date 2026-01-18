@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 shared = { path = "../shared" }
+argon2 = { workspace = true }
 chrono = { workspace = true }
 serde = { workspace = true }
 sqlx = { workspace = true }
