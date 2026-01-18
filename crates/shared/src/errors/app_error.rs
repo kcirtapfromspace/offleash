@@ -47,7 +47,9 @@ impl AppError {
                 | DomainError::WalkerNotFound(_)
                 | DomainError::LocationNotFound(_)
                 | DomainError::UserNotFound(_)
-                | DomainError::BookingNotFound(_) => 404, // Not Found
+                | DomainError::BookingNotFound(_)
+                | DomainError::OrganizationNotFound(_)
+                | DomainError::TenantNotFound(_) => 404, // Not Found
                 DomainError::InvalidCredentials | DomainError::InvalidToken => 401, // Unauthorized
                 DomainError::TokenExpired => 401,
                 DomainError::EmailAlreadyExists | DomainError::SlugAlreadyExists(_) => 409, // Conflict
@@ -76,6 +78,8 @@ impl AppError {
                 DomainError::LocationNotFound(_) => "LOCATION_NOT_FOUND",
                 DomainError::UserNotFound(_) => "USER_NOT_FOUND",
                 DomainError::BookingNotFound(_) => "BOOKING_NOT_FOUND",
+                DomainError::OrganizationNotFound(_) => "ORGANIZATION_NOT_FOUND",
+                DomainError::TenantNotFound(_) => "TENANT_NOT_FOUND",
                 DomainError::InvalidCredentials => "INVALID_CREDENTIALS",
                 DomainError::InvalidToken => "INVALID_TOKEN",
                 DomainError::TokenExpired => "TOKEN_EXPIRED",

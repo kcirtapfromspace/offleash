@@ -25,6 +25,8 @@ pub fn create_app(state: AppState) -> Router {
     Router::new()
         // Health check
         .route("/health", get(routes::health::health_check))
+        // Public branding endpoint (no auth required)
+        .route("/api/branding", get(routes::branding::get_branding))
         // Auth routes
         .route("/auth/register", post(routes::auth::register))
         .route("/auth/login", post(routes::auth::login))

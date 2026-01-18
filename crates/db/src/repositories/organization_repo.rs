@@ -125,4 +125,38 @@ impl OrganizationRepository {
         .await?;
         Ok(result.0)
     }
+
+    /// Find organization by subdomain
+    pub async fn find_by_subdomain(
+        pool: &PgPool,
+        subdomain: &str,
+    ) -> Result<Option<Organization>, sqlx::Error> {
+        sqlx::query_as::<_, Organization>(
+            r#"
+            SELECT id, name, slug, subdomain, custom_domain, settings, created_at, updated_at
+            FROM organizations
+            WHERE subdomain = $1
+            "#,
+        )
+        .bind(subdomain)
+        .fetch_optional(pool)
+        .await
+    }
+
+    /// Find organization by custom domain
+    pub async fn find_by_custom_domain(
+        pool: &PgPool,
+        domain: &str,
+    ) -> Result<Option<Organization>, sqlx::Error> {
+        sqlx::query_as::<_, Organization>(
+            r#"
+            SELECT id, name, slug, subdomain, custom_domain, settings, created_at, updated_at
+            FROM organizations
+            WHERE custom_domain = $1
+            "#,
+        )
+        .bind(domain)
+        .fetch_optional(pool)
+        .await
+    }
 }

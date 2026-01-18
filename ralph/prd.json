@@ -365,7 +365,7 @@
       "description": "As a platform admin, I need to deactivate tenants.",
       "id": "US-025",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 25,
       "title": "Create DELETE /admin/tenants/:id endpoint"
     },
