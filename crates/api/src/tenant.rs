@@ -1,11 +1,16 @@
 use db::{models::Organization, repositories::OrganizationRepository};
 use sqlx::PgPool;
 
+/// Extract host without port from Host header.
+/// E.g., "acme.offleash.app:3000" -> "acme.offleash.app"
+fn extract_host_without_port(host: &str) -> &str {
+    host.split(':').next().unwrap_or(host)
+}
+
 /// Extract subdomain from Host header.
 /// Returns the subdomain part if present (e.g., "acme.offleash.app" -> "acme").
 fn extract_subdomain_from_host(host: &str) -> Option<&str> {
-    // Remove port if present (e.g., "acme.offleash.app:3000" -> "acme.offleash.app")
-    let host_without_port = host.split(':').next().unwrap_or(host);
+    let host_without_port = extract_host_without_port(host);
 
     // Check if it's a subdomain pattern (e.g., "acme.offleash.app")
     let parts: Vec<&str> = host_without_port.split('.').collect();
@@ -18,30 +23,54 @@ fn extract_subdomain_from_host(host: &str) -> Option<&str> {
     }
 }
 
-/// Extract tenant organization from Host header by parsing subdomain and looking up by slug.
+/// Extract tenant organization from Host header.
 ///
-/// Parses the subdomain from the Host header (e.g., "acme.offleash.app" -> "acme")
-/// and looks up the organization by slug.
+/// Resolution order (custom domain takes precedence):
+/// 1. Look up by custom_domain (full host without port)
+/// 2. If not found, extract subdomain and look up by subdomain
 ///
 /// Returns `None` if:
-/// - No subdomain is present
-/// - No organization matches the slug
+/// - No organization matches the custom domain
+/// - No subdomain is present and no custom domain match
+/// - No organization matches the subdomain
 pub async fn extract_tenant_from_host(
     pool: &PgPool,
     host: &str,
 ) -> Result<Option<Organization>, sqlx::Error> {
+    let host_without_port = extract_host_without_port(host);
+
+    // First, try to find by custom domain (takes precedence)
+    if let Some(org) =
+        OrganizationRepository::find_by_custom_domain(pool, host_without_port).await?
+    {
+        return Ok(Some(org));
+    }
+
+    // Fall back to subdomain lookup
     let subdomain = match extract_subdomain_from_host(host) {
         Some(s) => s,
         None => return Ok(None),
     };
 
-    // Lookup organization by slug (subdomain is used as the slug)
-    OrganizationRepository::find_by_slug(pool, subdomain).await
+    // Lookup organization by subdomain
+    OrganizationRepository::find_by_subdomain(pool, subdomain).await
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_extract_host_without_port() {
+        assert_eq!(extract_host_without_port("example.com"), "example.com");
+        assert_eq!(extract_host_without_port("example.com:3000"), "example.com");
+        assert_eq!(extract_host_without_port("localhost:8080"), "localhost");
+        assert_eq!(extract_host_without_port("localhost"), "localhost");
+        assert_eq!(
+            extract_host_without_port("acme.offleash.app:443"),
+            "acme.offleash.app"
+        );
+    }
 
     #[test]
     fn test_extract_subdomain_from_host() {
