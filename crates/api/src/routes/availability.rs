@@ -41,7 +41,7 @@ pub struct SlotResponse {
 }
 
 pub async fn get_availability(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     tenant: TenantContext,
     Path(walker_id): Path<String>,
     Query(query): Query<AvailabilityQuery>,
@@ -52,7 +52,7 @@ pub async fn get_availability(
         .map_err(|_| ApiError::from(AppError::Validation("Invalid walker ID".to_string())))?;
 
     // Verify walker exists and is a walker within this organization
-    let walker = UserRepository::find_by_id(&state.pool, tenant.org_id, walker_id_parsed)
+    let walker = UserRepository::find_by_id(&tenant.pool, tenant.org_id, walker_id_parsed)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::WalkerNotFound(walker_id.clone())))?;
 
