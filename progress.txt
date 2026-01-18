@@ -149,3 +149,15 @@
 - **Learnings for future iterations:**
 - Story completed successfully via automated execution
 ---
+
+## 2026-01-18 09:48 - US-012
+- **What was implemented**: Add org_id to JWT claims
+- **Files changed**:
+  - rates/api/src/auth.rs
+  - rates/api/src/routes/auth.rs
+  - rogress.txt
+  - alph/prd.json
+- **Iterations used**: 1
+- **Learnings for future iterations:**
+- Story completed successfully via automated execution
+---
