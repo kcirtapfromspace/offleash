@@ -1,7 +1,7 @@
 # Ralph Progress Log
-# Project: White-Label Pet Service Platform
-# Branch: ralph/white-label-platform
-# Started: 2026-01-16
+# Project: OFFLEASH
+# Branch: ralph/offleash
+# Started: 2026-01-18
 
 ---
 
