@@ -424,7 +424,7 @@
       "description": "As a developer, I need to resolve tenant from custom domain.",
       "id": "US-029",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 29,
       "title": "Implement custom domain tenant lookup"
     },
