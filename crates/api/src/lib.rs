@@ -2,6 +2,7 @@ pub mod auth;
 pub mod error;
 pub mod routes;
 pub mod state;
+pub mod tenant;
 
 pub use error::ApiError;
 pub use state::AppState;

@@ -395,7 +395,7 @@
       "description": "As a tenant admin, I need to update my branding.",
       "id": "US-027",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 27,
       "title": "Create tenant branding management endpoints"
     },
