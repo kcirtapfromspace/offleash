@@ -38,6 +38,10 @@ pub fn create_app(state: AppState) -> Router {
             "/admin/tenants",
             get(routes::admin_tenants::list_tenants).post(routes::admin_tenants::create_tenant),
         )
+        .route(
+            "/admin/tenants/:id",
+            get(routes::admin_tenants::get_tenant).patch(routes::admin_tenants::update_tenant),
+        )
         // Service routes
         .route("/services", get(routes::services::list_services))
         .route("/services/:id", get(routes::services::get_service))
