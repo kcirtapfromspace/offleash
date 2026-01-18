@@ -1,0 +1,110 @@
+use shared::types::OrganizationId;
+use sqlx::PgPool;
+
+use crate::models::{CreateOrganization, Organization, UpdateOrganization};
+
+pub struct OrganizationRepository;
+
+impl OrganizationRepository {
+    pub async fn create(
+        pool: &PgPool,
+        input: CreateOrganization,
+    ) -> Result<Organization, sqlx::Error> {
+        let id = OrganizationId::new();
+        let settings = input.settings.unwrap_or_default();
+
+        sqlx::query_as::<_, Organization>(
+            r#"
+            INSERT INTO organizations (id, name, slug, settings)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id, name, slug, settings, created_at, updated_at
+            "#,
+        )
+        .bind(id.as_uuid())
+        .bind(&input.name)
+        .bind(&input.slug)
+        .bind(sqlx::types::Json(&settings))
+        .fetch_one(pool)
+        .await
+    }
+
+    pub async fn find_by_id(
+        pool: &PgPool,
+        id: OrganizationId,
+    ) -> Result<Option<Organization>, sqlx::Error> {
+        sqlx::query_as::<_, Organization>(
+            r#"
+            SELECT id, name, slug, settings, created_at, updated_at
+            FROM organizations
+            WHERE id = $1
+            "#,
+        )
+        .bind(id.as_uuid())
+        .fetch_optional(pool)
+        .await
+    }
+
+    pub async fn find_by_slug(
+        pool: &PgPool,
+        slug: &str,
+    ) -> Result<Option<Organization>, sqlx::Error> {
+        sqlx::query_as::<_, Organization>(
+            r#"
+            SELECT id, name, slug, settings, created_at, updated_at
+            FROM organizations
+            WHERE slug = $1
+            "#,
+        )
+        .bind(slug)
+        .fetch_optional(pool)
+        .await
+    }
+
+    pub async fn update(
+        pool: &PgPool,
+        id: OrganizationId,
+        input: UpdateOrganization,
+    ) -> Result<Option<Organization>, sqlx::Error> {
+        // For settings, we need to handle the JSON update specially
+        // If settings is provided, we replace the entire settings object
+        let settings_json = input.settings.map(sqlx::types::Json);
+
+        sqlx::query_as::<_, Organization>(
+            r#"
+            UPDATE organizations
+            SET
+                name = COALESCE($2, name),
+                slug = COALESCE($3, slug),
+                settings = COALESCE($4, settings),
+                updated_at = NOW()
+            WHERE id = $1
+            RETURNING id, name, slug, settings, created_at, updated_at
+            "#,
+        )
+        .bind(id.as_uuid())
+        .bind(&input.name)
+        .bind(&input.slug)
+        .bind(settings_json)
+        .fetch_optional(pool)
+        .await
+    }
+
+    pub async fn list(
+        pool: &PgPool,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<Organization>, sqlx::Error> {
+        sqlx::query_as::<_, Organization>(
+            r#"
+            SELECT id, name, slug, settings, created_at, updated_at
+            FROM organizations
+            ORDER BY created_at DESC
+            LIMIT $1 OFFSET $2
+            "#,
+        )
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(pool)
+        .await
+    }
+}
