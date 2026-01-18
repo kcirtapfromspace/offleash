@@ -1,12 +1,13 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use shared::types::ServiceId;
+use shared::types::{OrganizationId, ServiceId};
 use sqlx::FromRow;
 
 /// Service database model
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Service {
     pub id: ServiceId,
+    pub organization_id: OrganizationId,
     pub name: String,
     pub description: Option<String>,
     pub duration_minutes: i32,
@@ -25,6 +26,7 @@ impl Service {
 /// Input for creating a new service
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateService {
+    pub organization_id: OrganizationId,
     pub name: String,
     pub description: Option<String>,
     pub duration_minutes: i32,

@@ -7,6 +7,7 @@ use serde::Serialize;
 use shared::{AppError, DomainError};
 
 use crate::{
+    auth::TenantContext,
     error::{ApiError, ApiResult},
     state::AppState,
 };
@@ -21,8 +22,11 @@ pub struct ServiceResponse {
     pub price_display: String,
 }
 
-pub async fn list_services(State(state): State<AppState>) -> ApiResult<Json<Vec<ServiceResponse>>> {
-    let services = ServiceRepository::list_active(&state.pool).await?;
+pub async fn list_services(
+    State(_state): State<AppState>,
+    tenant: TenantContext,
+) -> ApiResult<Json<Vec<ServiceResponse>>> {
+    let services = ServiceRepository::list_active(&tenant.pool, tenant.org_id).await?;
 
     let response: Vec<ServiceResponse> = services
         .into_iter()
@@ -43,14 +47,15 @@ pub async fn list_services(State(state): State<AppState>) -> ApiResult<Json<Vec<
 }
 
 pub async fn get_service(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
+    tenant: TenantContext,
     Path(id): Path<String>,
 ) -> ApiResult<Json<ServiceResponse>> {
     let service_id = id
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid service ID".to_string())))?;
 
-    let service = ServiceRepository::find_by_id(&state.pool, service_id)
+    let service = ServiceRepository::find_by_id(&tenant.pool, tenant.org_id, service_id)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::ServiceNotFound(id)))?;
 

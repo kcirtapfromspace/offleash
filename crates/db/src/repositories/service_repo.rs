@@ -1,4 +1,4 @@
-use shared::types::ServiceId;
+use shared::types::{OrganizationId, ServiceId};
 use sqlx::PgPool;
 
 use crate::models::{CreateService, Service, UpdateService};
@@ -11,12 +11,13 @@ impl ServiceRepository {
 
         sqlx::query_as::<_, Service>(
             r#"
-            INSERT INTO services (id, name, description, duration_minutes, base_price_cents)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, name, description, duration_minutes, base_price_cents, is_active, created_at, updated_at
+            INSERT INTO services (id, organization_id, name, description, duration_minutes, base_price_cents)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, organization_id, name, description, duration_minutes, base_price_cents, is_active, created_at, updated_at
             "#,
         )
         .bind(id.as_uuid())
+        .bind(input.organization_id.as_uuid())
         .bind(&input.name)
         .bind(&input.description)
         .bind(input.duration_minutes)
@@ -25,34 +26,44 @@ impl ServiceRepository {
         .await
     }
 
-    pub async fn find_by_id(pool: &PgPool, id: ServiceId) -> Result<Option<Service>, sqlx::Error> {
+    pub async fn find_by_id(
+        pool: &PgPool,
+        org_id: OrganizationId,
+        id: ServiceId,
+    ) -> Result<Option<Service>, sqlx::Error> {
         sqlx::query_as::<_, Service>(
             r#"
-            SELECT id, name, description, duration_minutes, base_price_cents, is_active, created_at, updated_at
+            SELECT id, organization_id, name, description, duration_minutes, base_price_cents, is_active, created_at, updated_at
             FROM services
-            WHERE id = $1
+            WHERE id = $1 AND organization_id = $2
             "#,
         )
         .bind(id.as_uuid())
+        .bind(org_id.as_uuid())
         .fetch_optional(pool)
         .await
     }
 
-    pub async fn list_active(pool: &PgPool) -> Result<Vec<Service>, sqlx::Error> {
+    pub async fn list_active(
+        pool: &PgPool,
+        org_id: OrganizationId,
+    ) -> Result<Vec<Service>, sqlx::Error> {
         sqlx::query_as::<_, Service>(
             r#"
-            SELECT id, name, description, duration_minutes, base_price_cents, is_active, created_at, updated_at
+            SELECT id, organization_id, name, description, duration_minutes, base_price_cents, is_active, created_at, updated_at
             FROM services
-            WHERE is_active = true
+            WHERE organization_id = $1 AND is_active = true
             ORDER BY name
             "#,
         )
+        .bind(org_id.as_uuid())
         .fetch_all(pool)
         .await
     }
 
     pub async fn update(
         pool: &PgPool,
+        org_id: OrganizationId,
         id: ServiceId,
         input: UpdateService,
     ) -> Result<Option<Service>, sqlx::Error> {
@@ -60,17 +71,18 @@ impl ServiceRepository {
             r#"
             UPDATE services
             SET
-                name = COALESCE($2, name),
-                description = COALESCE($3, description),
-                duration_minutes = COALESCE($4, duration_minutes),
-                base_price_cents = COALESCE($5, base_price_cents),
-                is_active = COALESCE($6, is_active),
+                name = COALESCE($3, name),
+                description = COALESCE($4, description),
+                duration_minutes = COALESCE($5, duration_minutes),
+                base_price_cents = COALESCE($6, base_price_cents),
+                is_active = COALESCE($7, is_active),
                 updated_at = NOW()
-            WHERE id = $1
-            RETURNING id, name, description, duration_minutes, base_price_cents, is_active, created_at, updated_at
+            WHERE id = $1 AND organization_id = $2
+            RETURNING id, organization_id, name, description, duration_minutes, base_price_cents, is_active, created_at, updated_at
             "#,
         )
         .bind(id.as_uuid())
+        .bind(org_id.as_uuid())
         .bind(&input.name)
         .bind(&input.description)
         .bind(input.duration_minutes)
