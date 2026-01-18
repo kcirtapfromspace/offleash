@@ -4,7 +4,7 @@ use axum::{
 };
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
-use shared::types::UserId;
+use shared::types::{OrganizationId, UserId};
 use std::future::Future;
 
 use crate::state::AppState;
@@ -12,16 +12,18 @@ use crate::state::AppState;
 /// JWT claims
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String, // User ID
-    pub exp: usize,  // Expiration time
-    pub iat: usize,  // Issued at
+    pub sub: String,            // User ID
+    pub org_id: Option<String>, // Organization ID
+    pub exp: usize,             // Expiration time
+    pub iat: usize,             // Issued at
 }
 
 impl Claims {
-    pub fn new(user_id: UserId, expires_in_hours: i64) -> Self {
+    pub fn new(user_id: UserId, org_id: Option<OrganizationId>, expires_in_hours: i64) -> Self {
         let now = chrono::Utc::now();
         Self {
             sub: user_id.to_string(),
+            org_id: org_id.map(|id| id.to_string()),
             exp: (now + chrono::Duration::hours(expires_in_hours)).timestamp() as usize,
             iat: now.timestamp() as usize,
         }
@@ -30,11 +32,19 @@ impl Claims {
     pub fn user_id(&self) -> Option<UserId> {
         self.sub.parse().ok()
     }
+
+    pub fn org_id(&self) -> Option<OrganizationId> {
+        self.org_id.as_ref().and_then(|id| id.parse().ok())
+    }
 }
 
 /// Create a JWT token
-pub fn create_token(user_id: UserId, secret: &str) -> Result<String, jsonwebtoken::errors::Error> {
-    let claims = Claims::new(user_id, 24); // 24 hour expiry
+pub fn create_token(
+    user_id: UserId,
+    org_id: Option<OrganizationId>,
+    secret: &str,
+) -> Result<String, jsonwebtoken::errors::Error> {
+    let claims = Claims::new(user_id, org_id, 24); // 24 hour expiry
     encode(
         &Header::default(),
         &claims,
@@ -55,6 +65,7 @@ pub fn verify_token(token: &str, secret: &str) -> Result<Claims, jsonwebtoken::e
 /// Extractor for authenticated user
 pub struct AuthUser {
     pub user_id: UserId,
+    pub org_id: Option<OrganizationId>,
 }
 
 impl FromRequestParts<AppState> for AuthUser {
@@ -87,7 +98,9 @@ impl FromRequestParts<AppState> for AuthUser {
                 .user_id()
                 .ok_or((StatusCode::UNAUTHORIZED, "Invalid user ID in token"))?;
 
-            Ok(AuthUser { user_id })
+            let org_id = claims.org_id();
+
+            Ok(AuthUser { user_id, org_id })
         })();
 
         Box::pin(std::future::ready(auth_result))

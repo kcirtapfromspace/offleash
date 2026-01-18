@@ -84,8 +84,8 @@ pub async fn register(
     )
     .await?;
 
-    // Create token
-    let token = create_token(user.id, &state.jwt_secret).map_err(|_| {
+    // Create token (org_id is None at registration time)
+    let token = create_token(user.id, None, &state.jwt_secret).map_err(|_| {
         ApiError::from(shared::AppError::Internal(
             "Token creation failed".to_string(),
         ))
@@ -126,8 +126,8 @@ pub async fn login(
         .verify_password(req.password.as_bytes(), &parsed_hash)
         .map_err(|_| ApiError::from(DomainError::InvalidCredentials))?;
 
-    // Create token
-    let token = create_token(user.id, &state.jwt_secret).map_err(|_| {
+    // Create token (org_id can be set later when user selects an organization)
+    let token = create_token(user.id, None, &state.jwt_secret).map_err(|_| {
         ApiError::from(shared::AppError::Internal(
             "Token creation failed".to_string(),
         ))
