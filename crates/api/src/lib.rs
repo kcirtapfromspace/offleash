@@ -46,6 +46,11 @@ pub fn create_app(state: AppState) -> Router {
                 .patch(routes::admin_tenants::update_tenant)
                 .delete(routes::admin_tenants::delete_tenant),
         )
+        // Tenant admin branding management routes
+        .route(
+            "/admin/branding",
+            get(routes::admin_branding::get_branding).put(routes::admin_branding::update_branding),
+        )
         // Service routes
         .route("/services", get(routes::services::list_services))
         .route("/services/:id", get(routes::services::get_service))
