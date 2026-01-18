@@ -56,6 +56,7 @@ define_id!(ServiceId, "Unique identifier for a service");
 define_id!(LocationId, "Unique identifier for a location");
 define_id!(BlockId, "Unique identifier for a calendar block");
 define_id!(PaymentId, "Unique identifier for a payment");
+define_id!(OrganizationId, "Unique identifier for an organization");
 
 #[cfg(test)]
 mod tests {

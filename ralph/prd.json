@@ -101,7 +101,7 @@
       "description": "As a developer, I need all business tables scoped to organizations.",
       "id": "US-007",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 7,
       "title": "Add organization_id to remaining tables"
     },
