@@ -6,7 +6,7 @@ use axum::{
     extract::{Path, Query, State},
     Json,
 };
-use db::models::{CreateOrganization, CreateTenantDatabase, CreateUser, UserRole};
+use db::models::{CreateOrganization, CreateTenantDatabase, CreateUser, TenantDbStatus, UserRole};
 use db::{OrganizationRepository, TenantDatabaseRepository, UserRepository};
 use serde::{Deserialize, Serialize};
 use shared::DomainError;
@@ -413,5 +413,49 @@ pub async fn update_tenant(
         subscription_tier: row.subscription_tier.unwrap_or_else(|| "free".to_string()),
         created_at: row.created_at.to_rfc3339(),
         updated_at: row.updated_at.to_rfc3339(),
+    }))
+}
+
+// ============================================================================
+// Delete Tenant Endpoint (Soft Delete)
+// ============================================================================
+
+#[derive(Debug, Serialize)]
+pub struct DeleteTenantResponse {
+    pub message: String,
+    pub id: String,
+    pub status: String,
+}
+
+pub async fn delete_tenant(
+    _auth: PlatformAdminAuth,
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Json<DeleteTenantResponse>> {
+    let tenant_id: uuid::Uuid = id.parse().map_err(|_| {
+        ApiError::from(shared::AppError::Validation(
+            "Invalid tenant ID".to_string(),
+        ))
+    })?;
+
+    let org_id = shared::types::OrganizationId::from_uuid(tenant_id);
+
+    // Verify tenant exists
+    OrganizationRepository::find_by_id(&state.pool, org_id)
+        .await?
+        .ok_or_else(|| ApiError::from(DomainError::TenantNotFound(id.clone())))?;
+
+    // Soft-delete: Update tenant_database status to 'inactive'
+    TenantDatabaseRepository::update_status_by_org_id(
+        &state.pool,
+        org_id,
+        TenantDbStatus::Inactive,
+    )
+    .await?;
+
+    Ok(Json(DeleteTenantResponse {
+        message: "Tenant deactivated successfully".to_string(),
+        id,
+        status: "inactive".to_string(),
     }))
 }
