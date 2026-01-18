@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use shared::types::{BookingId, PaymentId, UserId};
+use shared::types::{BookingId, OrganizationId, PaymentId, UserId};
 use sqlx::FromRow;
 
 /// Payment status enum
@@ -41,6 +41,7 @@ pub enum PaymentMethod {
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Payment {
     pub id: PaymentId,
+    pub organization_id: Option<OrganizationId>,
     pub booking_id: BookingId,
     pub customer_id: UserId,
     pub amount_cents: i64,
@@ -65,6 +66,7 @@ impl Payment {
 /// Input for creating a new payment
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreatePayment {
+    pub organization_id: OrganizationId,
     pub booking_id: BookingId,
     pub customer_id: UserId,
     pub amount_cents: i64,

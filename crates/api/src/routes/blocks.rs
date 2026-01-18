@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use shared::{AppError, DomainError};
 
 use crate::{
-    auth::AuthUser,
+    auth::{AuthUser, TenantContext},
     error::{ApiError, ApiResult},
     state::AppState,
 };
@@ -35,7 +35,8 @@ pub struct BlockResponse {
 }
 
 pub async fn create_block(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
+    tenant: TenantContext,
     auth: AuthUser,
     Json(req): Json<CreateBlockRequest>,
 ) -> ApiResult<Json<BlockResponse>> {
@@ -59,8 +60,9 @@ pub async fn create_block(
     }
 
     let block = BlockRepository::create(
-        &state.pool,
+        &tenant.pool,
         CreateBlock {
+            organization_id: tenant.org_id,
             walker_id: auth.user_id,
             reason: req.reason,
             start_time,
@@ -83,7 +85,8 @@ pub async fn create_block(
 }
 
 pub async fn delete_block(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
+    tenant: TenantContext,
     auth: AuthUser,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
@@ -92,7 +95,7 @@ pub async fn delete_block(
         .map_err(|_| ApiError::from(AppError::Validation("Invalid block ID".to_string())))?;
 
     // Verify block belongs to user
-    let block = BlockRepository::find_by_id(&state.pool, block_id)
+    let block = BlockRepository::find_by_id(&tenant.pool, tenant.org_id, block_id)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::BookingNotFound(id.clone())))?;
 
@@ -100,7 +103,7 @@ pub async fn delete_block(
         return Err(ApiError::from(AppError::Forbidden));
     }
 
-    BlockRepository::delete(&state.pool, block_id).await?;
+    BlockRepository::delete(&tenant.pool, tenant.org_id, block_id).await?;
 
     Ok(Json(serde_json::json!({ "deleted": true })))
 }
