@@ -72,7 +72,7 @@ pub async fn get_availability(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid service ID".to_string())))?;
 
-    let service = ServiceRepository::find_by_id(&state.pool, service_id)
+    let service = ServiceRepository::find_by_id(&tenant.pool, tenant.org_id, service_id)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::ServiceNotFound(query.service_id.clone())))?;
 
