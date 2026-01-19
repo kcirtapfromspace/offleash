@@ -577,7 +577,7 @@
       "description": "As a tenant admin, I need to see and manage my services.",
       "id": "US-038",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 38,
       "title": "Build service list page"
     },
