@@ -37,6 +37,7 @@ struct LoginView: View {
     @State private var errorMessage = ""
 
     var onLoginSuccess: () -> Void
+    var onNavigateToRegister: (() -> Void)?
 
     var body: some View {
         GeometryReader { geometry in
@@ -128,6 +129,23 @@ struct LoginView: View {
                     }
                     .disabled(!isLoginEnabled || isLoading)
                     .padding(.top, 16)
+
+                    // Register Link
+                    if let onNavigateToRegister = onNavigateToRegister {
+                        HStack {
+                            Text("Don't have an account?")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+
+                            Button(action: onNavigateToRegister) {
+                                Text("Create Account")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(themeManager.primaryColor)
+                            }
+                        }
+                        .padding(.top, 8)
+                    }
 
                     Spacer()
 

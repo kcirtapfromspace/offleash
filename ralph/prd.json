@@ -901,7 +901,7 @@
       "description": "As a customer, I need to log in via the iOS app.",
       "id": "US-057",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 57,
       "title": "Build iOS login screen"
     },
