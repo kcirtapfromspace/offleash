@@ -919,7 +919,7 @@
       "description": "As a customer, I need to create an account via iOS app.",
       "id": "US-058",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 58,
       "title": "Build iOS registration screen"
     },
