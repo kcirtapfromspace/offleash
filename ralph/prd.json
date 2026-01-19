@@ -765,7 +765,7 @@
       "description": "As a customer, I need to save my locations for booking.",
       "id": "US-049",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 49,
       "title": "Build Customer Web location management"
     },

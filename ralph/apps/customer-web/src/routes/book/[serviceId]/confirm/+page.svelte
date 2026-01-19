@@ -5,13 +5,18 @@
 	import { generateCssVariables } from '$lib/stores/branding';
 	import { onMount } from 'svelte';
 
-	interface Service {
-		id: string;
-		name: string;
-		description: string | null;
-		duration_minutes: number;
-		price_cents: number;
-		price_display: string;
+	interface PendingBooking {
+		serviceId: string;
+		serviceName: string;
+		serviceDuration: number;
+		servicePrice: number;
+		date: string;
+		startTime: string;
+		endTime: string;
+		walkerId: string;
+		walkerName?: string;
+		locationId: string;
+		locationName?: string;
 	}
 
 	interface Location {
@@ -45,7 +50,10 @@
 		notes: string | null;
 	}
 
-	let service = $state<Service | null>(null);
+	const branding = $derived($page.data.branding);
+	const cssVariables = $derived(generateCssVariables(branding));
+
+	let pendingBooking = $state<PendingBooking | null>(null);
 	let location = $state<Location | null>(null);
 	let isLoading = $state(true);
 	let isSubmitting = $state(false);
@@ -54,50 +62,42 @@
 	let bookingSuccess = $state(false);
 	let createdBooking = $state<BookingResponse | null>(null);
 
-	const branding = $derived($page.data.branding);
-	const cssVariables = $derived(generateCssVariables(branding));
-
-	// Get booking parameters from URL
-	const serviceId = $derived($page.url.searchParams.get('service_id'));
-	const locationId = $derived($page.url.searchParams.get('location_id'));
-	const walkerId = $derived($page.url.searchParams.get('walker_id'));
-	const startTime = $derived($page.url.searchParams.get('start_time'));
-
 	onMount(() => {
-		loadBookingDetails();
+		loadPendingBooking();
 	});
 
-	async function loadBookingDetails() {
-		if (!serviceId || !locationId || !startTime) {
-			error = 'Missing booking details. Please start the booking process again.';
-			isLoading = false;
-			return;
-		}
-
+	async function loadPendingBooking() {
 		try {
 			isLoading = true;
 			error = null;
 
-			const [serviceData, locationData] = await Promise.all([
-				get<Service>(`/services/${serviceId}`),
-				get<Location>(`/locations/${locationId}`)
-			]);
-
-			service = serviceData;
-			location = locationData;
-		} catch (err) {
-			if (err instanceof ApiError) {
-				error = err.message || 'Failed to load booking details';
-			} else {
-				error = 'An unexpected error occurred';
+			// Get pending booking from sessionStorage
+			const storedBooking = sessionStorage.getItem('pendingBooking');
+			if (!storedBooking) {
+				error = 'No booking details found. Please start the booking process again.';
+				isLoading = false;
+				return;
 			}
+
+			pendingBooking = JSON.parse(storedBooking) as PendingBooking;
+
+			// Fetch location details
+			if (pendingBooking.locationId) {
+				try {
+					location = await get<Location>(`/locations/${pendingBooking.locationId}`);
+				} catch {
+					// Location fetch failed, but we can still proceed with booking
+				}
+			}
+		} catch (err) {
+			error = 'Failed to load booking details. Please try again.';
 		} finally {
 			isLoading = false;
 		}
 	}
 
-	function formatDate(isoString: string): string {
-		const date = new Date(isoString);
+	function formatDate(dateStr: string): string {
+		const date = new Date(dateStr);
 		return date.toLocaleDateString('en-US', {
 			weekday: 'long',
 			year: 'numeric',
@@ -127,13 +127,17 @@
 		return `${hours}h ${remainingMinutes}m`;
 	}
 
+	function formatPrice(cents: number): string {
+		return `$${(cents / 100).toFixed(2)}`;
+	}
+
 	function formatAddress(loc: Location): string {
 		const parts = [loc.address, loc.city, `${loc.state} ${loc.zip}`];
 		return parts.filter(Boolean).join(', ');
 	}
 
 	async function handleConfirmBooking() {
-		if (!serviceId || !locationId || !startTime) {
+		if (!pendingBooking) {
 			error = 'Missing required booking information';
 			return;
 		}
@@ -143,10 +147,10 @@
 			error = null;
 
 			const bookingRequest: BookingRequest = {
-				walker_id: walkerId || '',
-				service_id: serviceId,
-				location_id: locationId,
-				start_time: startTime
+				walker_id: pendingBooking.walkerId,
+				service_id: pendingBooking.serviceId,
+				location_id: pendingBooking.locationId,
+				start_time: pendingBooking.startTime
 			};
 
 			if (notes.trim()) {
@@ -156,6 +160,9 @@
 			const response = await post<BookingResponse>('/bookings', bookingRequest);
 			createdBooking = response;
 			bookingSuccess = true;
+
+			// Clear pending booking from storage
+			sessionStorage.removeItem('pendingBooking');
 		} catch (err) {
 			if (err instanceof ApiError) {
 				error = err.message || 'Failed to create booking';
@@ -174,6 +181,10 @@
 	function handleBookAnother() {
 		goto('/services');
 	}
+
+	function goBack() {
+		history.back();
+	}
 </script>
 
 <svelte:head>
@@ -182,15 +193,25 @@
 
 <div class="confirmation-page" style={cssVariables}>
 	<header class="header">
+		{#if !bookingSuccess}
+			<button type="button" class="back-button" onclick={goBack} aria-label="Go back">
+				<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+				</svg>
+			</button>
+		{:else}
+			<div class="header-spacer"></div>
+		{/if}
 		{#if branding.logo_url}
 			<img src={branding.logo_url} alt={branding.company_name} class="logo" />
 		{:else}
-			<h1 class="company-name">{branding.company_name}</h1>
+			<span class="company-name">{branding.company_name}</span>
 		{/if}
+		<div class="header-spacer"></div>
 	</header>
 
 	<main class="main">
-		{#if bookingSuccess && createdBooking}
+		{#if bookingSuccess && createdBooking && pendingBooking}
 			<!-- Success State -->
 			<div class="success-container">
 				<div class="success-icon">
@@ -216,7 +237,7 @@
 
 					<div class="detail-row">
 						<span class="detail-label">Service</span>
-						<span class="detail-value">{service?.name}</span>
+						<span class="detail-value">{pendingBooking.serviceName}</span>
 					</div>
 
 					<div class="detail-row">
@@ -235,6 +256,18 @@
 						<div class="detail-row">
 							<span class="detail-label">Location</span>
 							<span class="detail-value">{formatAddress(location)}</span>
+						</div>
+					{:else if pendingBooking.locationName}
+						<div class="detail-row">
+							<span class="detail-label">Location</span>
+							<span class="detail-value">{pendingBooking.locationName}</span>
+						</div>
+					{/if}
+
+					{#if pendingBooking.walkerName}
+						<div class="detail-row">
+							<span class="detail-label">Walker</span>
+							<span class="detail-value">{pendingBooking.walkerName}</span>
 						</div>
 					{/if}
 
@@ -277,7 +310,7 @@
 					<div class="skeleton-button"></div>
 				</div>
 			</div>
-		{:else if error && !service}
+		{:else if error && !pendingBooking}
 			<!-- Error State -->
 			<div class="error-container">
 				<div class="error-icon">
@@ -296,7 +329,7 @@
 					Back to Services
 				</button>
 			</div>
-		{:else if service && location && startTime}
+		{:else if pendingBooking}
 			<!-- Confirmation Form -->
 			<h2 class="page-title">Confirm Your Booking</h2>
 			<p class="page-subtitle">Please review your booking details before confirming</p>
@@ -318,10 +351,7 @@
 						</div>
 						<div class="summary-content">
 							<span class="summary-label">Service</span>
-							<span class="summary-value">{service.name}</span>
-							{#if service.description}
-								<span class="summary-description">{service.description}</span>
-							{/if}
+							<span class="summary-value">{pendingBooking.serviceName}</span>
 						</div>
 					</div>
 
@@ -338,7 +368,7 @@
 						</div>
 						<div class="summary-content">
 							<span class="summary-label">Date</span>
-							<span class="summary-value">{formatDate(startTime)}</span>
+							<span class="summary-value">{formatDate(pendingBooking.startTime)}</span>
 						</div>
 					</div>
 
@@ -355,8 +385,8 @@
 						</div>
 						<div class="summary-content">
 							<span class="summary-label">Time</span>
-							<span class="summary-value">{formatTime(startTime)}</span>
-							<span class="summary-description">Duration: {formatDuration(service.duration_minutes)}</span>
+							<span class="summary-value">{formatTime(pendingBooking.startTime)} - {formatTime(pendingBooking.endTime)}</span>
+							<span class="summary-description">Duration: {formatDuration(pendingBooking.serviceDuration)}</span>
 						</div>
 					</div>
 
@@ -379,14 +409,39 @@
 						</div>
 						<div class="summary-content">
 							<span class="summary-label">Location</span>
-							<span class="summary-value">{location.name || 'Service Location'}</span>
-							<span class="summary-description">{formatAddress(location)}</span>
+							{#if location}
+								<span class="summary-value">{location.name || 'Service Location'}</span>
+								<span class="summary-description">{formatAddress(location)}</span>
+							{:else if pendingBooking.locationName}
+								<span class="summary-value">{pendingBooking.locationName}</span>
+							{:else}
+								<span class="summary-value">Service Location</span>
+							{/if}
 						</div>
 					</div>
 
+					{#if pendingBooking.walkerName}
+						<div class="summary-item">
+							<div class="summary-icon">
+								<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+									/>
+								</svg>
+							</div>
+							<div class="summary-content">
+								<span class="summary-label">Walker</span>
+								<span class="summary-value">{pendingBooking.walkerName}</span>
+							</div>
+						</div>
+					{/if}
+
 					<div class="price-summary">
 						<span class="price-label">Total Price</span>
-						<span class="price-value">{service.price_display}</span>
+						<span class="price-value">{formatPrice(pendingBooking.servicePrice)}</span>
 					</div>
 				</div>
 
@@ -420,8 +475,8 @@
 				<div class="action-buttons">
 					<button
 						type="button"
-						class="back-button"
-						onclick={() => history.back()}
+						class="back-button-secondary"
+						onclick={goBack}
 						disabled={isSubmitting}
 					>
 						Back
@@ -456,8 +511,25 @@
 		padding: 1rem;
 		box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
 		display: flex;
-		justify-content: center;
+		justify-content: space-between;
 		align-items: center;
+	}
+
+	.back-button {
+		background: none;
+		border: none;
+		padding: 0.5rem;
+		cursor: pointer;
+		color: #374151;
+		border-radius: 0.375rem;
+	}
+
+	.back-button:hover {
+		background-color: #f3f4f6;
+	}
+
+	.header-spacer {
+		width: 44px;
 	}
 
 	.logo {
@@ -468,7 +540,6 @@
 		font-size: 1.5rem;
 		font-weight: 700;
 		color: var(--color-primary, #3b82f6);
-		margin: 0;
 	}
 
 	.main {
@@ -636,7 +707,7 @@
 		border-top: 1px solid #e5e7eb;
 	}
 
-	.back-button {
+	.back-button-secondary {
 		flex: 1;
 		padding: 0.875rem 1.5rem;
 		background-color: white;
@@ -649,11 +720,11 @@
 		transition: all 0.2s ease;
 	}
 
-	.back-button:hover:not(:disabled) {
+	.back-button-secondary:hover:not(:disabled) {
 		background-color: #f3f4f6;
 	}
 
-	.back-button:disabled {
+	.back-button-secondary:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
 	}
