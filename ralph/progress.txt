@@ -193,3 +193,16 @@
 - **Learnings for future iterations:**
 - Story completed successfully via automated execution
 ---
+
+## 2026-01-18 22:57 - US-040
+- **What was implemented**: Build booking list page
+- **Files changed**:
+  - rates/db/src/repositories/booking_repo.rs
+  - alph/apps/admin-dashboard/src/pages/BookingsPage.tsx
+  - alph/apps/admin-dashboard/src/pages/CustomersPage.tsx
+  - alph/prd.json
+  - alph/progress.txt
+- **Iterations used**: 1
+- **Learnings for future iterations:**
+- Story completed successfully via automated execution
+---
