@@ -58,8 +58,14 @@ pub fn create_app(state: AppState) -> Router {
             get(routes::dashboard::get_metrics),
         )
         // Service routes
-        .route("/services", get(routes::services::list_services))
-        .route("/services/:id", get(routes::services::get_service))
+        .route(
+            "/services",
+            get(routes::services::list_services).post(routes::services::create_service),
+        )
+        .route(
+            "/services/:id",
+            get(routes::services::get_service).patch(routes::services::update_service),
+        )
         // Availability routes
         .route(
             "/availability/:walker_id",

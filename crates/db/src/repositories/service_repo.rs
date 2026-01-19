@@ -61,6 +61,23 @@ impl ServiceRepository {
         .await
     }
 
+    pub async fn list_all(
+        pool: &PgPool,
+        org_id: OrganizationId,
+    ) -> Result<Vec<Service>, sqlx::Error> {
+        sqlx::query_as::<_, Service>(
+            r#"
+            SELECT id, organization_id, name, description, duration_minutes, base_price_cents, is_active, created_at, updated_at
+            FROM services
+            WHERE organization_id = $1
+            ORDER BY name
+            "#,
+        )
+        .bind(org_id.as_uuid())
+        .fetch_all(pool)
+        .await
+    }
+
     pub async fn update(
         pool: &PgPool,
         org_id: OrganizationId,
