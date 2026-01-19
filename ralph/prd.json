@@ -882,7 +882,7 @@
       "description": "As a developer, I need UI components to use tenant colors.",
       "id": "US-056",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 56,
       "title": "Create iOS dynamic theming"
     },
