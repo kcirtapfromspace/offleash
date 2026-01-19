@@ -783,7 +783,7 @@
       "description": "As a customer, I need to pick a date and time for my booking.",
       "id": "US-050",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 50,
       "title": "Build Customer Web date/time selection"
     },
