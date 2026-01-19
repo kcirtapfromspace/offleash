@@ -1,9 +1,9 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     Json,
 };
 use chrono::DateTime;
-use db::models::CreateBooking;
+use db::models::{BookingStatus, CreateBooking};
 use db::{BookingRepository, LocationRepository, ServiceRepository, UserRepository};
 use serde::{Deserialize, Serialize};
 use shared::{AppError, DomainError};
@@ -13,6 +13,11 @@ use crate::{
     error::{ApiError, ApiResult},
     state::AppState,
 };
+
+#[derive(Debug, Deserialize)]
+pub struct ListBookingsQuery {
+    pub status: Option<String>,
+}
 
 #[derive(Debug, Deserialize)]
 pub struct CreateBookingRequest {
