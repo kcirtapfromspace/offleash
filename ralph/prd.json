@@ -800,7 +800,7 @@
       "description": "As a customer, I need to review and confirm my booking.",
       "id": "US-051",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 51,
       "title": "Build Customer Web booking confirmation"
     },
