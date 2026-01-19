@@ -473,7 +473,7 @@
       "description": "As a developer, I need the app routing configured.",
       "id": "US-032",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 32,
       "title": "Create Admin Dashboard routing structure"
     },
