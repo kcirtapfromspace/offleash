@@ -441,7 +441,7 @@
       "description": "As a developer, I need the frontend project structure for admin dashboard.",
       "id": "US-030",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 30,
       "title": "Set up Admin Dashboard SvelteKit project"
     },
