@@ -508,7 +508,7 @@
       "description": "As a tenant admin, I need a consistent navigation layout.",
       "id": "US-034",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 34,
       "title": "Build Admin Dashboard layout shell"
     },

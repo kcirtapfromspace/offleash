@@ -169,4 +169,38 @@ impl BookingRepository {
     ) -> Result<Option<Booking>, sqlx::Error> {
         Self::update_status(pool, org_id, id, BookingStatus::Cancelled).await
     }
+
+    /// Count bookings for today
+    pub async fn count_today(pool: &PgPool, org_id: OrganizationId) -> Result<i64, sqlx::Error> {
+        let result: (i64,) = sqlx::query_as(
+            r#"
+            SELECT COUNT(*) as count
+            FROM bookings
+            WHERE organization_id = $1
+              AND DATE(scheduled_start) = CURRENT_DATE
+            "#,
+        )
+        .bind(org_id.as_uuid())
+        .fetch_one(pool)
+        .await?;
+
+        Ok(result.0)
+    }
+
+    /// Count pending bookings
+    pub async fn count_pending(pool: &PgPool, org_id: OrganizationId) -> Result<i64, sqlx::Error> {
+        let result: (i64,) = sqlx::query_as(
+            r#"
+            SELECT COUNT(*) as count
+            FROM bookings
+            WHERE organization_id = $1
+              AND status = 'pending'
+            "#,
+        )
+        .bind(org_id.as_uuid())
+        .fetch_one(pool)
+        .await?;
+
+        Ok(result.0)
+    }
 }
