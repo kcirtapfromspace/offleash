@@ -431,19 +431,19 @@
     {
       "acceptanceCriteria": [
         "Create /apps/admin-dashboard directory",
-        "Initialize with: npm create vite@latest . -- --template react-ts",
-        "Install dependencies: react-router-dom, @tanstack/react-query, tailwindcss",
-        "Configure Tailwind CSS with tailwind.config.js",
-        "Create src/main.tsx entry point",
-        "Typecheck passes",
-        "Verify in browser: shows Vite default page"
+        "Initialize with: npx sv create admin-dashboard (skeleton, TypeScript, ESLint, Prettier)",
+        "Install and configure Tailwind CSS",
+        "Configure SvelteKit with proper TypeScript settings",
+        "Create src/routes/+page.svelte entry point",
+        "Typecheck passes (npm run check)",
+        "Verify in browser: shows SvelteKit default page"
       ],
       "description": "As a developer, I need the frontend project structure for admin dashboard.",
       "id": "US-030",
       "notes": "",
       "passes": false,
       "priority": 30,
-      "title": "Set up Admin Dashboard React project"
+      "title": "Set up Admin Dashboard SvelteKit project"
     },
     {
       "acceptanceCriteria": [
@@ -463,11 +463,11 @@
     },
     {
       "acceptanceCriteria": [
-        "Set up React Router in src/App.tsx",
+        "Set up SvelteKit file-based routing in src/routes/",
         "Create routes: /login, /dashboard, /walkers, /services, /bookings, /customers, /settings",
-        "Create placeholder page components for each route",
-        "Add protected route wrapper that redirects to /login if not authenticated",
-        "Typecheck passes",
+        "Create placeholder +page.svelte components for each route",
+        "Add protected route group (protected) with +layout.server.ts auth check",
+        "Typecheck passes (npm run check)",
         "Verify in browser: navigation between routes works"
       ],
       "description": "As a developer, I need the app routing configured.",
@@ -479,46 +479,49 @@
     },
     {
       "acceptanceCriteria": [
-        "Create src/pages/Login.tsx with email/password form",
+        "Create src/routes/login/+page.svelte with email/password form",
+        "Create src/routes/login/+page.server.ts with form action for login",
         "Style with Tailwind CSS",
-        "Call POST /auth/login on submit",
-        "Store JWT token on success",
+        "Use SvelteKit form actions to call POST /auth/login",
+        "Store JWT token in httpOnly cookie on success",
         "Redirect to /dashboard on success",
-        "Show error message on failure",
-        "Typecheck passes",
+        "Show error message on failure using form.error",
+        "Typecheck passes (npm run check)",
         "Verify in browser: can log in with valid credentials"
       ],
       "description": "As a tenant admin, I need to log in to the dashboard.",
       "id": "US-033",
       "notes": "",
-      "passes": true,
+      "passes": false,
       "priority": 33,
       "title": "Build Admin Dashboard login page"
     },
     {
       "acceptanceCriteria": [
-        "Create src/components/DashboardLayout.tsx",
+        "Create src/routes/(protected)/+layout.svelte with sidebar and header",
+        "Create src/lib/components/Navigation.svelte component",
         "Add sidebar with navigation links to all main sections",
         "Add header with company name and logout button",
-        "Wrap authenticated routes with layout",
-        "Logout clears token and redirects to login",
-        "Typecheck passes",
+        "Logout clears cookie via form action and redirects to login",
+        "Use $page.url.pathname for active nav highlighting",
+        "Typecheck passes (npm run check)",
         "Verify in browser: sidebar visible, logout works"
       ],
       "description": "As a tenant admin, I need a consistent navigation layout.",
       "id": "US-034",
       "notes": "",
-      "passes": true,
+      "passes": false,
       "priority": 34,
       "title": "Build Admin Dashboard layout shell"
     },
     {
       "acceptanceCriteria": [
-        "Create src/pages/Dashboard.tsx",
+        "Create src/routes/(protected)/dashboard/+page.svelte",
+        "Create src/routes/(protected)/dashboard/+page.server.ts for data loading",
         "Display: today's booking count, this week's revenue, pending bookings count",
-        "Fetch data from API (create endpoints if needed)",
-        "Show loading state while fetching",
-        "Typecheck passes",
+        "Fetch data from API using load function",
+        "Show loading state while fetching (use Svelte {#await} or load function)",
+        "Typecheck passes (npm run check)",
         "Verify in browser: metrics display correctly"
       ],
       "description": "As a tenant admin, I need to see key metrics on the dashboard.",
@@ -663,28 +666,28 @@
     {
       "acceptanceCriteria": [
         "Create /apps/customer-web directory",
-        "Initialize with Vite + React + TypeScript",
-        "Install dependencies: react-router-dom, @tanstack/react-query, tailwindcss",
-        "Configure Tailwind CSS",
-        "Create basic project structure",
-        "Typecheck passes",
-        "Verify in browser: shows default page"
+        "Initialize with: npx sv create customer-web (skeleton, TypeScript, ESLint, Prettier)",
+        "Install and configure Tailwind CSS",
+        "Configure SvelteKit with proper TypeScript settings",
+        "Create basic project structure with src/routes/ and src/lib/",
+        "Typecheck passes (npm run check)",
+        "Verify in browser: shows SvelteKit default page"
       ],
       "description": "As a developer, I need the frontend project for customer booking.",
       "id": "US-044",
       "notes": "",
       "passes": false,
       "priority": 44,
-      "title": "Set up Customer Web React project"
+      "title": "Set up Customer Web SvelteKit project"
     },
     {
       "acceptanceCriteria": [
-        "Create src/hooks/useBranding.ts hook",
-        "Fetch branding from GET /api/branding on app load",
+        "Create src/lib/stores/branding.ts Svelte store",
+        "Fetch branding from GET /api/branding in +layout.server.ts",
         "Create CSS variables from branding colors (--color-primary, etc.)",
-        "Apply CSS variables to document root",
-        "Create BrandingProvider context",
-        "Typecheck passes",
+        "Apply CSS variables in +layout.svelte using style binding",
+        "Pass branding data through page data ($page.data.branding)",
+        "Typecheck passes (npm run check)",
         "Verify in browser: colors apply from API response"
       ],
       "description": "As a developer, I need the customer UI to apply tenant branding dynamically.",
@@ -1094,18 +1097,18 @@
     {
       "acceptanceCriteria": [
         "Create /apps/platform-admin directory",
-        "Initialize with Vite + React + TypeScript",
-        "Configure Tailwind CSS",
-        "Set up routing: /login, /tenants, /tenants/:id",
-        "Typecheck passes",
-        "Verify in browser: shows default page"
+        "Initialize with: npx sv create platform-admin (skeleton, TypeScript, ESLint, Prettier)",
+        "Install and configure Tailwind CSS",
+        "Set up SvelteKit file-based routing: /login, /tenants, /tenants/[id]",
+        "Typecheck passes (npm run check)",
+        "Verify in browser: shows SvelteKit default page"
       ],
       "description": "As a developer, I need a separate dashboard for platform admins.",
       "id": "US-069",
       "notes": "",
       "passes": false,
       "priority": 69,
-      "title": "Create platform admin web dashboard project"
+      "title": "Create platform admin web dashboard SvelteKit project"
     },
     {
       "acceptanceCriteria": [
