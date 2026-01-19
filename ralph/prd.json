@@ -457,7 +457,7 @@
       "description": "As a developer, I need an API client for making authenticated requests.",
       "id": "US-031",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 31,
       "title": "Create Admin Dashboard API client"
     },
