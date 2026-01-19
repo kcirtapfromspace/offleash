@@ -203,4 +203,50 @@ impl BookingRepository {
 
         Ok(result.0)
     }
+
+    /// List all bookings for an organization, optionally filtered by status
+    pub async fn list_all(
+        pool: &PgPool,
+        org_id: OrganizationId,
+        status_filter: Option<BookingStatus>,
+    ) -> Result<Vec<Booking>, sqlx::Error> {
+        match status_filter {
+            Some(status) => {
+                sqlx::query_as::<_, Booking>(
+                    r#"
+                    SELECT id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, created_at, updated_at
+                    FROM bookings
+                    WHERE organization_id = $1 AND status = $2
+                    ORDER BY scheduled_start DESC
+                    "#,
+                )
+                .bind(org_id.as_uuid())
+                .bind(status)
+                .fetch_all(pool)
+                .await
+            }
+            None => {
+                sqlx::query_as::<_, Booking>(
+                    r#"
+                    SELECT id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, created_at, updated_at
+                    FROM bookings
+                    WHERE organization_id = $1
+                    ORDER BY scheduled_start DESC
+                    "#,
+                )
+                .bind(org_id.as_uuid())
+                .fetch_all(pool)
+                .await
+            }
+        }
+    }
+
+    /// Complete a booking
+    pub async fn complete(
+        pool: &PgPool,
+        org_id: OrganizationId,
+        id: BookingId,
+    ) -> Result<Option<Booking>, sqlx::Error> {
+        Self::update_status(pool, org_id, id, BookingStatus::Completed).await
+    }
 }

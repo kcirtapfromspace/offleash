@@ -593,7 +593,7 @@
       "description": "As a tenant admin, I need to create and edit services.",
       "id": "US-039",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 39,
       "title": "Build add/edit service form"
     },
