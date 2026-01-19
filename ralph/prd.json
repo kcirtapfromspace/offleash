@@ -641,7 +641,7 @@
       "description": "As a tenant admin, I need to see all my customers.",
       "id": "US-042",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 42,
       "title": "Build customer list page"
     },
