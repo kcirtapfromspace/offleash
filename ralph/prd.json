@@ -609,7 +609,7 @@
       "description": "As a tenant admin, I need to see all bookings.",
       "id": "US-040",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 40,
       "title": "Build booking list page"
     },
