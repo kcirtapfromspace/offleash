@@ -491,7 +491,7 @@
       "description": "As a tenant admin, I need to log in to the dashboard.",
       "id": "US-033",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 33,
       "title": "Build Admin Dashboard login page"
     },
