@@ -9,9 +9,20 @@ import SwiftUI
 
 @main
 struct OFFLEASHApp: App {
+    @StateObject private var themeManager = ThemeManager.shared
+    @State private var isAuthenticated = KeychainHelper.shared.hasToken
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if isAuthenticated {
+                ContentView()
+                    .withThemeManager(themeManager)
+            } else {
+                LoginView(onLoginSuccess: {
+                    isAuthenticated = true
+                })
+                .withThemeManager(themeManager)
+            }
         }
     }
 }

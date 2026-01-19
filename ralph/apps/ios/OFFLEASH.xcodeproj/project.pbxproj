@@ -12,6 +12,8 @@
 		A1000001229D0005000A0001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1000001229D0006000A0001 /* Assets.xcassets */; };
 		A1000001229D0007000A0001 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1000001229D0008000A0001 /* Preview Assets.xcassets */; };
 		A1000001229D0024000A0001 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0025000A0001 /* APIClient.swift */; };
+		A1000001229D0056000A0001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0057000A0001 /* Theme.swift */; };
+		A1000001229D0058000A0001 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0059000A0001 /* LoginView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,6 +23,7 @@
 		A1000001229D0008000A0001 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		A1000001229D0009000A0001 /* OFFLEASH.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OFFLEASH.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1000001229D0025000A0001 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		A1000001229D0057000A0001 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,6 +101,7 @@
 		A1000001229D0023000A0001 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				A1000001229D0057000A0001 /* Theme.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -175,6 +179,7 @@
 				A1000001229D0003000A0001 /* ContentView.swift in Sources */,
 				A1000001229D0001000A0001 /* OFFLEASHApp.swift in Sources */,
 				A1000001229D0024000A0001 /* APIClient.swift in Sources */,
+				A1000001229D0056000A0001 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
