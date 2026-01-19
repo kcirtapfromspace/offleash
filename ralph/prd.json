@@ -850,7 +850,7 @@
       "description": "As a developer, I need a network layer for API calls.",
       "id": "US-054",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 54,
       "title": "Create iOS API client"
     },
