@@ -72,7 +72,10 @@ pub fn create_app(state: AppState) -> Router {
             get(routes::availability::get_availability),
         )
         // Booking routes
-        .route("/bookings", post(routes::bookings::create_booking))
+        .route(
+            "/bookings",
+            get(routes::bookings::list_bookings).post(routes::bookings::create_booking),
+        )
         .route("/bookings/:id", get(routes::bookings::get_booking))
         .route(
             "/bookings/:id/confirm",
@@ -81,6 +84,10 @@ pub fn create_app(state: AppState) -> Router {
         .route(
             "/bookings/:id/cancel",
             post(routes::bookings::cancel_booking),
+        )
+        .route(
+            "/bookings/:id/complete",
+            post(routes::bookings::complete_booking),
         )
         // Location routes
         .route("/locations", post(routes::locations::create_location))

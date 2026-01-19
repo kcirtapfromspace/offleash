@@ -43,6 +43,26 @@ pub struct BookingResponse {
     pub notes: Option<String>,
 }
 
+/// Enriched booking response with resolved names for admin list view
+#[derive(Debug, Serialize)]
+pub struct BookingListItem {
+    pub id: String,
+    pub customer_id: String,
+    pub customer_name: String,
+    pub walker_id: String,
+    pub walker_name: String,
+    pub service_id: String,
+    pub service_name: String,
+    pub location_id: String,
+    pub location_address: String,
+    pub status: String,
+    pub scheduled_start: String,
+    pub scheduled_end: String,
+    pub price_cents: i64,
+    pub price_display: String,
+    pub notes: Option<String>,
+}
+
 pub async fn create_booking(
     State(_state): State<AppState>,
     tenant: TenantContext,
@@ -245,6 +265,133 @@ pub async fn cancel_booking(
     }
 
     let updated = BookingRepository::cancel(&tenant.pool, tenant.org_id, booking_id)
+        .await?
+        .ok_or_else(|| ApiError::from(DomainError::BookingNotFound(id)))?;
+
+    Ok(Json(BookingResponse {
+        id: updated.id.to_string(),
+        customer_id: updated.customer_id.to_string(),
+        walker_id: updated.walker_id.to_string(),
+        service_id: updated.service_id.to_string(),
+        location_id: updated.location_id.to_string(),
+        status: updated.status.to_string(),
+        scheduled_start: updated.scheduled_start.to_rfc3339(),
+        scheduled_end: updated.scheduled_end.to_rfc3339(),
+        price_cents: updated.price_cents,
+        price_display: format!("${:.2}", updated.price_dollars()),
+        notes: updated.notes,
+    }))
+}
+
+/// List all bookings (admin only)
+pub async fn list_bookings(
+    State(_state): State<AppState>,
+    tenant: TenantContext,
+    auth: AuthUser,
+    Query(query): Query<ListBookingsQuery>,
+) -> ApiResult<Json<Vec<BookingListItem>>> {
+    // Verify user is admin
+    let user = UserRepository::find_by_id(&tenant.pool, tenant.org_id, auth.user_id)
+        .await?
+        .ok_or_else(|| ApiError::from(AppError::Forbidden))?;
+
+    if !user.is_admin() {
+        return Err(ApiError::from(AppError::Forbidden));
+    }
+
+    // Parse status filter
+    let status_filter = query.status.and_then(|s| match s.as_str() {
+        "pending" => Some(BookingStatus::Pending),
+        "confirmed" => Some(BookingStatus::Confirmed),
+        "in_progress" => Some(BookingStatus::InProgress),
+        "completed" => Some(BookingStatus::Completed),
+        "cancelled" => Some(BookingStatus::Cancelled),
+        "no_show" => Some(BookingStatus::NoShow),
+        _ => None,
+    });
+
+    let bookings = BookingRepository::list_all(&tenant.pool, tenant.org_id, status_filter).await?;
+
+    // Enrich bookings with related data
+    let mut responses = Vec::with_capacity(bookings.len());
+    for b in bookings {
+        let customer = UserRepository::find_by_id(&tenant.pool, tenant.org_id, b.customer_id)
+            .await?
+            .map(|u| u.full_name())
+            .unwrap_or_else(|| "Unknown".to_string());
+
+        let walker = UserRepository::find_by_id(&tenant.pool, tenant.org_id, b.walker_id)
+            .await?
+            .map(|u| u.full_name())
+            .unwrap_or_else(|| "Unknown".to_string());
+
+        let service = ServiceRepository::find_by_id(&tenant.pool, tenant.org_id, b.service_id)
+            .await?
+            .map(|s| s.name)
+            .unwrap_or_else(|| "Unknown".to_string());
+
+        let location = LocationRepository::find_by_id(&tenant.pool, tenant.org_id, b.location_id)
+            .await?
+            .map(|l| format!("{}, {}", l.address, l.city))
+            .unwrap_or_else(|| "Unknown".to_string());
+
+        responses.push(BookingListItem {
+            id: b.id.to_string(),
+            customer_id: b.customer_id.to_string(),
+            customer_name: customer,
+            walker_id: b.walker_id.to_string(),
+            walker_name: walker,
+            service_id: b.service_id.to_string(),
+            service_name: service,
+            location_id: b.location_id.to_string(),
+            location_address: location,
+            status: b.status.to_string(),
+            scheduled_start: b.scheduled_start.to_rfc3339(),
+            scheduled_end: b.scheduled_end.to_rfc3339(),
+            price_cents: b.price_cents,
+            price_display: format!("${:.2}", b.price_dollars()),
+            notes: b.notes,
+        });
+    }
+
+    Ok(Json(responses))
+}
+
+/// Complete a booking (admin only)
+pub async fn complete_booking(
+    State(_state): State<AppState>,
+    tenant: TenantContext,
+    auth: AuthUser,
+    Path(id): Path<String>,
+) -> ApiResult<Json<BookingResponse>> {
+    let booking_id = id
+        .parse()
+        .map_err(|_| ApiError::from(AppError::Validation("Invalid booking ID".to_string())))?;
+
+    // Verify user is admin
+    let user = UserRepository::find_by_id(&tenant.pool, tenant.org_id, auth.user_id)
+        .await?
+        .ok_or_else(|| ApiError::from(AppError::Forbidden))?;
+
+    if !user.is_admin() {
+        return Err(ApiError::from(AppError::Forbidden));
+    }
+
+    let booking = BookingRepository::find_by_id(&tenant.pool, tenant.org_id, booking_id)
+        .await?
+        .ok_or_else(|| ApiError::from(DomainError::BookingNotFound(id.clone())))?;
+
+    // Can only complete confirmed or in_progress bookings
+    if !matches!(
+        booking.status,
+        BookingStatus::Confirmed | BookingStatus::InProgress
+    ) {
+        return Err(ApiError::from(DomainError::InvalidStateTransition(
+            booking.status.to_string(),
+        )));
+    }
+
+    let updated = BookingRepository::complete(&tenant.pool, tenant.org_id, booking_id)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::BookingNotFound(id)))?;
 
