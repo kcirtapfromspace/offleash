@@ -833,7 +833,7 @@
       "description": "As a developer, I need the iOS project structure.",
       "id": "US-053",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 53,
       "title": "Set up iOS Xcode project"
     },
