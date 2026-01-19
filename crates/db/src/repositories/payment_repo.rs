@@ -109,4 +109,26 @@ impl PaymentRepository {
         .fetch_optional(pool)
         .await
     }
+
+    /// Calculate total revenue for the current week (completed payments only)
+    pub async fn revenue_this_week(
+        pool: &PgPool,
+        org_id: OrganizationId,
+    ) -> Result<i64, sqlx::Error> {
+        let result: (Option<i64>,) = sqlx::query_as(
+            r#"
+            SELECT COALESCE(SUM(amount_cents), 0) as total
+            FROM payments
+            WHERE organization_id = $1
+              AND status = 'completed'
+              AND created_at >= DATE_TRUNC('week', CURRENT_DATE)
+              AND created_at < DATE_TRUNC('week', CURRENT_DATE) + INTERVAL '1 week'
+            "#,
+        )
+        .bind(org_id.as_uuid())
+        .fetch_one(pool)
+        .await?;
+
+        Ok(result.0.unwrap_or(0))
+    }
 }
