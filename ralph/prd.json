@@ -954,7 +954,7 @@
       "description": "As a customer, I need to select a location for my booking.",
       "id": "US-060",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 60,
       "title": "Build iOS location selection"
     },
