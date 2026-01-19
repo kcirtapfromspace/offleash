@@ -747,7 +747,7 @@
       "description": "As a customer, I need to browse available services.",
       "id": "US-048",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 48,
       "title": "Build Customer Web service listing"
     },
