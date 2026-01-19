@@ -24,7 +24,7 @@
 		try {
 			const response = await post<LoginResponse>('/auth/login', { email, password });
 			setToken(response.token);
-			await goto('/');
+			await goto('/services');
 		} catch (err) {
 			if (err instanceof ApiError) {
 				if (err.status === 401) {
