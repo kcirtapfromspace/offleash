@@ -693,7 +693,7 @@
       "description": "As a developer, I need the customer UI to apply tenant branding dynamically.",
       "id": "US-045",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 45,
       "title": "Implement dynamic theming for Customer Web"
     },
