@@ -431,3 +431,18 @@
 - **Learnings for future iterations:**
 - Story completed successfully via automated execution
 ---
+
+## 2026-01-18 23:42 - US-060
+- **What was implemented**: Build iOS location selection
+- **Files changed**:
+  - alph/apps/ios/OFFLEASH.xcodeproj/project.pbxproj
+  - alph/apps/ios/OFFLEASH/ContentView.swift
+  - alph/prd.json
+  - alph/progress.txt
+  - ralph/apps/ios/OFFLEASH/Models/Location.swift
+  - ralph/apps/ios/OFFLEASH/Views/LocationSelectionView.swift
+  - ralph/apps/ios/OFFLEASH/Views/ServicesView.swift
+- **Iterations used**: 1
+- **Learnings for future iterations:**
+- Story completed successfully via automated execution
+---
