@@ -711,7 +711,7 @@
       "description": "As a customer, I need to create an account.",
       "id": "US-046",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 46,
       "title": "Build Customer Web registration page"
     },
