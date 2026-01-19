@@ -676,7 +676,7 @@
       "description": "As a developer, I need the frontend project for customer booking.",
       "id": "US-044",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 44,
       "title": "Set up Customer Web SvelteKit project"
     },
