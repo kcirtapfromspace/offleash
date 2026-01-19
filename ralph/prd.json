@@ -527,7 +527,7 @@
       "description": "As a tenant admin, I need to see key metrics on the dashboard.",
       "id": "US-035",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 35,
       "title": "Build Admin Dashboard home/overview page"
     },
