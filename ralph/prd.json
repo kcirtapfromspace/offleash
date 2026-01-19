@@ -543,7 +543,7 @@
       "description": "As a tenant admin, I need to see all my walkers.",
       "id": "US-036",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 36,
       "title": "Build walker list page"
     },
@@ -560,7 +560,7 @@
       "description": "As a tenant admin, I need to add new walkers to my team.",
       "id": "US-037",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 37,
       "title": "Build add walker form"
     },

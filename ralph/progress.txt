@@ -137,3 +137,14 @@
 - **Learnings for future iterations:**
 - Story completed successfully via automated execution
 ---
+
+## 2026-01-18 22:48 - US-036
+- **What was implemented**: Build walker list page
+- **Files changed**:
+  - alph/apps/admin-dashboard/src/pages/WalkersPage.tsx
+  - alph/prd.json
+  - alph/progress.txt
+- **Iterations used**: 1
+- **Learnings for future iterations:**
+- Story completed successfully via automated execution
+---
