@@ -817,7 +817,7 @@
       "description": "As a customer, I need to view my bookings.",
       "id": "US-052",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 52,
       "title": "Build Customer Web booking history"
     },
