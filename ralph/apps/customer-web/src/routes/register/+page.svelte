@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { post, setToken, ApiError } from '$lib/api';
 	import { generateCssVariables } from '$lib/stores/branding';
 
@@ -75,8 +75,8 @@
 		return Object.keys(newErrors).length === 0;
 	}
 
-	async function handleSubmit(e: SubmitEvent) {
-		e.preventDefault();
+	async function handleSubmit(event: SubmitEvent) {
+		event.preventDefault();
 
 		if (!validateForm()) {
 			return;
@@ -118,178 +118,307 @@
 	<title>Register - {branding.company_name}</title>
 </svelte:head>
 
-<div
-	class="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4"
-	style={cssVariables}
->
-	<div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+<div class="register-page" style={cssVariables}>
+	<div class="register-card">
 		{#if branding.logo_url}
-			<img src={branding.logo_url} alt={branding.company_name} class="h-12 mx-auto mb-6" />
+			<img src={branding.logo_url} alt={branding.company_name} class="logo" />
 		{:else}
-			<h1 class="text-2xl font-bold text-center mb-2" style="color: var(--color-primary)">
-				{branding.company_name}
-			</h1>
+			<h1 class="company-name">{branding.company_name}</h1>
 		{/if}
 
-		<h2 class="text-xl font-semibold text-center text-gray-700 mb-6">Create your account</h2>
+		<h2 class="title">Create your account</h2>
 
 		{#if errors.general}
-			<div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
+			<div class="error-message" role="alert">
 				{errors.general}
 			</div>
 		{/if}
 
 		<form onsubmit={handleSubmit}>
-			<div class="grid grid-cols-2 gap-4 mb-4">
-				<div>
-					<label for="first_name" class="block text-sm font-medium text-gray-700 mb-1">
-						First Name
-					</label>
+			<div class="name-row">
+				<div class="form-group">
+					<label for="first_name">First Name</label>
 					<input
 						type="text"
 						id="first_name"
 						bind:value={first_name}
 						required
-						class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 {errors.first_name
-							? 'border-red-500'
-							: 'border-gray-300'}"
-						style="--tw-ring-color: var(--color-primary)"
 						placeholder="John"
 						disabled={isLoading}
+						autocomplete="given-name"
+						class:input-error={errors.first_name}
 					/>
 					{#if errors.first_name}
-						<p class="mt-1 text-xs text-red-600">{errors.first_name}</p>
+						<span class="field-error">{errors.first_name}</span>
 					{/if}
 				</div>
 
-				<div>
-					<label for="last_name" class="block text-sm font-medium text-gray-700 mb-1">
-						Last Name
-					</label>
+				<div class="form-group">
+					<label for="last_name">Last Name</label>
 					<input
 						type="text"
 						id="last_name"
 						bind:value={last_name}
 						required
-						class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 {errors.last_name
-							? 'border-red-500'
-							: 'border-gray-300'}"
-						style="--tw-ring-color: var(--color-primary)"
 						placeholder="Doe"
 						disabled={isLoading}
+						autocomplete="family-name"
+						class:input-error={errors.last_name}
 					/>
 					{#if errors.last_name}
-						<p class="mt-1 text-xs text-red-600">{errors.last_name}</p>
+						<span class="field-error">{errors.last_name}</span>
 					{/if}
 				</div>
 			</div>
 
-			<div class="mb-4">
-				<label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+			<div class="form-group">
+				<label for="email">Email</label>
 				<input
 					type="email"
 					id="email"
 					bind:value={email}
 					required
-					class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 {errors.email
-						? 'border-red-500'
-						: 'border-gray-300'}"
-					style="--tw-ring-color: var(--color-primary)"
 					placeholder="john@example.com"
 					disabled={isLoading}
+					autocomplete="email"
+					class:input-error={errors.email}
 				/>
 				{#if errors.email}
-					<p class="mt-1 text-xs text-red-600">{errors.email}</p>
+					<span class="field-error">{errors.email}</span>
 				{/if}
 			</div>
 
-			<div class="mb-4">
-				<label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+			<div class="form-group">
+				<label for="phone">Phone</label>
 				<input
 					type="tel"
 					id="phone"
 					bind:value={phone}
 					required
-					class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 {errors.phone
-						? 'border-red-500'
-						: 'border-gray-300'}"
-					style="--tw-ring-color: var(--color-primary)"
 					placeholder="(555) 123-4567"
 					disabled={isLoading}
+					autocomplete="tel"
+					class:input-error={errors.phone}
 				/>
 				{#if errors.phone}
-					<p class="mt-1 text-xs text-red-600">{errors.phone}</p>
+					<span class="field-error">{errors.phone}</span>
 				{/if}
 			</div>
 
-			<div class="mb-4">
-				<label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+			<div class="form-group">
+				<label for="password">Password</label>
 				<input
 					type="password"
 					id="password"
 					bind:value={password}
 					required
-					class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 {errors.password
-						? 'border-red-500'
-						: 'border-gray-300'}"
-					style="--tw-ring-color: var(--color-primary)"
 					placeholder="At least 8 characters"
 					disabled={isLoading}
+					autocomplete="new-password"
+					class:input-error={errors.password}
 				/>
 				{#if errors.password}
-					<p class="mt-1 text-xs text-red-600">{errors.password}</p>
+					<span class="field-error">{errors.password}</span>
 				{/if}
 			</div>
 
-			<div class="mb-6">
-				<label for="confirm_password" class="block text-sm font-medium text-gray-700 mb-1">
-					Confirm Password
-				</label>
+			<div class="form-group">
+				<label for="confirm_password">Confirm Password</label>
 				<input
 					type="password"
 					id="confirm_password"
 					bind:value={confirm_password}
 					required
-					class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 {errors.confirm_password
-						? 'border-red-500'
-						: 'border-gray-300'}"
-					style="--tw-ring-color: var(--color-primary)"
 					placeholder="Confirm your password"
 					disabled={isLoading}
+					autocomplete="new-password"
+					class:input-error={errors.confirm_password}
 				/>
 				{#if errors.confirm_password}
-					<p class="mt-1 text-xs text-red-600">{errors.confirm_password}</p>
+					<span class="field-error">{errors.confirm_password}</span>
 				{/if}
 			</div>
 
-			<button
-				type="submit"
-				disabled={isLoading}
-				class="w-full text-white py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-				style="background-color: var(--color-primary); --tw-ring-color: var(--color-primary)"
-			>
+			<button type="submit" class="submit-button" disabled={isLoading}>
 				{isLoading ? 'Creating account...' : 'Create Account'}
 			</button>
 		</form>
 
-		<p class="mt-6 text-center text-sm text-gray-600">
-			Already have an account?
-			<a href="/login" class="font-medium hover:underline" style="color: var(--color-primary)">
-				Sign in
-			</a>
+		<p class="login-link">
+			Already have an account? <a href="/login">Sign in</a>
 		</p>
 
 		{#if branding.support_email}
-			<p class="mt-4 text-center text-xs text-gray-500">
-				Need help?
-				<a
-					href="mailto:{branding.support_email}"
-					class="hover:underline"
-					style="color: var(--color-accent)"
-				>
-					Contact support
-				</a>
+			<p class="support-link">
+				Need help? <a href="mailto:{branding.support_email}">Contact support</a>
 			</p>
 		{/if}
 	</div>
 </div>
+
+<style>
+	.register-page {
+		min-height: 100vh;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background-color: #f3f4f6;
+		padding: 1rem;
+	}
+
+	.register-card {
+		background-color: white;
+		padding: 2rem;
+		border-radius: 0.5rem;
+		box-shadow:
+			0 4px 6px -1px rgb(0 0 0 / 0.1),
+			0 2px 4px -2px rgb(0 0 0 / 0.1);
+		width: 100%;
+		max-width: 28rem;
+	}
+
+	.logo {
+		display: block;
+		max-height: 3rem;
+		margin: 0 auto 1.5rem;
+	}
+
+	.company-name {
+		text-align: center;
+		font-size: 1.5rem;
+		font-weight: 700;
+		color: var(--color-primary, #3b82f6);
+		margin: 0 0 1.5rem;
+	}
+
+	.title {
+		text-align: center;
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: #374151;
+		margin: 0 0 1.5rem;
+	}
+
+	.error-message {
+		margin-bottom: 1rem;
+		padding: 0.75rem;
+		background-color: #fef2f2;
+		border: 1px solid #fecaca;
+		border-radius: 0.375rem;
+		color: #dc2626;
+		font-size: 0.875rem;
+	}
+
+	.name-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+	}
+
+	.form-group {
+		margin-bottom: 1rem;
+	}
+
+	.form-group label {
+		display: block;
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: #374151;
+		margin-bottom: 0.25rem;
+	}
+
+	.form-group input {
+		width: 100%;
+		padding: 0.5rem 0.75rem;
+		border: 1px solid #d1d5db;
+		border-radius: 0.375rem;
+		font-size: 1rem;
+		box-sizing: border-box;
+	}
+
+	.form-group input:focus {
+		outline: none;
+		border-color: var(--color-primary, #3b82f6);
+		box-shadow: 0 0 0 2px rgb(59 130 246 / 0.2);
+	}
+
+	.form-group input:disabled {
+		background-color: #f9fafb;
+		cursor: not-allowed;
+	}
+
+	.form-group input.input-error {
+		border-color: #ef4444;
+	}
+
+	.form-group input.input-error:focus {
+		box-shadow: 0 0 0 2px rgb(239 68 68 / 0.2);
+	}
+
+	.field-error {
+		display: block;
+		font-size: 0.75rem;
+		color: #dc2626;
+		margin-top: 0.25rem;
+	}
+
+	.submit-button {
+		width: 100%;
+		padding: 0.625rem 1rem;
+		background-color: var(--color-primary, #3b82f6);
+		color: white;
+		font-weight: 500;
+		border: none;
+		border-radius: 0.375rem;
+		cursor: pointer;
+		font-size: 1rem;
+		margin-top: 0.5rem;
+	}
+
+	.submit-button:hover:not(:disabled) {
+		background-color: var(--color-secondary, #1e40af);
+	}
+
+	.submit-button:focus {
+		outline: none;
+		box-shadow: 0 0 0 2px rgb(59 130 246 / 0.5);
+	}
+
+	.submit-button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.login-link {
+		text-align: center;
+		margin-top: 1.5rem;
+		font-size: 0.875rem;
+		color: #6b7280;
+	}
+
+	.login-link a {
+		color: var(--color-primary, #3b82f6);
+		text-decoration: none;
+		font-weight: 500;
+	}
+
+	.login-link a:hover {
+		text-decoration: underline;
+	}
+
+	.support-link {
+		text-align: center;
+		margin-top: 1rem;
+		font-size: 0.75rem;
+		color: #9ca3af;
+	}
+
+	.support-link a {
+		color: var(--color-accent, #10b981);
+		text-decoration: none;
+	}
+
+	.support-link a:hover {
+		text-decoration: underline;
+	}
+</style>

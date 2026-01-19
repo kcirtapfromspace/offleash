@@ -730,7 +730,7 @@
       "description": "As a customer, I need to log in to book services.",
       "id": "US-047",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 47,
       "title": "Build Customer Web login page"
     },
