@@ -51,3 +51,19 @@
 - **Learnings for future iterations:**
 - Story completed successfully via automated execution
 ---
+
+## 2026-01-18 20:05 - US-035
+- **What was implemented**: Build Admin Dashboard home/overview page
+- **Files changed**:
+  - rates/api/src/lib.rs
+  - rates/api/src/routes/mod.rs
+  - rates/db/src/repositories/booking_repo.rs
+  - rates/db/src/repositories/payment_repo.rs
+  - alph/apps/admin-dashboard/src/pages/DashboardPage.tsx
+  - alph/prd.json
+  - alph/progress.txt
+  - crates/api/src/routes/dashboard.rs
+- **Iterations used**: 1
+- **Learnings for future iterations:**
+- Story completed successfully via automated execution
+---
