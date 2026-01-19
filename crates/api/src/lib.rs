@@ -52,6 +52,11 @@ pub fn create_app(state: AppState) -> Router {
             "/admin/branding",
             get(routes::admin_branding::get_branding).put(routes::admin_branding::update_branding),
         )
+        // Dashboard metrics route (tenant admin)
+        .route(
+            "/admin/dashboard/metrics",
+            get(routes::dashboard::get_metrics),
+        )
         // Service routes
         .route("/services", get(routes::services::list_services))
         .route("/services/:id", get(routes::services::get_service))

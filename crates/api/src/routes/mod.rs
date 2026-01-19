@@ -5,6 +5,7 @@ pub mod availability;
 pub mod blocks;
 pub mod bookings;
 pub mod branding;
+pub mod dashboard;
 pub mod health;
 pub mod locations;
 pub mod platform_auth;
