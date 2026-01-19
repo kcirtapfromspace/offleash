@@ -114,11 +114,7 @@
 		{:else}
 			<div class="services-grid">
 				{#each services as service (service.id)}
-					<button
-						type="button"
-						class="service-card"
-						onclick={() => handleServiceClick(service)}
-					>
+					<button type="button" class="service-card" onclick={() => handleServiceClick(service)}>
 						<h3 class="service-name">{service.name}</h3>
 						{#if service.description}
 							<p class="service-description">{service.description}</p>
