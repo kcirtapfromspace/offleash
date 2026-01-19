@@ -866,7 +866,7 @@
       "description": "As a developer, I need to fetch and cache tenant branding.",
       "id": "US-055",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 55,
       "title": "Create iOS branding service"
     },
