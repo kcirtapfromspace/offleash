@@ -159,3 +159,27 @@
 - **Learnings for future iterations:**
 - Story completed successfully via automated execution
 ---
+
+## 2026-01-18 22:53 - US-038
+- **What was implemented**: Build service list page
+- **Files changed**:
+  - pps/admin-dashboard/src/app.d.ts
+  - pps/admin-dashboard/src/lib/api.ts
+  - pps/admin-dashboard/src/lib/stores/auth.ts
+  - pps/admin-dashboard/src/routes/(protected)/+layout.server.ts
+  - pps/admin-dashboard/src/routes/(protected)/services/+page.svelte
+  - pps/admin-dashboard/src/routes/+page.server.ts
+  - pps/admin-dashboard/src/routes/login/+page.server.ts
+  - pps/admin-dashboard/src/routes/logout/+page.server.ts
+  - rates/api/src/lib.rs
+  - rates/api/src/routes/services.rs
+  - rates/db/src/repositories/service_repo.rs
+  - alph/apps/admin-dashboard/src/lib/api.ts
+  - alph/apps/admin-dashboard/src/pages/ServicesPage.tsx
+  - alph/progress.txt
+  - apps/admin-dashboard/src/lib/formatting.ts
+  - apps/admin-dashboard/src/lib/types.ts
+- **Iterations used**: 1
+- **Learnings for future iterations:**
+- Story completed successfully via automated execution
+---
