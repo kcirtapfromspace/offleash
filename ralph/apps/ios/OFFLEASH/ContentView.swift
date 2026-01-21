@@ -33,6 +33,7 @@ struct ContentView: View {
 
 struct BookingStartView: View {
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.analyticsService) private var analyticsService
     @Environment(\.dismiss) private var dismiss
     let service: Service
 
@@ -83,6 +84,9 @@ struct BookingStartView: View {
                     }
                 }
             }
+        }
+        .onAppear {
+            analyticsService.trackScreenView(screenName: "booking_start")
         }
     }
 

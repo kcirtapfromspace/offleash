@@ -11,12 +11,15 @@ import SwiftUI
 
 struct LocationSelectionView: View {
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.analyticsService) private var analyticsService
     @State private var locations: [Location] = []
     @State private var isLoading = true
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var selectedLocation: Location?
     @State private var showAddLocation = false
+    @State private var startTime: Date?
+    @State private var wasCacheHit = false
 
     var onLocationSelected: ((Location) -> Void)?
     var onAddLocationTapped: (() -> Void)?
@@ -51,6 +54,22 @@ struct LocationSelectionView: View {
         }
         .task {
             await fetchLocations()
+        }
+        .onAppear {
+            analyticsService.trackScreenView(screenName: "location_selection")
+            startTime = Date()
+        }
+        .onChange(of: isLoading) { oldValue, newValue in
+            // Track TTI when loading completes (transitions from true to false)
+            if oldValue == true && newValue == false, let start = startTime {
+                let durationMs = Int(Date().timeIntervalSince(start) * 1000)
+                analyticsService.trackEvent(name: "tti", params: [
+                    "screen": "LocationSelectionView",
+                    "duration_ms": durationMs,
+                    "cache_hit": wasCacheHit
+                ])
+                startTime = nil // Reset to avoid duplicate tracking
+            }
         }
         .alert("Error", isPresented: $showError) {
             Button("Retry") {
@@ -195,6 +214,7 @@ struct LocationSelectionView: View {
         // Check cache first
         if let cachedLocations: [Location] = await CacheManager.shared.get(key: Self.cacheKey) {
             // Cache hit: show cached data immediately
+            wasCacheHit = true
             locations = cachedLocations
             isLoading = false
 
@@ -202,6 +222,7 @@ struct LocationSelectionView: View {
             await fetchLocationsFromNetwork(updateUIOnSuccess: true)
         } else {
             // Cache miss: show loading state and fetch from network
+            wasCacheHit = false
             isLoading = true
             await fetchLocationsFromNetwork(updateUIOnSuccess: true)
         }
