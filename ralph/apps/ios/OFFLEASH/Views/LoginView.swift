@@ -30,6 +30,7 @@ struct LoginUser: Decodable {
 
 struct LoginView: View {
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.analyticsService) private var analyticsService
     @State private var email = ""
     @State private var password = ""
     @State private var isLoading = false
@@ -169,6 +170,9 @@ struct LoginView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
+        }
+        .onAppear {
+            analyticsService.trackScreenView(screenName: "login")
         }
     }
 

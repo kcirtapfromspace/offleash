@@ -1,0 +1,95 @@
+{
+  "run_id": "run-1768973845883-22141",
+  "started_at": {
+    "secs_since_epoch": 1768973845,
+    "nanos_since_epoch": 883587000
+  },
+  "completed_at": {
+    "secs_since_epoch": 1768974101,
+    "nanos_since_epoch": 371684000
+  },
+  "recorded_at": {
+    "secs_since_epoch": 1768974101,
+    "nanos_since_epoch": 371684000
+  },
+  "run_duration": {
+    "secs": 255,
+    "nanos": 488194917
+  },
+  "expected_steps": 12,
+  "steps_attempted": 3,
+  "steps_completed": 3,
+  "failures": 0,
+  "retries": 0,
+  "completeness_percent": 25.0,
+  "step_durations": {
+    "US-070": {
+      "secs": 255,
+      "nanos": 194702166
+    },
+    "US-071": {
+      "secs": 120,
+      "nanos": 193596542
+    },
+    "US-072": {
+      "secs": 165,
+      "nanos": 190667042
+    }
+  },
+  "steps": [
+    {
+      "step_id": "US-071",
+      "attempts": 1,
+      "duration": {
+        "secs": 120,
+        "nanos": 193596542
+      },
+      "success": true,
+      "started_at": {
+        "secs_since_epoch": 1768973845,
+        "nanos_since_epoch": 909404000
+      },
+      "completed_at": {
+        "secs_since_epoch": 1768973966,
+        "nanos_since_epoch": 102957000
+      },
+      "error": null
+    },
+    {
+      "step_id": "US-070",
+      "attempts": 1,
+      "duration": {
+        "secs": 255,
+        "nanos": 194702166
+      },
+      "success": true,
+      "started_at": {
+        "secs_since_epoch": 1768973845,
+        "nanos_since_epoch": 909396000
+      },
+      "completed_at": {
+        "secs_since_epoch": 1768974101,
+        "nanos_since_epoch": 104003000
+      },
+      "error": null
+    },
+    {
+      "step_id": "US-072",
+      "attempts": 1,
+      "duration": {
+        "secs": 165,
+        "nanos": 190667042
+      },
+      "success": true,
+      "started_at": {
+        "secs_since_epoch": 1768973845,
+        "nanos_since_epoch": 909419000
+      },
+      "completed_at": {
+        "secs_since_epoch": 1768974011,
+        "nanos_since_epoch": 100025000
+      },
+      "error": null
+    }
+  ]
+}

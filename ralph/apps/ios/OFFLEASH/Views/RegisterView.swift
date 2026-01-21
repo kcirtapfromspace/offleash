@@ -33,6 +33,7 @@ struct RegisterUser: Decodable {
 
 struct RegisterView: View {
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.analyticsService) private var analyticsService
     @State private var firstName = ""
     @State private var lastName = ""
     @State private var email = ""
@@ -241,6 +242,9 @@ struct RegisterView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
+        }
+        .onAppear {
+            analyticsService.trackScreenView(screenName: "register")
         }
     }
 
