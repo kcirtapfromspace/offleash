@@ -74,7 +74,7 @@
       "description": "As a developer, I need an API method to validate the stored token.",
       "id": "US-065",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 65,
       "title": "Add validateToken method to APIClient"
     },
