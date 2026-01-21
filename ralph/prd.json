@@ -124,7 +124,7 @@
       "description": "As a developer, I need the cache to enforce a size limit to prevent disk bloat.",
       "id": "US-068",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 68,
       "title": "Add cache size limit with LRU eviction"
     },
