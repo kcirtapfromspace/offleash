@@ -325,7 +325,7 @@
       "description": "As a customer, I want to understand password requirements during registration.",
       "id": "US-081",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 81,
       "title": "Add password strength requirements UI"
     }
