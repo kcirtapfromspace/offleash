@@ -92,7 +92,7 @@
       "description": "As a customer, when I open the app with a stored token, it should verify the token is still valid.",
       "id": "US-066",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 66,
       "title": "Implement token validation on app launch"
     },

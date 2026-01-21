@@ -1,0 +1,95 @@
+{
+  "run_id": "run-1768973382875-85737",
+  "started_at": {
+    "secs_since_epoch": 1768973382,
+    "nanos_since_epoch": 875586000
+  },
+  "completed_at": {
+    "secs_since_epoch": 1768973594,
+    "nanos_since_epoch": 45195000
+  },
+  "recorded_at": {
+    "secs_since_epoch": 1768973594,
+    "nanos_since_epoch": 45195000
+  },
+  "run_duration": {
+    "secs": 211,
+    "nanos": 169798916
+  },
+  "expected_steps": 18,
+  "steps_attempted": 3,
+  "steps_completed": 3,
+  "failures": 0,
+  "retries": 0,
+  "completeness_percent": 16.666666666666664,
+  "step_durations": {
+    "US-064": {
+      "secs": 120,
+      "nanos": 996047917
+    },
+    "US-066": {
+      "secs": 210,
+      "nanos": 498691125
+    },
+    "US-065": {
+      "secs": 165,
+      "nanos": 197491125
+    }
+  },
+  "steps": [
+    {
+      "step_id": "US-064",
+      "attempts": 1,
+      "duration": {
+        "secs": 120,
+        "nanos": 996047917
+      },
+      "success": true,
+      "started_at": {
+        "secs_since_epoch": 1768973382,
+        "nanos_since_epoch": 897328000
+      },
+      "completed_at": {
+        "secs_since_epoch": 1768973503,
+        "nanos_since_epoch": 893230000
+      },
+      "error": null
+    },
+    {
+      "step_id": "US-065",
+      "attempts": 1,
+      "duration": {
+        "secs": 165,
+        "nanos": 197491125
+      },
+      "success": true,
+      "started_at": {
+        "secs_since_epoch": 1768973382,
+        "nanos_since_epoch": 897365000
+      },
+      "completed_at": {
+        "secs_since_epoch": 1768973548,
+        "nanos_since_epoch": 94688000
+      },
+      "error": null
+    },
+    {
+      "step_id": "US-066",
+      "attempts": 1,
+      "duration": {
+        "secs": 210,
+        "nanos": 498691125
+      },
+      "success": true,
+      "started_at": {
+        "secs_since_epoch": 1768973382,
+        "nanos_since_epoch": 897398000
+      },
+      "completed_at": {
+        "secs_since_epoch": 1768973593,
+        "nanos_since_epoch": 395905000
+      },
+      "error": null
+    }
+  ]
+}
