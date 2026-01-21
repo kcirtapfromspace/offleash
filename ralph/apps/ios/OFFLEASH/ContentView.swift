@@ -103,4 +103,5 @@ struct BookingStartView: View {
 #Preview {
     ContentView()
         .withThemeManager()
+        .environmentObject(SessionStateManager.shared)
 }

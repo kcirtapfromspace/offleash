@@ -14,7 +14,7 @@
       "description": "As a developer, I need APIClient to publish auth state changes so the app can react to session expiry.",
       "id": "US-061",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 61,
       "title": "Create AuthState publisher in APIClient"
     },
