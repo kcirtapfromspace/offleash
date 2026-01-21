@@ -1,6 +1,12 @@
 import Foundation
 import Security
 
+// MARK: - Auth State Notifications
+
+extension Notification.Name {
+    static let authStateChanged = Notification.Name("com.offleash.authStateChanged")
+}
+
 // MARK: - HTTP Methods
 
 enum HTTPMethod: String {
@@ -190,10 +196,20 @@ actor APIClient {
 
     func setAuthToken(_ token: String) {
         _ = KeychainHelper.shared.saveToken(token)
+        NotificationCenter.default.post(
+            name: .authStateChanged,
+            object: nil,
+            userInfo: ["isAuthenticated": true]
+        )
     }
 
     func clearAuthToken() {
         KeychainHelper.shared.deleteToken()
+        NotificationCenter.default.post(
+            name: .authStateChanged,
+            object: nil,
+            userInfo: ["isAuthenticated": false]
+        )
     }
 
     var isAuthenticated: Bool {
@@ -263,6 +279,11 @@ actor APIClient {
         case 401:
             // Clear token on unauthorized
             KeychainHelper.shared.deleteToken()
+            NotificationCenter.default.post(
+                name: .authStateChanged,
+                object: nil,
+                userInfo: ["isAuthenticated": false]
+            )
             throw APIError.unauthorized
         default:
             // Try to extract error message from response
