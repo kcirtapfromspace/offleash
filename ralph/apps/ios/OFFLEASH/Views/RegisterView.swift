@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseCrashlytics
 
 // MARK: - Registration Request/Response Models
 
@@ -279,6 +280,10 @@ struct RegisterView: View {
                 let response: RegisterResponse = try await APIClient.shared.post("/auth/register", body: request)
 
                 await APIClient.shared.setAuthToken(response.token)
+
+                if let userId = response.user?.id {
+                    Crashlytics.crashlytics().setUserID(userId)
+                }
 
                 await MainActor.run {
                     isLoading = false

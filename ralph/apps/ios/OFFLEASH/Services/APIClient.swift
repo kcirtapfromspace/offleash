@@ -1,5 +1,6 @@
 import Foundation
 import Security
+import FirebaseCrashlytics
 
 // MARK: - Auth State Notifications
 
@@ -133,8 +134,10 @@ actor APIClient {
     private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
+    private let analyticsService: AnalyticsService
 
-    private init() {
+    private init(analyticsService: AnalyticsService = StubAnalyticsService.shared) {
+        self.analyticsService = analyticsService
         // Configure base URL from environment or use default
         self.baseURL = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "https://api.offleash.app"
 
@@ -205,6 +208,7 @@ actor APIClient {
 
     func clearAuthToken() {
         KeychainHelper.shared.deleteToken()
+        Crashlytics.crashlytics().setUserID("")
         NotificationCenter.default.post(
             name: .authStateChanged,
             object: nil,
@@ -231,7 +235,9 @@ actor APIClient {
     ) async throws -> T {
         // Build URL
         guard var urlComponents = URLComponents(string: baseURL + path) else {
-            throw APIError.invalidURL
+            let error = APIError.invalidURL
+            await trackAPIError(error, path: path, method: method, statusCode: nil)
+            throw error
         }
 
         if let queryItems = queryItems, !queryItems.isEmpty {
@@ -239,7 +245,9 @@ actor APIClient {
         }
 
         guard let url = urlComponents.url else {
-            throw APIError.invalidURL
+            let error = APIError.invalidURL
+            await trackAPIError(error, path: path, method: method, statusCode: nil)
+            throw error
         }
 
         // Build request
@@ -258,7 +266,9 @@ actor APIClient {
             do {
                 request.httpBody = try encoder.encode(AnyEncodable(body))
             } catch {
-                throw APIError.encodingError(error)
+                let apiError = APIError.encodingError(error)
+                await trackAPIError(apiError, path: path, method: method, statusCode: nil)
+                throw apiError
             }
         }
 
@@ -269,12 +279,16 @@ actor APIClient {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            throw APIError.networkError(error)
+            let apiError = APIError.networkError(error)
+            await trackAPIError(apiError, path: path, method: method, statusCode: nil)
+            throw apiError
         }
 
         // Validate response
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
+            let error = APIError.invalidResponse
+            await trackAPIError(error, path: path, method: method, statusCode: nil)
+            throw error
         }
 
         // Handle HTTP status codes
@@ -284,16 +298,21 @@ actor APIClient {
         case 401:
             // Clear token on unauthorized
             KeychainHelper.shared.deleteToken()
+            Crashlytics.crashlytics().setUserID("")
             NotificationCenter.default.post(
                 name: .authStateChanged,
                 object: nil,
                 userInfo: ["isAuthenticated": false]
             )
-            throw APIError.unauthorized
+            let error = APIError.unauthorized
+            await trackAPIError(error, path: path, method: method, statusCode: httpResponse.statusCode)
+            throw error
         default:
             // Try to extract error message from response
             let errorMessage = try? decoder.decode(ErrorResponse.self, from: data).message
-            throw APIError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
+            let error = APIError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
+            await trackAPIError(error, path: path, method: method, statusCode: httpResponse.statusCode)
+            throw error
         }
 
         // Handle empty response for void return types
@@ -305,7 +324,43 @@ actor APIClient {
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
-            throw APIError.decodingError(error)
+            let apiError = APIError.decodingError(error)
+            await trackAPIError(apiError, path: path, method: method, statusCode: httpResponse.statusCode)
+            throw apiError
+        }
+    }
+
+    private func trackAPIError(_ error: APIError, path: String, method: HTTPMethod, statusCode: Int?) -> Void {
+        let errorType = errorTypeName(for: error)
+        var context = "\(method.rawValue) \(path)"
+        if let statusCode = statusCode {
+            context += " [\(statusCode)]"
+        }
+        context += " - \(errorType)"
+
+        Task { @MainActor in
+            analyticsService.trackError(error: error, context: context)
+        }
+    }
+
+    private func errorTypeName(for error: APIError) -> String {
+        switch error {
+        case .invalidURL:
+            return "invalidURL"
+        case .invalidResponse:
+            return "invalidResponse"
+        case .httpError:
+            return "httpError"
+        case .decodingError:
+            return "decodingError"
+        case .encodingError:
+            return "encodingError"
+        case .networkError:
+            return "networkError"
+        case .unauthorized:
+            return "unauthorized"
+        case .noData:
+            return "noData"
         }
     }
 }

@@ -21,6 +21,7 @@ struct LocationSelectionView: View {
     @State private var startTime: Date?
     @State private var wasCacheHit = false
 
+    var serviceId: String?
     var onLocationSelected: ((Location) -> Void)?
     var onAddLocationTapped: (() -> Void)?
 
@@ -178,6 +179,7 @@ struct LocationSelectionView: View {
                     .contentShape(Rectangle())
                     .onTapGesture {
                         selectedLocation = location
+                        analyticsService.trackFunnelStep(step: "location_selected", serviceId: serviceId, locationId: location.id)
                         onLocationSelected?(location)
                     }
                 }
@@ -343,6 +345,7 @@ struct LocationRowView: View {
 
 #Preview {
     LocationSelectionView(
+        serviceId: "preview-service-id",
         onLocationSelected: { location in
             print("Selected location: \(location.name)")
         },
