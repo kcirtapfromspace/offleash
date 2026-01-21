@@ -172,7 +172,7 @@
       "description": "As a developer, I want to filter inactive services on the server to reduce payload size.",
       "id": "US-071",
       "notes": "Assumes backend supports ?active=true query param",
-      "passes": false,
+      "passes": true,
       "priority": 71,
       "title": "Update services fetch to use server-side filtering"
     },
