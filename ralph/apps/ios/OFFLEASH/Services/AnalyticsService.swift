@@ -28,6 +28,13 @@ protocol AnalyticsService: AnyObject {
     ///   - error: The error that occurred
     ///   - context: Additional context about where/why the error occurred
     func trackError(error: Error, context: String?)
+
+    /// Track a booking funnel step
+    /// - Parameters:
+    ///   - step: The funnel step name (services_viewed, service_selected, location_selected, booking_started, booking_confirmed)
+    ///   - serviceId: Optional service ID (included where applicable)
+    ///   - locationId: Optional location ID (included where applicable)
+    func trackFunnelStep(step: String, serviceId: String?, locationId: String?)
 }
 
 // MARK: - Stub Analytics Service
@@ -62,6 +69,18 @@ final class StubAnalyticsService: AnalyticsService, ObservableObject {
         guard isLoggingEnabled else { return }
         let contextInfo = context.map { ", context: \($0)" } ?? ""
         print("[Analytics] Error: \(error.localizedDescription)\(contextInfo)")
+    }
+
+    func trackFunnelStep(step: String, serviceId: String?, locationId: String?) {
+        guard isLoggingEnabled else { return }
+        var params: [String: Any] = ["step": step]
+        if let serviceId = serviceId {
+            params["service_id"] = serviceId
+        }
+        if let locationId = locationId {
+            params["location_id"] = locationId
+        }
+        print("[Analytics] Funnel Step: \(step), params: \(params)")
     }
 }
 

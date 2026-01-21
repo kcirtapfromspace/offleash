@@ -37,4 +37,15 @@ final class FirebaseAnalyticsService: AnalyticsService, ObservableObject {
         }
         Analytics.logEvent("app_error", parameters: parameters)
     }
+
+    func trackFunnelStep(step: String, serviceId: String?, locationId: String?) {
+        var parameters: [String: Any] = ["step": step]
+        if let serviceId = serviceId {
+            parameters["service_id"] = serviceId
+        }
+        if let locationId = locationId {
+            parameters["location_id"] = locationId
+        }
+        Analytics.logEvent("funnel_step", parameters: parameters)
+    }
 }

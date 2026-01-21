@@ -30,6 +30,8 @@ struct ContentView: View {
 }
 
 // MARK: - Booking Start View (Placeholder)
+// TODO: When booking confirmation is implemented, call:
+// analyticsService.trackFunnelStep(step: "booking_confirmed", serviceId: service.id, locationId: selectedLocationId)
 
 struct BookingStartView: View {
     @EnvironmentObject private var themeManager: ThemeManager
@@ -87,6 +89,7 @@ struct BookingStartView: View {
         }
         .onAppear {
             analyticsService.trackScreenView(screenName: "booking_start")
+            analyticsService.trackFunnelStep(step: "booking_started", serviceId: service.id, locationId: nil)
         }
     }
 

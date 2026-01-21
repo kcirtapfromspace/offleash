@@ -1,0 +1,95 @@
+{
+  "run_id": "run-1768974585105-39233",
+  "started_at": {
+    "secs_since_epoch": 1768974585,
+    "nanos_since_epoch": 105133000
+  },
+  "completed_at": {
+    "secs_since_epoch": 1768974885,
+    "nanos_since_epoch": 633637000
+  },
+  "recorded_at": {
+    "secs_since_epoch": 1768974885,
+    "nanos_since_epoch": 633637000
+  },
+  "run_duration": {
+    "secs": 300,
+    "nanos": 528641417
+  },
+  "expected_steps": 9,
+  "steps_attempted": 3,
+  "steps_completed": 3,
+  "failures": 0,
+  "retries": 0,
+  "completeness_percent": 33.33333333333333,
+  "step_durations": {
+    "US-074": {
+      "secs": 210,
+      "nanos": 212154000
+    },
+    "US-073": {
+      "secs": 300,
+      "nanos": 244785292
+    },
+    "US-075": {
+      "secs": 165,
+      "nanos": 200551583
+    }
+  },
+  "steps": [
+    {
+      "step_id": "US-074",
+      "attempts": 1,
+      "duration": {
+        "secs": 210,
+        "nanos": 212154000
+      },
+      "success": true,
+      "started_at": {
+        "secs_since_epoch": 1768974585,
+        "nanos_since_epoch": 132944000
+      },
+      "completed_at": {
+        "secs_since_epoch": 1768974795,
+        "nanos_since_epoch": 345004000
+      },
+      "error": null
+    },
+    {
+      "step_id": "US-073",
+      "attempts": 1,
+      "duration": {
+        "secs": 300,
+        "nanos": 244785292
+      },
+      "success": true,
+      "started_at": {
+        "secs_since_epoch": 1768974585,
+        "nanos_since_epoch": 132946000
+      },
+      "completed_at": {
+        "secs_since_epoch": 1768974885,
+        "nanos_since_epoch": 377599000
+      },
+      "error": null
+    },
+    {
+      "step_id": "US-075",
+      "attempts": 1,
+      "duration": {
+        "secs": 165,
+        "nanos": 200551583
+      },
+      "success": true,
+      "started_at": {
+        "secs_since_epoch": 1768974585,
+        "nanos_since_epoch": 132973000
+      },
+      "completed_at": {
+        "secs_since_epoch": 1768974750,
+        "nanos_since_epoch": 333451000
+      },
+      "error": null
+    }
+  ]
+}
