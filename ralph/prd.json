@@ -109,7 +109,7 @@
       "description": "As a developer, I need a reusable caching layer that persists data to disk with TTL support.",
       "id": "US-067",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 67,
       "title": "Create CacheManager actor"
     },
