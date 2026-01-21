@@ -46,7 +46,7 @@ struct LocationSelectionView: View {
                 }
             }
             .refreshable {
-                await fetchLocations()
+                await refreshLocations()
             }
         }
         .task {
@@ -188,35 +188,74 @@ struct LocationSelectionView: View {
 
     // MARK: - Data Fetching
 
-    private func fetchLocations() async {
-        if locations.isEmpty {
-            isLoading = true
-        }
+    static let cacheKey = "locations"
+    private static let cacheTTL: TimeInterval = 600 // 10 minutes
 
+    private func loadLocations() async {
+        // Check cache first
+        if let cachedLocations: [Location] = await CacheManager.shared.get(key: Self.cacheKey) {
+            // Cache hit: show cached data immediately
+            locations = cachedLocations
+            isLoading = false
+
+            // Fetch fresh data in background
+            await fetchLocationsFromNetwork(updateUIOnSuccess: true)
+        } else {
+            // Cache miss: show loading state and fetch from network
+            isLoading = true
+            await fetchLocationsFromNetwork(updateUIOnSuccess: true)
+        }
+    }
+
+    private func fetchLocations() async {
+        await loadLocations()
+    }
+
+    private func refreshLocations() async {
+        // Pull-to-refresh bypasses cache and forces network fetch
+        await fetchLocationsFromNetwork(updateUIOnSuccess: true)
+    }
+
+    private func fetchLocationsFromNetwork(updateUIOnSuccess: Bool) async {
         do {
             let fetchedLocations: [Location] = try await APIClient.shared.get("/locations")
-            await MainActor.run {
-                locations = fetchedLocations
+
+            // Cache the response with 10-minute TTL
+            await CacheManager.shared.set(key: Self.cacheKey, value: fetchedLocations, ttl: Self.cacheTTL)
+
+            if updateUIOnSuccess {
+                // Only update UI if data changed
+                if fetchedLocations != locations {
+                    locations = fetchedLocations
+                }
                 isLoading = false
                 showError = false
             }
         } catch let error as APIError {
-            await MainActor.run {
+            // Only show error if we have no cached data to display
+            if locations.isEmpty {
                 isLoading = false
                 errorMessage = error.errorDescription ?? "An unexpected error occurred"
-                if locations.isEmpty {
-                    showError = true
-                }
+                showError = true
+            } else {
+                // Silently fail background refresh if we have cached data
+                isLoading = false
             }
         } catch {
-            await MainActor.run {
+            if locations.isEmpty {
                 isLoading = false
                 errorMessage = "An unexpected error occurred. Please try again."
-                if locations.isEmpty {
-                    showError = true
-                }
+                showError = true
+            } else {
+                isLoading = false
             }
         }
+    }
+
+    /// Invalidate the locations cache
+    /// Call this when a location is added, edited, or deleted
+    static func invalidateCache() async {
+        await CacheManager.shared.invalidate(key: cacheKey)
     }
 }
 
