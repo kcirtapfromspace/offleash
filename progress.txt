@@ -548,3 +548,20 @@
 - **Learnings for future iterations:**
 - Story completed successfully via automated execution
 ---
+
+## 2026-01-20 22:39 - US-071
+- **What was implemented**: Update services fetch to use server-side filtering
+- **Files changed**:
+  - ralph/evidence/runs/run-1768973620277-2028/events.jsonl
+  - ralph/evidence/runs/run-1768973620277-2028/run.json
+  - rogress.txt
+  - alph/apps/ios/OFFLEASH/Services/CacheManager.swift
+  - alph/apps/ios/OFFLEASH/Views/ServicesView.swift
+  - alph/prd.json
+  - .ralph/evidence/runs/run-1768973845883-22141/
+  - .ralph/runs/run-1768973620277-2028.json
+  - ralph/apps/ios/OFFLEASH/Services/AnalyticsService.swift
+- **Iterations used**: 1
+- **Learnings for future iterations:**
+- Story completed successfully via automated execution
+---
