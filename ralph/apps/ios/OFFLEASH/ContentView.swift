@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var sessionStateManager: SessionStateManager
     @State private var selectedService: Service?
 
     var body: some View {
@@ -18,6 +19,12 @@ struct ContentView: View {
         .sheet(item: $selectedService) { service in
             BookingStartView(service: service)
                 .withThemeManager(themeManager)
+        }
+        .onChange(of: sessionStateManager.sessionExpired) { _, expired in
+            if expired {
+                // Clear any in-progress booking state when session expires
+                selectedService = nil
+            }
         }
     }
 }
