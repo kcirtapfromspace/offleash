@@ -47,6 +47,7 @@ export const actions: Actions = {
 
 		try {
 			const response = await api.post<RegisterResponse>('/auth/register', {
+				org_slug: 'demo',
 				first_name: firstName,
 				last_name: lastName,
 				email,
