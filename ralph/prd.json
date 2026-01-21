@@ -1,12 +1,9 @@
 {
-  "project": "OFFLEASH",
   "branchName": "ralph/ios-auth-reliability-observability",
   "description": "iOS App Authentication, Reliability & Observability - Fix auth recovery flow, add caching, implement observability, and security hardening",
+  "project": "OFFLEASH",
   "userStories": [
     {
-      "id": "US-061",
-      "title": "Create AuthState publisher in APIClient",
-      "description": "As a developer, I need APIClient to publish auth state changes so the app can react to session expiry.",
       "acceptanceCriteria": [
         "Add NotificationCenter notification name: Notification.Name.authStateChanged",
         "Post notification with userInfo containing 'isAuthenticated' boolean when token is set or cleared",
@@ -14,14 +11,14 @@
         "Post notification with isAuthenticated=false when 401 response received",
         "Typecheck passes (swift build)"
       ],
-      "priority": 61,
+      "description": "As a developer, I need APIClient to publish auth state changes so the app can react to session expiry.",
+      "id": "US-061",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 61,
+      "title": "Create AuthState publisher in APIClient"
     },
     {
-      "id": "US-062",
-      "title": "Add session expiry alert UI",
-      "description": "As a customer, I need to see a message when my session expires so I understand why I'm being logged out.",
       "acceptanceCriteria": [
         "Create SessionExpiredAlert view modifier in Utilities/SessionExpiredAlert.swift",
         "Show alert with title 'Session Expired' and message 'Please log in again'",
@@ -29,14 +26,14 @@
         "Alert triggers navigation to login (via callback)",
         "Typecheck passes (swift build)"
       ],
+      "description": "As a customer, I need to see a message when my session expires so I understand why I'm being logged out.",
+      "id": "US-062",
+      "notes": "",
+      "passes": true,
       "priority": 62,
-      "passes": false,
-      "notes": ""
+      "title": "Add session expiry alert UI"
     },
     {
-      "id": "US-063",
-      "title": "Implement session recovery in OFFLEASHApp",
-      "description": "As a customer, when my session expires I should be automatically redirected to login.",
       "acceptanceCriteria": [
         "OFFLEASHApp observes Notification.Name.authStateChanged",
         "When isAuthenticated becomes false, set local isAuthenticated state to false",
@@ -45,28 +42,28 @@
         "Typecheck passes (swift build)",
         "Verify in simulator: force 401 response, confirm alert shows and redirects to login"
       ],
-      "priority": 63,
+      "description": "As a customer, when my session expires I should be automatically redirected to login.",
+      "id": "US-063",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 63,
+      "title": "Implement session recovery in OFFLEASHApp"
     },
     {
-      "id": "US-064",
-      "title": "Create token validation response model",
-      "description": "As a developer, I need models for the token validation endpoint response.",
       "acceptanceCriteria": [
         "Create TokenValidationResponse struct in Models/TokenValidation.swift",
         "Fields: valid (Bool), expiresAt (Date?)",
         "Struct conforms to Decodable",
         "Typecheck passes (swift build)"
       ],
-      "priority": 64,
+      "description": "As a developer, I need models for the token validation endpoint response.",
+      "id": "US-064",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 64,
+      "title": "Create token validation response model"
     },
     {
-      "id": "US-065",
-      "title": "Add validateToken method to APIClient",
-      "description": "As a developer, I need an API method to validate the stored token.",
       "acceptanceCriteria": [
         "Add validateToken() async throws -> TokenValidationResponse method to APIClient",
         "Calls GET /auth/validate endpoint",
@@ -74,14 +71,14 @@
         "Throws APIError.unauthorized on 401",
         "Typecheck passes (swift build)"
       ],
-      "priority": 65,
+      "description": "As a developer, I need an API method to validate the stored token.",
+      "id": "US-065",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 65,
+      "title": "Add validateToken method to APIClient"
     },
     {
-      "id": "US-066",
-      "title": "Implement token validation on app launch",
-      "description": "As a customer, when I open the app with a stored token, it should verify the token is still valid.",
       "acceptanceCriteria": [
         "Add AppState enum: .launching, .validating, .authenticated, .unauthenticated",
         "On app launch, if token exists, set state to .validating and call validateToken()",
@@ -92,14 +89,14 @@
         "Typecheck passes (swift build)",
         "Verify in simulator: test with valid token, expired token, and airplane mode"
       ],
-      "priority": 66,
+      "description": "As a customer, when I open the app with a stored token, it should verify the token is still valid.",
+      "id": "US-066",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 66,
+      "title": "Implement token validation on app launch"
     },
     {
-      "id": "US-067",
-      "title": "Create CacheManager actor",
-      "description": "As a developer, I need a reusable caching layer that persists data to disk with TTL support.",
       "acceptanceCriteria": [
         "Create Services/CacheManager.swift as an actor",
         "Generic support for any Codable type",
@@ -109,14 +106,14 @@
         "Return nil from get() if TTL expired",
         "Typecheck passes (swift build)"
       ],
-      "priority": 67,
+      "description": "As a developer, I need a reusable caching layer that persists data to disk with TTL support.",
+      "id": "US-067",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 67,
+      "title": "Create CacheManager actor"
     },
     {
-      "id": "US-068",
-      "title": "Add cache size limit with LRU eviction",
-      "description": "As a developer, I need the cache to enforce a size limit to prevent disk bloat.",
       "acceptanceCriteria": [
         "Add maxCacheSize property (default 50MB) to CacheManager",
         "Track cache entry sizes and access times",
@@ -124,14 +121,14 @@
         "Add currentCacheSize() method for debugging",
         "Typecheck passes (swift build)"
       ],
-      "priority": 68,
+      "description": "As a developer, I need the cache to enforce a size limit to prevent disk bloat.",
+      "id": "US-068",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 68,
+      "title": "Add cache size limit with LRU eviction"
     },
     {
-      "id": "US-069",
-      "title": "Cache services list with stale-while-revalidate",
-      "description": "As a customer, I want to see the services list instantly on repeat visits.",
       "acceptanceCriteria": [
         "ServicesView checks CacheManager for 'services' key before network request",
         "If cache hit: show cached data immediately, then fetch fresh data in background",
@@ -141,14 +138,14 @@
         "Typecheck passes (swift build)",
         "Verify in simulator: load services, kill app, relaunch, confirm instant display"
       ],
-      "priority": 69,
+      "description": "As a customer, I want to see the services list instantly on repeat visits.",
+      "id": "US-069",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 69,
+      "title": "Cache services list with stale-while-revalidate"
     },
     {
-      "id": "US-070",
-      "title": "Cache locations list with invalidation",
-      "description": "As a customer, I want to see my saved locations instantly.",
       "acceptanceCriteria": [
         "LocationSelectionView checks CacheManager for 'locations' key before network request",
         "Same stale-while-revalidate pattern as services",
@@ -158,28 +155,28 @@
         "Typecheck passes (swift build)",
         "Verify in simulator: load locations, kill app, relaunch, confirm instant display"
       ],
-      "priority": 70,
+      "description": "As a customer, I want to see my saved locations instantly.",
+      "id": "US-070",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 70,
+      "title": "Cache locations list with invalidation"
     },
     {
-      "id": "US-071",
-      "title": "Update services fetch to use server-side filtering",
-      "description": "As a developer, I want to filter inactive services on the server to reduce payload size.",
       "acceptanceCriteria": [
         "Update ServicesView fetchServices() to call GET /services?active=true",
         "Add queryItems parameter support to APIClient.get() method",
         "Remove client-side .filter { $0.isActive } from ServicesView",
         "Typecheck passes (swift build)"
       ],
-      "priority": 71,
+      "description": "As a developer, I want to filter inactive services on the server to reduce payload size.",
+      "id": "US-071",
+      "notes": "Assumes backend supports ?active=true query param",
       "passes": false,
-      "notes": "Assumes backend supports ?active=true query param"
+      "priority": 71,
+      "title": "Update services fetch to use server-side filtering"
     },
     {
-      "id": "US-072",
-      "title": "Create AnalyticsService protocol and stub",
-      "description": "As a developer, I need an analytics abstraction for testability.",
       "acceptanceCriteria": [
         "Create Services/AnalyticsService.swift with AnalyticsService protocol",
         "Protocol methods: trackScreenView(screenName:), trackEvent(name:params:), trackError(error:context:)",
@@ -187,14 +184,14 @@
         "Inject via environment or singleton pattern",
         "Typecheck passes (swift build)"
       ],
-      "priority": 72,
+      "description": "As a developer, I need an analytics abstraction for testability.",
+      "id": "US-072",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 72,
+      "title": "Create AnalyticsService protocol and stub"
     },
     {
-      "id": "US-073",
-      "title": "Integrate Firebase Analytics SDK",
-      "description": "As a product manager, I need analytics infrastructure to measure customer behavior.",
       "acceptanceCriteria": [
         "Add Firebase SDK dependency via Swift Package Manager",
         "Create FirebaseAnalyticsService implementing AnalyticsService protocol",
@@ -202,69 +199,69 @@
         "Create GoogleService-Info.plist placeholder with instructions",
         "Typecheck passes (swift build)"
       ],
-      "priority": 73,
+      "description": "As a product manager, I need analytics infrastructure to measure customer behavior.",
+      "id": "US-073",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 73,
+      "title": "Integrate Firebase Analytics SDK"
     },
     {
-      "id": "US-074",
-      "title": "Track screen view events",
-      "description": "As a product manager, I want to know which screens customers visit.",
       "acceptanceCriteria": [
         "Add .onAppear { analyticsService.trackScreenView(screenName:) } to: LoginView, RegisterView, ServicesView, LocationSelectionView, BookingStartView",
         "Screen names: 'login', 'register', 'services', 'location_selection', 'booking_start'",
         "Typecheck passes (swift build)"
       ],
-      "priority": 74,
+      "description": "As a product manager, I want to know which screens customers visit.",
+      "id": "US-074",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 74,
+      "title": "Track screen view events"
     },
     {
-      "id": "US-075",
-      "title": "Track time-to-interactive metrics",
-      "description": "As an engineer, I want to measure how long customers wait for content to load.",
       "acceptanceCriteria": [
         "Add startTime property to ServicesView and LocationSelectionView",
         "Record Date() in .onAppear",
         "When isLoading becomes false, calculate duration and call analyticsService.trackEvent('tti', params: ['screen': screenName, 'duration_ms': duration, 'cache_hit': wasCacheHit])",
         "Typecheck passes (swift build)"
       ],
-      "priority": 75,
+      "description": "As an engineer, I want to measure how long customers wait for content to load.",
+      "id": "US-075",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 75,
+      "title": "Track time-to-interactive metrics"
     },
     {
-      "id": "US-076",
-      "title": "Track API error events",
-      "description": "As an engineer, I want to know when and where customers encounter errors.",
       "acceptanceCriteria": [
         "Update APIClient request() method to call analyticsService.trackError() on any error",
         "Include context: endpoint path, HTTP method, status code (if available), error type",
         "Redact any auth tokens from logged data",
         "Typecheck passes (swift build)"
       ],
-      "priority": 76,
+      "description": "As an engineer, I want to know when and where customers encounter errors.",
+      "id": "US-076",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 76,
+      "title": "Track API error events"
     },
     {
-      "id": "US-077",
-      "title": "Track booking funnel progression",
-      "description": "As a product manager, I want to measure conversion through the booking funnel.",
       "acceptanceCriteria": [
         "Track 'funnel_step' event with step parameter at each stage",
         "Steps: 'services_viewed', 'service_selected', 'location_selected', 'booking_started', 'booking_confirmed'",
         "Include service_id and location_id where applicable",
         "Typecheck passes (swift build)"
       ],
-      "priority": 77,
+      "description": "As a product manager, I want to measure conversion through the booking funnel.",
+      "id": "US-077",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 77,
+      "title": "Track booking funnel progression"
     },
     {
-      "id": "US-078",
-      "title": "Integrate Firebase Crashlytics",
-      "description": "As an engineer, I want to be notified of app crashes with stack traces.",
       "acceptanceCriteria": [
         "Add FirebaseCrashlytics dependency via Swift Package Manager",
         "Configure Crashlytics in OFFLEASHApp.init()",
@@ -272,14 +269,14 @@
         "Clear user ID on logout",
         "Typecheck passes (swift build)"
       ],
-      "priority": 78,
+      "description": "As an engineer, I want to be notified of app crashes with stack traces.",
+      "id": "US-078",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 78,
+      "title": "Integrate Firebase Crashlytics"
     },
     {
-      "id": "US-079",
-      "title": "Implement certificate pinning",
-      "description": "As a security engineer, I want to prevent MITM attacks on API communication.",
       "acceptanceCriteria": [
         "Create URLSessionDelegate in APIClient that implements urlSession(_:didReceive:completionHandler:)",
         "Extract server certificate from SecTrust",
@@ -289,14 +286,14 @@
         "Add documentation comment explaining certificate rotation procedure",
         "Typecheck passes (swift build)"
       ],
-      "priority": 79,
+      "description": "As a security engineer, I want to prevent MITM attacks on API communication.",
+      "id": "US-079",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 79,
+      "title": "Implement certificate pinning"
     },
     {
-      "id": "US-080",
-      "title": "Strengthen email validation",
-      "description": "As a customer, I want clear feedback if my email format is invalid.",
       "acceptanceCriteria": [
         "Create Utilities/Validators.swift with isValidEmail(_:) function",
         "Use proper email regex (at minimum: contains @, has domain with dot)",
@@ -307,14 +304,14 @@
         "Typecheck passes (swift build)",
         "Verify in simulator: test with invalid emails"
       ],
-      "priority": 80,
+      "description": "As a customer, I want clear feedback if my email format is invalid.",
+      "id": "US-080",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 80,
+      "title": "Strengthen email validation"
     },
     {
-      "id": "US-081",
-      "title": "Add password strength requirements UI",
-      "description": "As a customer, I want to understand password requirements during registration.",
       "acceptanceCriteria": [
         "Create Components/PasswordRequirements.swift view",
         "Display requirements: min 8 chars, 1 uppercase, 1 number",
@@ -325,9 +322,12 @@
         "Typecheck passes (swift build)",
         "Verify in simulator: requirements update in real-time"
       ],
-      "priority": 81,
+      "description": "As a customer, I want to understand password requirements during registration.",
+      "id": "US-081",
+      "notes": "",
       "passes": false,
-      "notes": ""
+      "priority": 81,
+      "title": "Add password strength requirements UI"
     }
   ]
 }
