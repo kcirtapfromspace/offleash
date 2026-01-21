@@ -216,6 +216,11 @@ actor APIClient {
         KeychainHelper.shared.hasToken
     }
 
+    /// Validate the stored authentication token
+    func validateToken() async throws -> TokenValidationResponse {
+        try await get("/auth/validate")
+    }
+
     // MARK: - Private Methods
 
     private func request<T: Decodable>(
