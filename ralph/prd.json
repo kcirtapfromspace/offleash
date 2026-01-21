@@ -215,7 +215,7 @@
       "description": "As a product manager, I want to know which screens customers visit.",
       "id": "US-074",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 74,
       "title": "Track screen view events"
     },
