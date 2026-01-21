@@ -45,7 +45,7 @@
       "description": "As a customer, when my session expires I should be automatically redirected to login.",
       "id": "US-063",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 63,
       "title": "Implement session recovery in OFFLEASHApp"
     },
