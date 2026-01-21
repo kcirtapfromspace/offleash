@@ -27,6 +27,7 @@ export const actions: Actions = {
 
 		try {
 			const response = await api.post<LoginResponse>('/auth/login', {
+				org_slug: 'demo',
 				email,
 				password
 			});

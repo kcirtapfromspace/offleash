@@ -1,5 +1,6 @@
 pub mod admin_branding;
 pub mod admin_tenants;
+pub mod admin_users;
 pub mod auth;
 pub mod availability;
 pub mod blocks;
@@ -10,3 +11,5 @@ pub mod health;
 pub mod locations;
 pub mod platform_auth;
 pub mod services;
+pub mod users;
+pub mod working_hours;

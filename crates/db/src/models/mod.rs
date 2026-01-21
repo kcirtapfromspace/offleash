@@ -7,6 +7,7 @@ mod platform_admin;
 mod service;
 mod tenant_database;
 mod user;
+mod working_hours;
 
 pub use block::*;
 pub use booking::*;
@@ -17,3 +18,4 @@ pub use platform_admin::*;
 pub use service::*;
 pub use tenant_database::*;
 pub use user::*;
+pub use working_hours::*;

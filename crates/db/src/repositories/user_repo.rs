@@ -1,7 +1,7 @@
 use shared::types::{OrganizationId, UserId};
 use sqlx::PgPool;
 
-use crate::models::{CreateUser, UpdateUser, User};
+use crate::models::{CreateUser, UpdateUser, User, UserRole};
 
 pub struct UserRepository;
 
@@ -109,5 +109,41 @@ impl UserRepository {
             .await?;
 
         Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn list_all(
+        pool: &PgPool,
+        org_id: OrganizationId,
+    ) -> Result<Vec<User>, sqlx::Error> {
+        sqlx::query_as::<_, User>(
+            r#"
+            SELECT id, organization_id, email, password_hash, role, first_name, last_name, phone, timezone, created_at, updated_at
+            FROM users
+            WHERE organization_id = $1
+            ORDER BY created_at DESC
+            "#,
+        )
+        .bind(org_id.as_uuid())
+        .fetch_all(pool)
+        .await
+    }
+
+    pub async fn list_by_role(
+        pool: &PgPool,
+        org_id: OrganizationId,
+        role: UserRole,
+    ) -> Result<Vec<User>, sqlx::Error> {
+        sqlx::query_as::<_, User>(
+            r#"
+            SELECT id, organization_id, email, password_hash, role, first_name, last_name, phone, timezone, created_at, updated_at
+            FROM users
+            WHERE organization_id = $1 AND role = $2
+            ORDER BY first_name, last_name
+            "#,
+        )
+        .bind(org_id.as_uuid())
+        .bind(role)
+        .fetch_all(pool)
+        .await
     }
 }
