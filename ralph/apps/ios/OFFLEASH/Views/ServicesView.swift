@@ -32,7 +32,7 @@ struct ServicesView: View {
             }
             .navigationTitle("Services")
             .refreshable {
-                await fetchServices()
+                await refreshServices()
             }
         }
         .task {
@@ -111,33 +111,68 @@ struct ServicesView: View {
 
     // MARK: - Data Fetching
 
-    private func fetchServices() async {
-        if services.isEmpty {
-            isLoading = true
-        }
+    private static let cacheKey = "services"
+    private static let cacheTTL: TimeInterval = 300 // 5 minutes
 
+    private func loadServices() async {
+        // Check cache first
+        if let cachedServices: [Service] = await CacheManager.shared.get(key: Self.cacheKey) {
+            // Cache hit: show cached data immediately
+            let activeServices = cachedServices.filter { $0.isActive }
+            services = activeServices
+            isLoading = false
+
+            // Fetch fresh data in background
+            await fetchServicesFromNetwork(updateUIOnSuccess: true)
+        } else {
+            // Cache miss: show loading state and fetch from network
+            isLoading = true
+            await fetchServicesFromNetwork(updateUIOnSuccess: true)
+        }
+    }
+
+    private func fetchServices() async {
+        await loadServices()
+    }
+
+    private func refreshServices() async {
+        // Pull-to-refresh bypasses cache and forces network fetch
+        await fetchServicesFromNetwork(updateUIOnSuccess: true)
+    }
+
+    private func fetchServicesFromNetwork(updateUIOnSuccess: Bool) async {
         do {
             let fetchedServices: [Service] = try await APIClient.shared.get("/services")
-            await MainActor.run {
-                services = fetchedServices.filter { $0.isActive }
+            let activeServices = fetchedServices.filter { $0.isActive }
+
+            // Cache the response with 5-minute TTL
+            await CacheManager.shared.set(key: Self.cacheKey, value: fetchedServices, ttl: Self.cacheTTL)
+
+            if updateUIOnSuccess {
+                // Only update UI if data changed
+                if activeServices != services {
+                    services = activeServices
+                }
                 isLoading = false
                 showError = false
             }
         } catch let error as APIError {
-            await MainActor.run {
+            // Only show error if we have no cached data to display
+            if services.isEmpty {
                 isLoading = false
                 errorMessage = error.errorDescription ?? "An unexpected error occurred"
-                if services.isEmpty {
-                    showError = true
-                }
+                showError = true
+            } else {
+                // Silently fail background refresh if we have cached data
+                isLoading = false
             }
         } catch {
-            await MainActor.run {
+            if services.isEmpty {
                 isLoading = false
                 errorMessage = "An unexpected error occurred. Please try again."
-                if services.isEmpty {
-                    showError = true
-                }
+                showError = true
+            } else {
+                isLoading = false
             }
         }
     }
