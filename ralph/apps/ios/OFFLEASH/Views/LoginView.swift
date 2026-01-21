@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseCrashlytics
 
 // MARK: - Login Request/Response Models
 
@@ -197,6 +198,10 @@ struct LoginView: View {
                 let response: LoginResponse = try await APIClient.shared.post("/auth/login", body: request)
 
                 await APIClient.shared.setAuthToken(response.token)
+
+                if let userId = response.user?.id {
+                    Crashlytics.crashlytics().setUserID(userId)
+                }
 
                 await MainActor.run {
                     isLoading = false

@@ -43,6 +43,7 @@ struct ServicesView: View {
         }
         .onAppear {
             analyticsService.trackScreenView(screenName: "services")
+            analyticsService.trackFunnelStep(step: "services_viewed", serviceId: nil, locationId: nil)
             startTime = Date()
         }
         .onChange(of: isLoading) { oldValue, newValue in
@@ -122,6 +123,7 @@ struct ServicesView: View {
             ServiceRowView(service: service, themeManager: themeManager)
                 .contentShape(Rectangle())
                 .onTapGesture {
+                    analyticsService.trackFunnelStep(step: "service_selected", serviceId: service.id, locationId: nil)
                     onServiceSelected?(service)
                 }
         }

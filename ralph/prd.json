@@ -202,7 +202,7 @@
       "description": "As a product manager, I need analytics infrastructure to measure customer behavior.",
       "id": "US-073",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 73,
       "title": "Integrate Firebase Analytics SDK"
     },
