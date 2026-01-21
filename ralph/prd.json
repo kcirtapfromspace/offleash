@@ -257,7 +257,7 @@
       "description": "As a product manager, I want to measure conversion through the booking funnel.",
       "id": "US-077",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 77,
       "title": "Track booking funnel progression"
     },
