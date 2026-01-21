@@ -43,6 +43,7 @@ struct RegisterView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var emailError: String?
 
     var onRegisterSuccess: () -> Void
     var onNavigateToLogin: () -> Void
@@ -137,8 +138,17 @@ struct RegisterView: View {
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color(.systemGray4), lineWidth: 1)
+                                    .stroke(emailError != nil ? Color.red : Color(.systemGray4), lineWidth: 1)
                             )
+                            .onChange(of: email) { _, _ in
+                                validateEmailWithDebounce()
+                            }
+
+                        if let error = emailError {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
                     }
 
                     // Phone Field
@@ -182,6 +192,9 @@ struct RegisterView: View {
                                 RoundedRectangle(cornerRadius: 12)
                                     .stroke(Color(.systemGray4), lineWidth: 1)
                             )
+
+                        PasswordRequirements(password: password)
+                            .padding(.top, 4)
                     }
 
                     // Register Button
@@ -255,16 +268,48 @@ struct RegisterView: View {
         !firstName.trimmingCharacters(in: .whitespaces).isEmpty &&
         !lastName.trimmingCharacters(in: .whitespaces).isEmpty &&
         !email.trimmingCharacters(in: .whitespaces).isEmpty &&
-        email.contains("@") &&
+        Validators.isValidEmail(email) &&
         !phone.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !password.isEmpty &&
-        password.count >= 6
+        passwordRequirementsMet
+    }
+
+    private var passwordRequirementsMet: Bool {
+        password.count >= 8 &&
+        password.contains(where: { $0.isUppercase }) &&
+        password.contains(where: { $0.isNumber })
+    }
+
+    // MARK: - Validation
+
+    @State private var emailValidationTask: Task<Void, Never>?
+
+    private func validateEmailWithDebounce() {
+        emailValidationTask?.cancel()
+        emailValidationTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000) // 300ms debounce
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                validateEmail()
+            }
+        }
+    }
+
+    private func validateEmail() {
+        let trimmedEmail = email.trimmingCharacters(in: .whitespaces)
+        if trimmedEmail.isEmpty {
+            emailError = nil
+        } else if !Validators.isValidEmail(trimmedEmail) {
+            emailError = "Please enter a valid email address"
+        } else {
+            emailError = nil
+        }
     }
 
     // MARK: - Actions
 
     private func register() {
-        guard isRegisterEnabled else { return }
+        validateEmail()
+        guard isRegisterEnabled, emailError == nil else { return }
 
         isLoading = true
 

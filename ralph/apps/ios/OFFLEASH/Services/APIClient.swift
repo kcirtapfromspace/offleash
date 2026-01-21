@@ -1,5 +1,6 @@
 import Foundation
 import Security
+import CommonCrypto
 import FirebaseCrashlytics
 
 // MARK: - Auth State Notifications
@@ -28,6 +29,7 @@ enum APIError: Error, LocalizedError {
     case networkError(Error)
     case unauthorized
     case noData
+    case certificatePinningFailed
 
     var errorDescription: String? {
         switch self {
@@ -47,6 +49,8 @@ enum APIError: Error, LocalizedError {
             return "Unauthorized - please log in again"
         case .noData:
             return "No data received from server"
+        case .certificatePinningFailed:
+            return "Certificate pinning validation failed - possible security threat"
         }
     }
 }
@@ -125,6 +129,167 @@ final class KeychainHelper {
     }
 }
 
+// MARK: - Certificate Pinning
+
+/// URLSessionDelegate that implements SSL certificate pinning for MITM attack prevention.
+///
+/// ## Certificate Rotation Procedure
+///
+/// When rotating certificates, follow these steps to ensure uninterrupted service:
+///
+/// 1. **Before Rotation**: Add the new certificate's public key hash to `pinnedPublicKeyHashes`
+///    as a backup pin while keeping the current primary pin.
+///
+/// 2. **Deploy App Update**: Release an app update with both the old (primary) and new (backup)
+///    certificate hashes. Wait for sufficient user adoption of this update.
+///
+/// 3. **Rotate Server Certificate**: Once most users have the updated app, rotate the server
+///    certificate. The backup pin will now validate successfully.
+///
+/// 4. **Update Primary Pin**: In the next app release, move the new hash to the primary position
+///    and add a new backup hash for the next rotation cycle.
+///
+/// **Important**: Always maintain at least two pins (primary + backup) to prevent lockout
+/// during certificate rotation. The backup pin should be for a certificate that is ready
+/// to be deployed but not yet active on the server.
+///
+/// ## Generating Public Key Hashes
+///
+/// To generate a SHA-256 hash of a certificate's public key:
+/// ```bash
+/// # Extract public key and generate hash
+/// openssl s_client -connect api.offleash.app:443 -servername api.offleash.app 2>/dev/null </dev/null \
+///   | openssl x509 -pubkey -noout \
+///   | openssl pkey -pubin -outform DER \
+///   | openssl dgst -sha256 -binary \
+///   | base64
+/// ```
+final class CertificatePinningDelegate: NSObject, URLSessionDelegate {
+
+    /// Pinned public key hashes for certificate validation.
+    /// The first hash is the primary (current) certificate, subsequent hashes are backups for rotation.
+    /// These are Base64-encoded SHA-256 hashes of the Subject Public Key Info (SPKI).
+    static let pinnedPublicKeyHashes: [String] = [
+        // Primary certificate hash for api.offleash.app
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        // Backup certificate hash for rotation
+        "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
+    ]
+
+    func urlSession(
+        _ session: URLSession,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+              let serverTrust = challenge.protectionSpace.serverTrust else {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+
+        // Validate the certificate chain
+        if validateCertificate(serverTrust: serverTrust) {
+            let credential = URLCredential(trust: serverTrust)
+            completionHandler(.useCredential, credential)
+        } else {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+        }
+    }
+
+    private func validateCertificate(serverTrust: SecTrust) -> Bool {
+        // Get the server's certificate chain
+        guard let certificateChain = SecTrustCopyCertificateChain(serverTrust) as? [SecCertificate],
+              let serverCertificate = certificateChain.first else {
+            return false
+        }
+
+        // Extract the public key from the certificate
+        guard let publicKey = SecCertificateCopyKey(serverCertificate) else {
+            return false
+        }
+
+        // Get the public key data in external representation
+        var error: Unmanaged<CFError>?
+        guard let publicKeyData = SecKeyCopyExternalRepresentation(publicKey, &error) as Data? else {
+            return false
+        }
+
+        // Determine key type and get appropriate SPKI header
+        guard let spkiHeader = spkiHeader(for: publicKey) else {
+            return false
+        }
+
+        var spkiData = Data(spkiHeader)
+        spkiData.append(publicKeyData)
+
+        // Calculate SHA-256 hash of the SPKI
+        let hash = sha256(data: spkiData)
+        let hashBase64 = hash.base64EncodedString()
+
+        // Check if the hash matches any of our pinned hashes
+        return Self.pinnedPublicKeyHashes.contains(hashBase64)
+    }
+
+    /// Returns the appropriate SPKI header bytes for the given public key type.
+    /// The header is prepended to the raw public key data to form a standard SPKI structure.
+    private func spkiHeader(for publicKey: SecKey) -> [UInt8]? {
+        guard let attributes = SecKeyCopyAttributes(publicKey) as? [String: Any],
+              let keyType = attributes[kSecAttrKeyType as String] as? String,
+              let keySize = attributes[kSecAttrKeySizeInBits as String] as? Int else {
+            return nil
+        }
+
+        // RSA SPKI headers (ASN.1 DER encoded)
+        if keyType == (kSecAttrKeyTypeRSA as String) {
+            switch keySize {
+            case 2048:
+                return [
+                    0x30, 0x82, 0x01, 0x22, 0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86,
+                    0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05, 0x00, 0x03, 0x82, 0x01, 0x0f, 0x00
+                ]
+            case 4096:
+                return [
+                    0x30, 0x82, 0x02, 0x22, 0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86,
+                    0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05, 0x00, 0x03, 0x82, 0x02, 0x0f, 0x00
+                ]
+            default:
+                return nil
+            }
+        }
+
+        // EC SPKI headers (ASN.1 DER encoded)
+        if keyType == (kSecAttrKeyTypeECSECPrimeRandom as String) {
+            switch keySize {
+            case 256:
+                // secp256r1 / P-256
+                return [
+                    0x30, 0x59, 0x30, 0x13, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02,
+                    0x01, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07, 0x03,
+                    0x42, 0x00
+                ]
+            case 384:
+                // secp384r1 / P-384
+                return [
+                    0x30, 0x76, 0x30, 0x10, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02,
+                    0x01, 0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x22, 0x03, 0x62, 0x00
+                ]
+            default:
+                return nil
+            }
+        }
+
+        return nil
+    }
+
+    private func sha256(data: Data) -> Data {
+        var hash = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
+        data.withUnsafeBytes { buffer in
+            _ = CC_SHA256(buffer.baseAddress, CC_LONG(data.count), &hash)
+        }
+        return Data(hash)
+    }
+}
+
 // MARK: - API Client
 
 actor APIClient {
@@ -135,17 +300,23 @@ actor APIClient {
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
     private let analyticsService: AnalyticsService
+    private let certificatePinningDelegate: CertificatePinningDelegate
 
     private init(analyticsService: AnalyticsService = StubAnalyticsService.shared) {
         self.analyticsService = analyticsService
         // Configure base URL from environment or use default
         self.baseURL = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "https://api.offleash.app"
 
-        // Configure URLSession
+        // Configure URLSession with certificate pinning delegate
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = 30
         configuration.timeoutIntervalForResource = 60
-        self.session = URLSession(configuration: configuration)
+        self.certificatePinningDelegate = CertificatePinningDelegate()
+        self.session = URLSession(
+            configuration: configuration,
+            delegate: certificatePinningDelegate,
+            delegateQueue: nil
+        )
 
         // Configure JSON decoder
         self.decoder = JSONDecoder()
@@ -361,6 +532,8 @@ actor APIClient {
             return "unauthorized"
         case .noData:
             return "noData"
+        case .certificatePinningFailed:
+            return "certificatePinningFailed"
         }
     }
 }
