@@ -11,11 +11,14 @@ import SwiftUI
 
 struct ServicesView: View {
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.analyticsService) private var analyticsService
     @State private var services: [Service] = []
     @State private var isLoading = true
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var selectedService: Service?
+    @State private var startTime: Date?
+    @State private var wasCacheHit = false
 
     var onServiceSelected: ((Service) -> Void)?
 
@@ -37,6 +40,22 @@ struct ServicesView: View {
         }
         .task {
             await fetchServices()
+        }
+        .onAppear {
+            analyticsService.trackScreenView(screenName: "services")
+            startTime = Date()
+        }
+        .onChange(of: isLoading) { oldValue, newValue in
+            // Track TTI when loading completes (transitions from true to false)
+            if oldValue == true && newValue == false, let start = startTime {
+                let durationMs = Int(Date().timeIntervalSince(start) * 1000)
+                analyticsService.trackEvent(name: "tti", params: [
+                    "screen": "ServicesView",
+                    "duration_ms": durationMs,
+                    "cache_hit": wasCacheHit
+                ])
+                startTime = nil // Reset to avoid duplicate tracking
+            }
         }
         .alert("Error", isPresented: $showError) {
             Button("Retry") {
@@ -118,6 +137,7 @@ struct ServicesView: View {
         // Check cache first
         if let cachedServices: [Service] = await CacheManager.shared.get(key: Self.cacheKey) {
             // Cache hit: show cached data immediately (already filtered by server)
+            wasCacheHit = true
             services = cachedServices
             isLoading = false
 
@@ -125,6 +145,7 @@ struct ServicesView: View {
             await fetchServicesFromNetwork(updateUIOnSuccess: true)
         } else {
             // Cache miss: show loading state and fetch from network
+            wasCacheHit = false
             isLoading = true
             await fetchServicesFromNetwork(updateUIOnSuccess: true)
         }
