@@ -7,6 +7,15 @@
 
 import SwiftUI
 
+// MARK: - App State
+
+enum AppState {
+    case launching
+    case validating
+    case authenticated
+    case unauthenticated
+}
+
 // MARK: - Auth Screen State
 
 enum AuthScreen {
