@@ -59,7 +59,7 @@
       "description": "As a developer, I need models for the token validation endpoint response.",
       "id": "US-064",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 64,
       "title": "Create token validation response model"
     },
