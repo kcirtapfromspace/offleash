@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  GoogleService-Info.plist - PLACEHOLDER
+
+  SETUP INSTRUCTIONS:
+  ====================
+  This is a placeholder file. To enable Firebase Analytics:
+
+  1. Go to the Firebase Console: https://console.firebase.google.com
+  2. Create a new project or select an existing one
+  3. Add an iOS app to your project with bundle ID: com.offleash.ios
+  4. Download the GoogleService-Info.plist file from Firebase Console
+  5. Replace this placeholder file with the downloaded file
+
+  REQUIRED FIELDS:
+  - API_KEY: Your Firebase API key
+  - GCM_SENDER_ID: Google Cloud Messaging sender ID
+  - PLIST_VERSION: Usually "1"
+  - BUNDLE_ID: Should match your app's bundle identifier (com.offleash.ios)
+  - PROJECT_ID: Your Firebase project ID
+  - STORAGE_BUCKET: Your Firebase storage bucket
+  - IS_ADS_ENABLED: Boolean for ads
+  - IS_ANALYTICS_ENABLED: Should be true for analytics
+  - IS_APPINVITE_ENABLED: Boolean for app invites
+  - IS_GCM_ENABLED: Boolean for Google Cloud Messaging
+  - IS_SIGNIN_ENABLED: Boolean for sign-in
+  - GOOGLE_APP_ID: Your Google App ID
+
+  WARNING: Do not commit actual credentials to version control.
+  Add this file to .gitignore after replacing with real credentials.
+-->
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>YOUR_API_KEY_HERE</string>
+	<key>GCM_SENDER_ID</key>
+	<string>YOUR_GCM_SENDER_ID_HERE</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.offleash.ios</string>
+	<key>PROJECT_ID</key>
+	<string>YOUR_PROJECT_ID_HERE</string>
+	<key>STORAGE_BUCKET</key>
+	<string>YOUR_STORAGE_BUCKET_HERE</string>
+	<key>IS_ADS_ENABLED</key>
+	<false/>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<true/>
+	<key>IS_APPINVITE_ENABLED</key>
+	<false/>
+	<key>IS_GCM_ENABLED</key>
+	<true/>
+	<key>IS_SIGNIN_ENABLED</key>
+	<false/>
+	<key>GOOGLE_APP_ID</key>
+	<string>YOUR_GOOGLE_APP_ID_HERE</string>
+</dict>
+</plist>

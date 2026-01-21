@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseCore
 
 // MARK: - App State
 
@@ -49,6 +50,10 @@ struct OFFLEASHApp: App {
     @State private var appState: AppState = .launching
     @State private var currentAuthScreen: AuthScreen = .login
     @State private var showSessionExpiredAlert = false
+
+    init() {
+        FirebaseApp.configure()
+    }
 
     var body: some Scene {
         WindowGroup {
