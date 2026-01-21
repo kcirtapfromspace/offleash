@@ -307,7 +307,7 @@
       "description": "As a customer, I want clear feedback if my email format is invalid.",
       "id": "US-080",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 80,
       "title": "Strengthen email validation"
     },
