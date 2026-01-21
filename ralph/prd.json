@@ -141,7 +141,7 @@
       "description": "As a customer, I want to see the services list instantly on repeat visits.",
       "id": "US-069",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 69,
       "title": "Cache services list with stale-while-revalidate"
     },

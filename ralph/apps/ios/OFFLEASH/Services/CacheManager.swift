@@ -146,6 +146,12 @@ actor CacheManager {
         removeEntryAndMetadata(key: key, fileURL: fileURL)
     }
 
+    /// Invalidate a cached value for the given key
+    /// Use this to clear stale data when the underlying data has been modified
+    func invalidate(key: String) {
+        remove(key: key)
+    }
+
     /// Clear all cached data
     func clear() {
         try? fileManager.removeItem(at: cacheDirectory)
