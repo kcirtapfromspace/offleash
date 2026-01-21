@@ -98,6 +98,18 @@ pub fn create_app(state: AppState) -> Router {
             "/blocks/:id",
             axum::routing::delete(routes::blocks::delete_block),
         )
+        // User routes
+        .route("/users", get(routes::users::list_users))
+        .route("/users/:id", get(routes::users::get_user))
+        // Admin user management routes
+        .route("/admin/walkers", post(routes::admin_users::create_walker))
+        // Working hours routes
+        .route(
+            "/working-hours/:walker_id",
+            get(routes::working_hours::get_walker_hours)
+                .put(routes::working_hours::update_walker_hours)
+                .delete(routes::working_hours::delete_walker_hours),
+        )
         // Add middleware
         .layer(TraceLayer::new_for_http())
         .layer(cors)
