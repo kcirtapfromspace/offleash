@@ -117,9 +117,8 @@ struct ServicesView: View {
     private func loadServices() async {
         // Check cache first
         if let cachedServices: [Service] = await CacheManager.shared.get(key: Self.cacheKey) {
-            // Cache hit: show cached data immediately
-            let activeServices = cachedServices.filter { $0.isActive }
-            services = activeServices
+            // Cache hit: show cached data immediately (already filtered by server)
+            services = cachedServices
             isLoading = false
 
             // Fetch fresh data in background
@@ -142,16 +141,16 @@ struct ServicesView: View {
 
     private func fetchServicesFromNetwork(updateUIOnSuccess: Bool) async {
         do {
-            let fetchedServices: [Service] = try await APIClient.shared.get("/services")
-            let activeServices = fetchedServices.filter { $0.isActive }
+            let queryItems = [URLQueryItem(name: "active", value: "true")]
+            let fetchedServices: [Service] = try await APIClient.shared.get("/services", queryItems: queryItems)
 
-            // Cache the response with 5-minute TTL
+            // Cache the response with 5-minute TTL (already filtered by server)
             await CacheManager.shared.set(key: Self.cacheKey, value: fetchedServices, ttl: Self.cacheTTL)
 
             if updateUIOnSuccess {
                 // Only update UI if data changed
-                if activeServices != services {
-                    services = activeServices
+                if fetchedServices != services {
+                    services = fetchedServices
                 }
                 isLoading = false
                 showError = false
