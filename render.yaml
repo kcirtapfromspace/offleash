@@ -1,0 +1,148 @@
+# =============================================================================
+# OFFLEASH - Render Blueprint
+# Documentation: https://render.com/docs/blueprint-spec
+# =============================================================================
+#
+# COST BREAKDOWN (Test Environment):
+#   - API (Rust):        $7/mo (Starter) - always on
+#   - PostgreSQL:        $7/mo (free 90 days)
+#   - Customer Web:      Free (auto-sleeps after 15min inactivity)
+#   - Admin Dashboard:   Free (auto-sleeps)
+#   - Platform Admin:    Free (auto-sleeps)
+#   TOTAL: ~$14/mo after free trial
+#
+# For production, upgrade web services to Starter ($7/mo each) for always-on
+# =============================================================================
+
+previewsEnabled: true
+previewsExpireAfterDays: 7
+
+# =============================================================================
+# DATABASES
+# =============================================================================
+databases:
+  - name: offleash-db
+    plan: starter
+    databaseName: offleash
+    user: offleash
+    region: oregon
+    postgresMajorVersion: "16"
+    ipAllowList: []
+
+# =============================================================================
+# SERVICES
+# =============================================================================
+services:
+  # ---------------------------------------------------------------------------
+  # API Server (Rust) - Starter plan for always-on
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: offleash-api
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: offleash-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: RUST_LOG
+        value: info,tower_http=info,sqlx=warn
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 8080
+      - key: ENVIRONMENT
+        value: test
+      - key: BASE_DOMAIN
+        value: offleash.world
+      - key: CORS_ORIGINS
+        value: https://app.offleash.world,https://admin.offleash.world,https://platform.offleash.world,https://offleash-app.onrender.com,https://offleash-admin.onrender.com,https://offleash-platform.onrender.com
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - crates/**
+        - migrations/**
+        - Cargo.toml
+        - Cargo.lock
+        - Dockerfile
+
+  # ---------------------------------------------------------------------------
+  # Customer Web App (SvelteKit Node.js) - Free tier with auto-sleep
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: offleash-app
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: cd apps/customer-web && npm ci && npm run build
+    startCommand: cd apps/customer-web && node build
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: PUBLIC_API_URL
+        value: https://offleash-api.onrender.com
+      - key: ORIGIN
+        value: https://offleash-app.onrender.com
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - apps/customer-web/**
+
+  # ---------------------------------------------------------------------------
+  # Admin Dashboard (SvelteKit Node.js) - Free tier with auto-sleep
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: offleash-admin
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: cd apps/admin-dashboard && npm ci && npm run build
+    startCommand: cd apps/admin-dashboard && node build
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: PUBLIC_API_URL
+        value: https://offleash-api.onrender.com
+      - key: ORIGIN
+        value: https://offleash-admin.onrender.com
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - apps/admin-dashboard/**
+
+  # ---------------------------------------------------------------------------
+  # Platform Admin (SvelteKit Node.js) - Free tier with auto-sleep
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: offleash-platform
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: cd apps/platform-admin && npm ci && npm run build
+    startCommand: cd apps/platform-admin && node build
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: PUBLIC_API_URL
+        value: https://offleash-api.onrender.com
+      - key: ORIGIN
+        value: https://offleash-platform.onrender.com
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - apps/platform-admin/**
