@@ -21,7 +21,7 @@ pub struct ListBookingsQuery {
 
 #[derive(Debug, Deserialize)]
 pub struct CreateBookingRequest {
-    pub walker_id: String,
+    pub walker_id: Option<String>, // Optional - backend can assign if not provided
     pub service_id: String,
     pub location_id: String,
     pub start_time: String, // ISO 8601
@@ -61,6 +61,9 @@ pub struct BookingListItem {
     pub price_cents: i64,
     pub price_display: String,
     pub notes: Option<String>,
+    pub customer_phone: Option<String>,
+    pub pet_name: Option<String>,
+    pub pet_breed: Option<String>,
 }
 
 pub async fn create_booking(
@@ -70,11 +73,6 @@ pub async fn create_booking(
     Json(req): Json<CreateBookingRequest>,
 ) -> ApiResult<Json<BookingResponse>> {
     // Parse IDs
-    let walker_id = req
-        .walker_id
-        .parse()
-        .map_err(|_| ApiError::from(AppError::Validation("Invalid walker ID".to_string())))?;
-
     let service_id = req
         .service_id
         .parse()
@@ -94,14 +92,27 @@ pub async fn create_booking(
         })?
         .with_timezone(&chrono::Utc);
 
+    // Get or find walker
+    let walker_id = if let Some(ref wid) = req.walker_id {
+        wid.parse()
+            .map_err(|_| ApiError::from(AppError::Validation("Invalid walker ID".to_string())))?
+    } else {
+        // Find first available walker in the organization
+        let walkers = UserRepository::list_by_role(&tenant.pool, tenant.org_id, db::models::UserRole::Walker).await?;
+        walkers
+            .first()
+            .map(|w| w.id)
+            .ok_or_else(|| ApiError::from(AppError::Validation("No walkers available".to_string())))?
+    };
+
     // Verify walker exists within this organization
     let walker = UserRepository::find_by_id(&tenant.pool, tenant.org_id, walker_id)
         .await?
-        .ok_or_else(|| ApiError::from(DomainError::WalkerNotFound(req.walker_id.clone())))?;
+        .ok_or_else(|| ApiError::from(DomainError::WalkerNotFound(req.walker_id.clone().unwrap_or_default())))?;
 
     if !walker.is_walker() {
         return Err(ApiError::from(DomainError::WalkerNotFound(
-            req.walker_id.clone(),
+            req.walker_id.clone().unwrap_or_default(),
         )));
     }
 
@@ -352,7 +363,61 @@ pub async fn list_bookings(
             scheduled_end: b.scheduled_end.to_rfc3339(),
             price_cents: b.price_cents,
             price_display: format!("${:.2}", b.price_dollars()),
-            notes: b.notes,
+            notes: b.notes.clone(),
+            customer_phone: None, // TODO: Add customer phone to booking
+            pet_name: None,       // TODO: Add pet info to booking
+            pet_breed: None,
+        });
+    }
+
+    Ok(Json(responses))
+}
+
+/// List bookings for the authenticated customer
+pub async fn list_customer_bookings(
+    State(_state): State<AppState>,
+    tenant: TenantContext,
+    auth: AuthUser,
+) -> ApiResult<Json<Vec<BookingListItem>>> {
+    let bookings = BookingRepository::find_by_customer(&tenant.pool, tenant.org_id, auth.user_id).await?;
+
+    // Enrich bookings with related data
+    let mut responses = Vec::with_capacity(bookings.len());
+    for b in bookings {
+        let walker = UserRepository::find_by_id(&tenant.pool, tenant.org_id, b.walker_id)
+            .await?
+            .map(|u| u.full_name())
+            .unwrap_or_else(|| "Unknown".to_string());
+
+        let service = ServiceRepository::find_by_id(&tenant.pool, tenant.org_id, b.service_id)
+            .await?
+            .map(|s| s.name)
+            .unwrap_or_else(|| "Unknown".to_string());
+
+        let location = LocationRepository::find_by_id(&tenant.pool, tenant.org_id, b.location_id)
+            .await?
+            .map(|l| format!("{}, {}", l.address, l.city))
+            .unwrap_or_else(|| "Unknown".to_string());
+
+        responses.push(BookingListItem {
+            id: b.id.to_string(),
+            customer_id: b.customer_id.to_string(),
+            customer_name: "".to_string(), // Not needed for customer view
+            walker_id: b.walker_id.to_string(),
+            walker_name: walker,
+            service_id: b.service_id.to_string(),
+            service_name: service,
+            location_id: b.location_id.to_string(),
+            location_address: location,
+            status: b.status.to_string(),
+            scheduled_start: b.scheduled_start.to_rfc3339(),
+            scheduled_end: b.scheduled_end.to_rfc3339(),
+            price_cents: b.price_cents,
+            price_display: format!("${:.2}", b.price_dollars()),
+            notes: b.notes.clone(),
+            customer_phone: None,
+            pet_name: None,
+            pet_breed: None,
         });
     }
 

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use shared::DomainError;
 
 use crate::{
-    auth::create_token,
+    auth::{create_token, AuthUser},
     error::{ApiError, ApiResult},
     state::AppState,
 };
@@ -157,5 +157,19 @@ pub async fn login(
             last_name: user.last_name,
             role: user.role.to_string(),
         },
+    }))
+}
+
+#[derive(Debug, Serialize)]
+pub struct ValidateResponse {
+    pub valid: bool,
+    pub user_id: Option<String>,
+}
+
+/// Validate the current JWT token
+pub async fn validate_token(auth_user: AuthUser) -> ApiResult<Json<ValidateResponse>> {
+    Ok(Json(ValidateResponse {
+        valid: true,
+        user_id: Some(auth_user.user_id.to_string()),
     }))
 }
