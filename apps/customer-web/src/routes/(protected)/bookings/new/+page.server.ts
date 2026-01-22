@@ -1,6 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { api, ApiError } from '$lib/api';
 import { fail, redirect } from '@sveltejs/kit';
+import { randomUUID } from 'crypto';
 
 interface Service {
 	id: string;
@@ -110,6 +111,19 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 	}
 };
 
+interface RecurringConflict {
+	date: string;
+	reason: string;
+}
+
+interface RecurringResponse {
+	series: { id: string } | null;
+	bookings_created: number;
+	total_planned: number;
+	conflicts: RecurringConflict[];
+	preview_dates: string[];
+}
+
 export const actions: Actions = {
 	book: async ({ request, cookies }) => {
 		const token = cookies.get('token');
@@ -123,11 +137,78 @@ export const actions: Actions = {
 		const walkerId = formData.get('walker_id')?.toString();
 		const startTime = formData.get('start_time')?.toString();
 		const notes = formData.get('notes')?.toString();
+		const isRecurring = formData.get('is_recurring') === 'on';
 
 		if (!serviceId || !locationId || !walkerId || !startTime) {
 			return fail(400, { error: 'Please complete all required fields' });
 		}
 
+		// Handle recurring bookings
+		if (isRecurring) {
+			const frequency = formData.get('recurring_frequency')?.toString() || 'weekly';
+			const endConditionType = formData.get('end_condition_type')?.toString() || 'occurrences';
+			const endOccurrences = parseInt(formData.get('end_occurrences')?.toString() || '12');
+			const endDate = formData.get('end_date')?.toString();
+
+			// Extract date and time from startTime (ISO format)
+			const startDateTime = new Date(startTime);
+			const startDateStr = startDateTime.toISOString().split('T')[0];
+			const timeOfDay = startDateTime.toTimeString().slice(0, 5); // HH:MM
+
+			const endCondition =
+				endConditionType === 'occurrences'
+					? { type: 'occurrences' as const, value: endOccurrences }
+					: { type: 'date' as const, value: endDate };
+
+			// Generate idempotency key to prevent duplicate submissions
+			const idempotencyKey = randomUUID();
+
+			try {
+				const result = await api.post<RecurringResponse>(
+					'/bookings/recurring',
+					{
+						walker_id: walkerId,
+						service_id: serviceId,
+						location_id: locationId,
+						frequency,
+						start_date: startDateStr,
+						time_of_day: timeOfDay,
+						end_condition: endCondition,
+						notes: notes || null,
+						preview_only: false
+					},
+					token,
+					{ 'X-Idempotency-Key': idempotencyKey }
+				);
+
+				if (result.series) {
+					// Return success with conflict info for display before redirect
+					if (result.conflicts.length > 0) {
+						return {
+							success: true,
+							seriesId: result.series.id,
+							bookingsCreated: result.bookings_created,
+							totalPlanned: result.total_planned,
+							conflicts: result.conflicts,
+							message: `Created ${result.bookings_created} of ${result.total_planned} bookings. ${result.conflicts.length} dates had conflicts.`
+						};
+					}
+					throw redirect(303, `/bookings/recurring/${result.series.id}`);
+				} else {
+					return fail(400, { error: 'Failed to create recurring series' });
+				}
+			} catch (err) {
+				if (err instanceof ApiError) {
+					return fail(err.status, {
+						error: err.message || 'Failed to create recurring booking',
+						errorType: 'api_error'
+					});
+				}
+				throw err;
+			}
+		}
+
+		// Handle single booking
 		try {
 			const booking = await api.post<{ id: string }>(
 				'/bookings',

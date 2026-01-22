@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use api::{create_app, AppState};
+use api::{create_app, init_metrics, AppState};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -10,6 +10,10 @@ async fn main() {
 
     // Check for --migrate-only flag
     let migrate_only = std::env::args().any(|arg| arg == "--migrate-only");
+
+    // Initialize Prometheus metrics
+    let metrics_handle = init_metrics();
+    tracing::info!("Prometheus metrics initialized");
 
     // Initialize tracing
     tracing_subscriber::registry()
@@ -48,7 +52,7 @@ async fn main() {
     let google_maps_key = std::env::var("GOOGLE_MAPS_API_KEY").ok();
 
     // Create app state
-    let state = AppState::new(pool, jwt_secret, google_maps_key);
+    let state = AppState::new(pool, jwt_secret, google_maps_key, metrics_handle);
 
     // Create the app
     let app = create_app(state);
