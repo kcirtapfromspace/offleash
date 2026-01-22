@@ -2,12 +2,12 @@ use axum::{
     extract::{Path, Query, State},
     Json,
 };
-use db::{models::UserRole, UserRepository};
+use db::{models::{UpdateUser, UserRole}, UserRepository};
 use serde::{Deserialize, Serialize};
 use shared::{AppError, DomainError};
 
 use crate::{
-    auth::TenantContext,
+    auth::{AuthUser, TenantContext},
     error::{ApiError, ApiResult},
     state::AppState,
 };
@@ -92,5 +92,70 @@ pub async fn get_user(
         phone: user.phone,
         timezone: user.timezone,
         created_at: user.created_at.to_rfc3339(),
+    }))
+}
+
+/// Get the currently authenticated user's info
+pub async fn get_me(
+    State(_state): State<AppState>,
+    auth_user: AuthUser,
+    tenant: TenantContext,
+) -> ApiResult<Json<UserResponse>> {
+    let user = UserRepository::find_by_id(&tenant.pool, tenant.org_id, auth_user.user_id)
+        .await?
+        .ok_or_else(|| ApiError::from(DomainError::UserNotFound(auth_user.user_id.to_string())))?;
+
+    Ok(Json(UserResponse {
+        id: user.id.to_string(),
+        email: user.email,
+        role: user.role.to_string(),
+        first_name: user.first_name.clone(),
+        last_name: user.last_name.clone(),
+        full_name: format!("{} {}", user.first_name, user.last_name),
+        phone: user.phone,
+        timezone: user.timezone,
+        created_at: user.created_at.to_rfc3339(),
+    }))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateMeRequest {
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub phone: Option<String>,
+    pub timezone: Option<String>,
+}
+
+/// Update the currently authenticated user's profile
+pub async fn update_me(
+    State(_state): State<AppState>,
+    auth_user: AuthUser,
+    tenant: TenantContext,
+    Json(req): Json<UpdateMeRequest>,
+) -> ApiResult<Json<UserResponse>> {
+    let updated_user = UserRepository::update(
+        &tenant.pool,
+        tenant.org_id,
+        auth_user.user_id,
+        UpdateUser {
+            first_name: req.first_name,
+            last_name: req.last_name,
+            phone: req.phone,
+            timezone: req.timezone,
+        },
+    )
+    .await?
+    .ok_or_else(|| ApiError::from(DomainError::UserNotFound(auth_user.user_id.to_string())))?;
+
+    Ok(Json(UserResponse {
+        id: updated_user.id.to_string(),
+        email: updated_user.email,
+        role: updated_user.role.to_string(),
+        first_name: updated_user.first_name.clone(),
+        last_name: updated_user.last_name.clone(),
+        full_name: format!("{} {}", updated_user.first_name, updated_user.last_name),
+        phone: updated_user.phone,
+        timezone: updated_user.timezone,
+        created_at: updated_user.created_at.to_rfc3339(),
     }))
 }

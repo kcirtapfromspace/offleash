@@ -166,6 +166,26 @@ impl BookingRepository {
         .await
     }
 
+    /// Find all bookings assigned to a walker
+    pub async fn find_by_walker(
+        pool: &PgPool,
+        org_id: OrganizationId,
+        walker_id: UserId,
+    ) -> Result<Vec<Booking>, sqlx::Error> {
+        sqlx::query_as::<_, Booking>(
+            r#"
+            SELECT id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, recurring_series_id, occurrence_number, created_at, updated_at
+            FROM bookings
+            WHERE walker_id = $1 AND organization_id = $2
+            ORDER BY scheduled_start DESC
+            "#,
+        )
+        .bind(walker_id.as_uuid())
+        .bind(org_id.as_uuid())
+        .fetch_all(pool)
+        .await
+    }
+
     pub async fn update_status(
         pool: &PgPool,
         org_id: OrganizationId,

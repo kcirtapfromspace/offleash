@@ -2,17 +2,17 @@ use db::{models::Organization, repositories::OrganizationRepository};
 use sqlx::PgPool;
 
 /// Extract host without port from Host header.
-/// E.g., "acme.offleash.app:3000" -> "acme.offleash.app"
+/// E.g., "acme.offleash.pro:3000" -> "acme.offleash.pro"
 fn extract_host_without_port(host: &str) -> &str {
     host.split(':').next().unwrap_or(host)
 }
 
 /// Extract subdomain from Host header.
-/// Returns the subdomain part if present (e.g., "acme.offleash.app" -> "acme").
+/// Returns the subdomain part if present (e.g., "acme.offleash.pro" -> "acme").
 fn extract_subdomain_from_host(host: &str) -> Option<&str> {
     let host_without_port = extract_host_without_port(host);
 
-    // Check if it's a subdomain pattern (e.g., "acme.offleash.app")
+    // Check if it's a subdomain pattern (e.g., "acme.offleash.pro")
     let parts: Vec<&str> = host_without_port.split('.').collect();
 
     // Need at least 3 parts for subdomain (subdomain.domain.tld)
@@ -67,8 +67,8 @@ mod tests {
         assert_eq!(extract_host_without_port("localhost:8080"), "localhost");
         assert_eq!(extract_host_without_port("localhost"), "localhost");
         assert_eq!(
-            extract_host_without_port("acme.offleash.app:443"),
-            "acme.offleash.app"
+            extract_host_without_port("acme.offleash.pro:443"),
+            "acme.offleash.pro"
         );
     }
 
@@ -76,24 +76,24 @@ mod tests {
     fn test_extract_subdomain_from_host() {
         // Standard subdomain pattern
         assert_eq!(
-            extract_subdomain_from_host("acme.offleash.app"),
+            extract_subdomain_from_host("acme.offleash.pro"),
             Some("acme")
         );
 
         // With port
         assert_eq!(
-            extract_subdomain_from_host("acme.offleash.app:3000"),
+            extract_subdomain_from_host("acme.offleash.pro:3000"),
             Some("acme")
         );
 
         // Deep subdomain (still extracts first part)
         assert_eq!(
-            extract_subdomain_from_host("acme.staging.offleash.app"),
+            extract_subdomain_from_host("acme.staging.offleash.pro"),
             Some("acme")
         );
 
         // No subdomain (just domain.tld)
-        assert_eq!(extract_subdomain_from_host("offleash.app"), None);
+        assert_eq!(extract_subdomain_from_host("offleash.pro"), None);
 
         // Single part (localhost)
         assert_eq!(extract_subdomain_from_host("localhost"), None);
