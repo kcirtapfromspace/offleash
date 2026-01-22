@@ -10,7 +10,7 @@ pub use metrics::init_metrics;
 pub use state::AppState;
 
 use axum::{
-    routing::{get, post},
+    routing::{delete, get, post, put},
     Router,
 };
 use tower_http::{
@@ -82,6 +82,7 @@ pub fn create_app(state: AppState) -> Router {
             get(routes::bookings::list_bookings).post(routes::bookings::create_booking),
         )
         .route("/bookings/customer", get(routes::bookings::list_customer_bookings))
+        .route("/bookings/walker", get(routes::bookings::list_walker_bookings))
         .route("/bookings/:id", get(routes::bookings::get_booking))
         .route(
             "/bookings/:id/confirm",
@@ -112,15 +113,35 @@ pub fn create_app(state: AppState) -> Router {
         // Location routes
         .route("/locations", post(routes::locations::create_location))
         .route("/locations", get(routes::locations::list_locations))
+        .route("/locations/:id", delete(routes::locations::delete_location))
+        .route("/locations/:id/default", put(routes::locations::set_default_location))
+        // Payment method routes
+        .route(
+            "/payment-methods",
+            get(routes::payment_methods::list_payment_methods)
+                .post(routes::payment_methods::create_payment_method),
+        )
+        .route(
+            "/payment-methods/:id",
+            delete(routes::payment_methods::delete_payment_method)
+                .patch(routes::payment_methods::update_payment_method),
+        )
+        .route(
+            "/payment-methods/:id/default",
+            put(routes::payment_methods::set_default_payment_method),
+        )
         // Block routes
-        .route("/blocks", post(routes::blocks::create_block))
+        .route(
+            "/blocks",
+            get(routes::blocks::list_blocks).post(routes::blocks::create_block),
+        )
         .route(
             "/blocks/:id",
             axum::routing::delete(routes::blocks::delete_block),
         )
         // User routes
         .route("/users", get(routes::users::list_users))
-        .route("/users/me", get(routes::users::get_me))
+        .route("/users/me", get(routes::users::get_me).put(routes::users::update_me))
         .route("/users/:id", get(routes::users::get_user))
         // Admin user management routes
         .route("/admin/walkers", post(routes::admin_users::create_walker))
@@ -156,6 +177,47 @@ pub fn create_app(state: AppState) -> Router {
         .route(
             "/availability/slots",
             get(routes::travel_time::get_availability_slots),
+        )
+        // Walker profile routes
+        .route(
+            "/walker/profile",
+            get(routes::walker_profiles::get_my_profile)
+                .put(routes::walker_profiles::update_my_profile),
+        )
+        .route(
+            "/walker/specializations",
+            get(routes::walker_profiles::list_specializations),
+        )
+        .route(
+            "/admin/walkers/:walker_id/profile",
+            get(routes::walker_profiles::get_walker_profile)
+                .put(routes::walker_profiles::update_walker_profile),
+        )
+        // Service area routes (walker self-service)
+        .route(
+            "/walker/service-areas",
+            get(routes::service_areas::get_my_service_areas)
+                .post(routes::service_areas::create_my_service_area),
+        )
+        .route(
+            "/walker/service-areas/:area_id",
+            put(routes::service_areas::update_my_service_area)
+                .delete(routes::service_areas::delete_my_service_area),
+        )
+        // Service area routes (admin)
+        .route(
+            "/admin/service-areas",
+            get(routes::service_areas::list_all_service_areas),
+        )
+        .route(
+            "/admin/walkers/:walker_id/service-areas",
+            get(routes::service_areas::get_walker_service_areas)
+                .post(routes::service_areas::create_walker_service_area),
+        )
+        .route(
+            "/admin/service-areas/:area_id",
+            put(routes::service_areas::update_service_area)
+                .delete(routes::service_areas::delete_service_area),
         )
         // Add middleware
         .layer(TraceLayer::new_for_http())

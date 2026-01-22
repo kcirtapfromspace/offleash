@@ -34,6 +34,30 @@ pub struct BlockResponse {
     pub recurrence_rule: Option<String>,
 }
 
+/// List blocks for the authenticated walker
+pub async fn list_blocks(
+    State(_state): State<AppState>,
+    tenant: TenantContext,
+    auth: AuthUser,
+) -> ApiResult<Json<Vec<BlockResponse>>> {
+    let blocks = BlockRepository::find_by_walker(&tenant.pool, tenant.org_id, auth.user_id).await?;
+
+    let response: Vec<BlockResponse> = blocks
+        .into_iter()
+        .map(|b| BlockResponse {
+            id: b.id.to_string(),
+            walker_id: b.walker_id.to_string(),
+            reason: b.reason,
+            start_time: b.start_time.to_rfc3339(),
+            end_time: b.end_time.to_rfc3339(),
+            is_recurring: b.is_recurring,
+            recurrence_rule: b.recurrence_rule,
+        })
+        .collect();
+
+    Ok(Json(response))
+}
+
 pub async fn create_block(
     State(_state): State<AppState>,
     tenant: TenantContext,

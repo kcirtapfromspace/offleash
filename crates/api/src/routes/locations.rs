@@ -1,4 +1,7 @@
-use axum::{extract::State, Json};
+use axum::{
+    extract::{Path, State},
+    Json,
+};
 use db::models::CreateLocation;
 use db::LocationRepository;
 use serde::{Deserialize, Serialize};
@@ -138,4 +141,69 @@ pub async fn list_locations(
         .collect();
 
     Ok(Json(response))
+}
+
+pub async fn delete_location(
+    State(_state): State<AppState>,
+    tenant: TenantContext,
+    auth: AuthUser,
+    Path(id): Path<String>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let location_id = id
+        .parse()
+        .map_err(|_| ApiError::from(AppError::Validation("Invalid location ID".to_string())))?;
+
+    // Verify location exists and belongs to user
+    let location = LocationRepository::find_by_id(&tenant.pool, tenant.org_id, location_id)
+        .await?
+        .ok_or_else(|| ApiError::from(AppError::NotFound("Location not found".to_string())))?;
+
+    if location.user_id != auth.user_id {
+        return Err(ApiError::from(AppError::Forbidden));
+    }
+
+    LocationRepository::delete(&tenant.pool, tenant.org_id, location_id).await?;
+
+    Ok(Json(serde_json::json!({"success": true})))
+}
+
+pub async fn set_default_location(
+    State(_state): State<AppState>,
+    tenant: TenantContext,
+    auth: AuthUser,
+    Path(id): Path<String>,
+) -> ApiResult<Json<LocationResponse>> {
+    let location_id = id
+        .parse()
+        .map_err(|_| ApiError::from(AppError::Validation("Invalid location ID".to_string())))?;
+
+    // Verify location exists and belongs to user
+    let location = LocationRepository::find_by_id(&tenant.pool, tenant.org_id, location_id)
+        .await?
+        .ok_or_else(|| ApiError::from(AppError::NotFound("Location not found".to_string())))?;
+
+    if location.user_id != auth.user_id {
+        return Err(ApiError::from(AppError::Forbidden));
+    }
+
+    // Unset all other defaults for this user
+    LocationRepository::unset_defaults_for_user(&tenant.pool, auth.user_id).await?;
+
+    // Set this location as default
+    let updated = LocationRepository::set_default(&tenant.pool, location_id).await?;
+
+    let full_address = updated.full_address();
+    Ok(Json(LocationResponse {
+        id: updated.id.to_string(),
+        name: updated.name,
+        address: updated.address,
+        city: updated.city,
+        state: updated.state,
+        zip_code: updated.zip_code,
+        full_address,
+        latitude: updated.latitude,
+        longitude: updated.longitude,
+        notes: updated.notes,
+        is_default: updated.is_default,
+    }))
 }

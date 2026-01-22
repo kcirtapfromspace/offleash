@@ -134,4 +134,22 @@ impl LocationRepository {
 
         Ok(())
     }
+
+    /// Set a location as default
+    pub async fn set_default(
+        pool: &PgPool,
+        id: LocationId,
+    ) -> Result<Location, sqlx::Error> {
+        sqlx::query_as::<_, Location>(
+            r#"
+            UPDATE locations
+            SET is_default = true, updated_at = NOW()
+            WHERE id = $1
+            RETURNING id, organization_id, user_id, name, address, city, state, zip_code, latitude, longitude, notes, is_default, created_at, updated_at
+            "#,
+        )
+        .bind(id.as_uuid())
+        .fetch_one(pool)
+        .await
+    }
 }

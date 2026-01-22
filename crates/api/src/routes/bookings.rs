@@ -55,6 +55,8 @@ pub struct BookingListItem {
     pub service_name: String,
     pub location_id: String,
     pub location_address: String,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
     pub status: String,
     pub scheduled_start: String,
     pub scheduled_end: String,
@@ -344,9 +346,14 @@ pub async fn list_bookings(
             .unwrap_or_else(|| "Unknown".to_string());
 
         let location = LocationRepository::find_by_id(&tenant.pool, tenant.org_id, b.location_id)
-            .await?
+            .await?;
+
+        let location_address = location
+            .as_ref()
             .map(|l| format!("{}, {}", l.address, l.city))
             .unwrap_or_else(|| "Unknown".to_string());
+        let latitude = location.as_ref().map(|l| l.latitude);
+        let longitude = location.as_ref().map(|l| l.longitude);
 
         responses.push(BookingListItem {
             id: b.id.to_string(),
@@ -357,7 +364,9 @@ pub async fn list_bookings(
             service_id: b.service_id.to_string(),
             service_name: service,
             location_id: b.location_id.to_string(),
-            location_address: location,
+            location_address,
+            latitude,
+            longitude,
             status: b.status.to_string(),
             scheduled_start: b.scheduled_start.to_rfc3339(),
             scheduled_end: b.scheduled_end.to_rfc3339(),
@@ -395,9 +404,14 @@ pub async fn list_customer_bookings(
             .unwrap_or_else(|| "Unknown".to_string());
 
         let location = LocationRepository::find_by_id(&tenant.pool, tenant.org_id, b.location_id)
-            .await?
+            .await?;
+
+        let location_address = location
+            .as_ref()
             .map(|l| format!("{}, {}", l.address, l.city))
             .unwrap_or_else(|| "Unknown".to_string());
+        let latitude = location.as_ref().map(|l| l.latitude);
+        let longitude = location.as_ref().map(|l| l.longitude);
 
         responses.push(BookingListItem {
             id: b.id.to_string(),
@@ -408,7 +422,9 @@ pub async fn list_customer_bookings(
             service_id: b.service_id.to_string(),
             service_name: service,
             location_id: b.location_id.to_string(),
-            location_address: location,
+            location_address,
+            latitude,
+            longitude,
             status: b.status.to_string(),
             scheduled_start: b.scheduled_start.to_rfc3339(),
             scheduled_end: b.scheduled_end.to_rfc3339(),
@@ -416,6 +432,69 @@ pub async fn list_customer_bookings(
             price_display: format!("${:.2}", b.price_dollars()),
             notes: b.notes.clone(),
             customer_phone: None,
+            pet_name: None,
+            pet_breed: None,
+        });
+    }
+
+    Ok(Json(responses))
+}
+
+/// List bookings assigned to the authenticated walker
+pub async fn list_walker_bookings(
+    State(_state): State<AppState>,
+    tenant: TenantContext,
+    auth: AuthUser,
+) -> ApiResult<Json<Vec<BookingListItem>>> {
+    let bookings = BookingRepository::find_by_walker(&tenant.pool, tenant.org_id, auth.user_id).await?;
+
+    // Enrich bookings with related data
+    let mut responses = Vec::with_capacity(bookings.len());
+    for b in bookings {
+        let customer = UserRepository::find_by_id(&tenant.pool, tenant.org_id, b.customer_id)
+            .await?;
+
+        let customer_name = customer
+            .as_ref()
+            .map(|u| u.full_name())
+            .unwrap_or_else(|| "Unknown".to_string());
+
+        let customer_phone = customer.and_then(|u| u.phone);
+
+        let service = ServiceRepository::find_by_id(&tenant.pool, tenant.org_id, b.service_id)
+            .await?
+            .map(|s| s.name)
+            .unwrap_or_else(|| "Unknown".to_string());
+
+        let location = LocationRepository::find_by_id(&tenant.pool, tenant.org_id, b.location_id)
+            .await?;
+
+        let location_address = location
+            .as_ref()
+            .map(|l| format!("{}, {}", l.address, l.city))
+            .unwrap_or_else(|| "Unknown".to_string());
+        let latitude = location.as_ref().map(|l| l.latitude);
+        let longitude = location.as_ref().map(|l| l.longitude);
+
+        responses.push(BookingListItem {
+            id: b.id.to_string(),
+            customer_id: b.customer_id.to_string(),
+            customer_name,
+            walker_id: b.walker_id.to_string(),
+            walker_name: "".to_string(), // Not needed for walker view
+            service_id: b.service_id.to_string(),
+            service_name: service,
+            location_id: b.location_id.to_string(),
+            location_address,
+            latitude,
+            longitude,
+            status: b.status.to_string(),
+            scheduled_start: b.scheduled_start.to_rfc3339(),
+            scheduled_end: b.scheduled_end.to_rfc3339(),
+            price_cents: b.price_cents,
+            price_display: format!("${:.2}", b.price_dollars()),
+            notes: b.notes.clone(),
+            customer_phone,
             pet_name: None,
             pet_breed: None,
         });
