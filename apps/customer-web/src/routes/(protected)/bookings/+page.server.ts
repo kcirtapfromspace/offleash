@@ -24,8 +24,8 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 	const filter = url.searchParams.get('filter') || 'upcoming';
 
 	try {
-		// Fetch bookings - the API may filter by authenticated user
-		const bookings = await api.get<Booking[]>('/bookings', token);
+		// Fetch customer's bookings
+		const bookings = await api.get<Booking[]>('/bookings/customer', token);
 
 		const now = new Date();
 
