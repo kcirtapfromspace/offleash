@@ -77,7 +77,7 @@ services:
     plan: free
     region: oregon
     rootDir: apps/customer-web
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: node build
     healthCheckPath: /
     envVars:
@@ -103,7 +103,7 @@ services:
     plan: free
     region: oregon
     rootDir: apps/admin-dashboard
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: node build
     healthCheckPath: /
     envVars:
@@ -129,7 +129,7 @@ services:
     plan: free
     region: oregon
     rootDir: apps/platform-admin
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: node build
     healthCheckPath: /
     envVars:
