@@ -3,7 +3,7 @@
 # ============================================================================
 # Stage 1: Build dependencies (cached layer)
 # ============================================================================
-FROM rust:1.85-bookworm AS chef
+FROM rust:latest AS chef
 RUN cargo install cargo-chef
 WORKDIR /app
 
