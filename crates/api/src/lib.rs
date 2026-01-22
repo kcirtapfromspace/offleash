@@ -3,6 +3,7 @@ pub mod error;
 pub mod metrics;
 pub mod routes;
 pub mod state;
+pub mod supabase_auth;
 pub mod tenant;
 
 pub use error::ApiError;
