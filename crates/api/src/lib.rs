@@ -1,10 +1,12 @@
 pub mod auth;
 pub mod error;
+pub mod metrics;
 pub mod routes;
 pub mod state;
 pub mod tenant;
 
 pub use error::ApiError;
+pub use metrics::init_metrics;
 pub use state::AppState;
 
 use axum::{
@@ -26,6 +28,8 @@ pub fn create_app(state: AppState) -> Router {
     Router::new()
         // Health check
         .route("/health", get(routes::health::health_check))
+        // Prometheus metrics
+        .route("/metrics", get(routes::prometheus::metrics))
         // Public branding endpoint (no auth required)
         .route("/api/branding", get(routes::branding::get_branding))
         // Auth routes
@@ -89,6 +93,20 @@ pub fn create_app(state: AppState) -> Router {
             "/bookings/:id/complete",
             post(routes::bookings::complete_booking),
         )
+        // Recurring booking routes
+        .route(
+            "/bookings/recurring",
+            get(routes::recurring_bookings::list_recurring_bookings)
+                .post(routes::recurring_bookings::create_recurring_booking),
+        )
+        .route(
+            "/bookings/recurring/:id",
+            get(routes::recurring_bookings::get_recurring_booking),
+        )
+        .route(
+            "/bookings/recurring/:id/cancel",
+            post(routes::recurring_bookings::cancel_recurring_series),
+        )
         // Location routes
         .route("/locations", post(routes::locations::create_location))
         .route("/locations", get(routes::locations::list_locations))
@@ -100,6 +118,7 @@ pub fn create_app(state: AppState) -> Router {
         )
         // User routes
         .route("/users", get(routes::users::list_users))
+        .route("/users/me", get(routes::users::get_me))
         .route("/users/:id", get(routes::users::get_user))
         // Admin user management routes
         .route("/admin/walkers", post(routes::admin_users::create_walker))

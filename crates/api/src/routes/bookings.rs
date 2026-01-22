@@ -135,6 +135,8 @@ pub async fn create_booking(
             scheduled_end: end_time,
             price_cents: service.base_price_cents,
             notes: req.notes,
+            recurring_series_id: None,
+            occurrence_number: None,
         },
     )
     .await

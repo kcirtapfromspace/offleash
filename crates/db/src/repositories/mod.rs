@@ -4,6 +4,7 @@ mod location_repo;
 mod organization_repo;
 mod payment_repo;
 mod platform_admin_repo;
+mod recurring_booking_repo;
 mod service_repo;
 mod tenant_database_repo;
 mod user_repo;
@@ -15,6 +16,10 @@ pub use location_repo::LocationRepository;
 pub use organization_repo::OrganizationRepository;
 pub use payment_repo::PaymentRepository;
 pub use platform_admin_repo::PlatformAdminRepository;
+pub use recurring_booking_repo::{
+    check_conflicts, check_conflicts_batch, generate_occurrence_dates, to_utc_datetime,
+    RecurringBookingRepository,
+};
 pub use service_repo::ServiceRepository;
 pub use tenant_database_repo::TenantDatabaseRepository;
 pub use user_repo::UserRepository;
