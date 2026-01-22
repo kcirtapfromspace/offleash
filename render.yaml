@@ -5,24 +5,21 @@
 #
 # COST BREAKDOWN (Test Environment):
 #   - API (Rust):        $7/mo (Starter) - always on
-#   - PostgreSQL:        $7/mo (free 90 days)
+#   - PostgreSQL:        $19/mo (Basic)
 #   - Customer Web:      Free (auto-sleeps after 15min inactivity)
 #   - Admin Dashboard:   Free (auto-sleeps)
 #   - Platform Admin:    Free (auto-sleeps)
-#   TOTAL: ~$14/mo after free trial
+#   TOTAL: ~$26/mo
 #
 # For production, upgrade web services to Starter ($7/mo each) for always-on
 # =============================================================================
-
-previewsEnabled: true
-previewsExpireAfterDays: 7
 
 # =============================================================================
 # DATABASES
 # =============================================================================
 databases:
   - name: offleash-db
-    plan: starter
+    plan: basic
     databaseName: offleash
     user: offleash
     region: oregon
