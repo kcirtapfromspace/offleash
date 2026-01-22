@@ -76,8 +76,9 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: cd apps/customer-web && npm ci && npm run build
-    startCommand: cd apps/customer-web && node build
+    rootDir: apps/customer-web
+    buildCommand: npm ci && npm run build
+    startCommand: node build
     healthCheckPath: /
     envVars:
       - key: NODE_ENV
@@ -91,7 +92,7 @@ services:
     autoDeploy: true
     buildFilter:
       paths:
-        - apps/customer-web/**
+        - "**"
 
   # ---------------------------------------------------------------------------
   # Admin Dashboard (SvelteKit Node.js) - Free tier with auto-sleep
@@ -101,8 +102,9 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: cd apps/admin-dashboard && npm ci && npm run build
-    startCommand: cd apps/admin-dashboard && node build
+    rootDir: apps/admin-dashboard
+    buildCommand: npm ci && npm run build
+    startCommand: node build
     healthCheckPath: /
     envVars:
       - key: NODE_ENV
@@ -116,7 +118,7 @@ services:
     autoDeploy: true
     buildFilter:
       paths:
-        - apps/admin-dashboard/**
+        - "**"
 
   # ---------------------------------------------------------------------------
   # Platform Admin (SvelteKit Node.js) - Free tier with auto-sleep
@@ -126,8 +128,9 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: cd apps/platform-admin && npm ci && npm run build
-    startCommand: cd apps/platform-admin && node build
+    rootDir: apps/platform-admin
+    buildCommand: npm ci && npm run build
+    startCommand: node build
     healthCheckPath: /
     envVars:
       - key: NODE_ENV
@@ -141,4 +144,4 @@ services:
     autoDeploy: true
     buildFilter:
       paths:
-        - apps/platform-admin/**
+        - "**"
