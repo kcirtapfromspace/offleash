@@ -56,6 +56,25 @@ pub async fn create_location(
         )));
     }
 
+    // Check for duplicate address
+    let existing_locations =
+        LocationRepository::find_by_user(&tenant.pool, tenant.org_id, auth.user_id).await?;
+    let normalized_address = req.address.trim().to_lowercase();
+    for loc in &existing_locations {
+        if loc.address.trim().to_lowercase() == normalized_address {
+            return Err(ApiError::from(AppError::Validation(
+                "A location with this address already exists".to_string(),
+            )));
+        }
+    }
+
+    let is_default = req.is_default.unwrap_or(false);
+
+    // If setting as default, unset any existing defaults for this user first
+    if is_default {
+        LocationRepository::unset_defaults_for_user(&tenant.pool, auth.user_id).await?;
+    }
+
     let location = LocationRepository::create(
         &tenant.pool,
         CreateLocation {
@@ -69,7 +88,7 @@ pub async fn create_location(
             latitude: req.latitude,
             longitude: req.longitude,
             notes: req.notes,
-            is_default: req.is_default.unwrap_or(false),
+            is_default,
         },
     )
     .await?;

@@ -65,7 +65,7 @@ struct APIResponse<T: Decodable>: Decodable {
 
 // MARK: - Keychain Helper
 
-final class KeychainHelper {
+final class KeychainHelper: @unchecked Sendable {
     static let shared = KeychainHelper()
 
     private let service = "com.offleash.app"
@@ -299,22 +299,28 @@ actor APIClient {
     private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
-    private let analyticsService: AnalyticsService
     private let certificatePinningDelegate: CertificatePinningDelegate
 
-    private init(analyticsService: AnalyticsService = StubAnalyticsService.shared) {
-        self.analyticsService = analyticsService
+    private init() {
         // Configure base URL from environment or use default
+        // Note: iOS Simulator can't use localhost - use Mac's IP address
+        #if DEBUG
+        self.baseURL = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "http://192.168.25.201:8080"
+        #else
         self.baseURL = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "https://api.offleash.app"
+        #endif
 
         // Configure URLSession with certificate pinning delegate
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = 30
         configuration.timeoutIntervalForResource = 60
         self.certificatePinningDelegate = CertificatePinningDelegate()
+
+        // Skip certificate pinning for localhost/development
+        let isLocalhost = self.baseURL.contains("localhost") || self.baseURL.contains("127.0.0.1") || self.baseURL.contains("192.168.")
         self.session = URLSession(
             configuration: configuration,
-            delegate: certificatePinningDelegate,
+            delegate: isLocalhost ? nil : certificatePinningDelegate,
             delegateQueue: nil
         )
 
@@ -379,7 +385,10 @@ actor APIClient {
 
     func clearAuthToken() {
         KeychainHelper.shared.deleteToken()
-        Crashlytics.crashlytics().setUserID("")
+        Task { @MainActor in
+            if FirebaseState.isConfigured { Crashlytics.crashlytics().setUserID("") }
+            UserSession.shared.clearUser()
+        }
         NotificationCenter.default.post(
             name: .authStateChanged,
             object: nil,
@@ -407,7 +416,7 @@ actor APIClient {
         // Build URL
         guard var urlComponents = URLComponents(string: baseURL + path) else {
             let error = APIError.invalidURL
-            await trackAPIError(error, path: path, method: method, statusCode: nil)
+            trackAPIError(error, path: path, method: method, statusCode: nil)
             throw error
         }
 
@@ -417,7 +426,7 @@ actor APIClient {
 
         guard let url = urlComponents.url else {
             let error = APIError.invalidURL
-            await trackAPIError(error, path: path, method: method, statusCode: nil)
+            trackAPIError(error, path: path, method: method, statusCode: nil)
             throw error
         }
 
@@ -438,7 +447,7 @@ actor APIClient {
                 request.httpBody = try encoder.encode(AnyEncodable(body))
             } catch {
                 let apiError = APIError.encodingError(error)
-                await trackAPIError(apiError, path: path, method: method, statusCode: nil)
+                trackAPIError(apiError, path: path, method: method, statusCode: nil)
                 throw apiError
             }
         }
@@ -451,14 +460,14 @@ actor APIClient {
             (data, response) = try await session.data(for: request)
         } catch {
             let apiError = APIError.networkError(error)
-            await trackAPIError(apiError, path: path, method: method, statusCode: nil)
+            trackAPIError(apiError, path: path, method: method, statusCode: nil)
             throw apiError
         }
 
         // Validate response
         guard let httpResponse = response as? HTTPURLResponse else {
             let error = APIError.invalidResponse
-            await trackAPIError(error, path: path, method: method, statusCode: nil)
+            trackAPIError(error, path: path, method: method, statusCode: nil)
             throw error
         }
 
@@ -469,20 +478,22 @@ actor APIClient {
         case 401:
             // Clear token on unauthorized
             KeychainHelper.shared.deleteToken()
-            Crashlytics.crashlytics().setUserID("")
+            Task { @MainActor in
+                if FirebaseState.isConfigured { Crashlytics.crashlytics().setUserID("") }
+            }
             NotificationCenter.default.post(
                 name: .authStateChanged,
                 object: nil,
                 userInfo: ["isAuthenticated": false]
             )
             let error = APIError.unauthorized
-            await trackAPIError(error, path: path, method: method, statusCode: httpResponse.statusCode)
+            trackAPIError(error, path: path, method: method, statusCode: httpResponse.statusCode)
             throw error
         default:
             // Try to extract error message from response
             let errorMessage = try? decoder.decode(ErrorResponse.self, from: data).message
             let error = APIError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
-            await trackAPIError(error, path: path, method: method, statusCode: httpResponse.statusCode)
+            trackAPIError(error, path: path, method: method, statusCode: httpResponse.statusCode)
             throw error
         }
 
@@ -496,7 +507,7 @@ actor APIClient {
             return try decoder.decode(T.self, from: data)
         } catch {
             let apiError = APIError.decodingError(error)
-            await trackAPIError(apiError, path: path, method: method, statusCode: httpResponse.statusCode)
+            trackAPIError(apiError, path: path, method: method, statusCode: httpResponse.statusCode)
             throw apiError
         }
     }
@@ -510,7 +521,7 @@ actor APIClient {
         context += " - \(errorType)"
 
         Task { @MainActor in
-            analyticsService.trackError(error: error, context: context)
+            StubAnalyticsService.shared.trackError(error: error, context: context)
         }
     }
 
