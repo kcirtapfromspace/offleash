@@ -60,11 +60,17 @@ export async function get<T>(url: string, token?: string): Promise<T> {
 	return request<T>(url, { method: 'GET', token });
 }
 
-export async function post<T>(url: string, body?: unknown, token?: string): Promise<T> {
+export async function post<T>(
+	url: string,
+	body?: unknown,
+	token?: string,
+	customHeaders?: Record<string, string>
+): Promise<T> {
 	return request<T>(url, {
 		method: 'POST',
 		body: body !== undefined ? JSON.stringify(body) : undefined,
-		token
+		token,
+		headers: customHeaders
 	});
 }
 

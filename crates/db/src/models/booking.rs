@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use shared::types::{BookingId, LocationId, OrganizationId, ServiceId, UserId};
+use shared::types::{
+    BookingId, LocationId, OrganizationId, RecurringBookingSeriesId, ServiceId, UserId,
+};
 use sqlx::FromRow;
 
 /// Booking status enum
@@ -44,6 +46,8 @@ pub struct Booking {
     pub actual_end: Option<DateTime<Utc>>,
     pub price_cents: i64,
     pub notes: Option<String>,
+    pub recurring_series_id: Option<RecurringBookingSeriesId>,
+    pub occurrence_number: Option<i32>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -74,6 +78,10 @@ impl Booking {
     pub fn can_confirm(&self) -> bool {
         self.status == BookingStatus::Pending
     }
+
+    pub fn is_recurring(&self) -> bool {
+        self.recurring_series_id.is_some()
+    }
 }
 
 /// Input for creating a new booking
@@ -88,4 +96,6 @@ pub struct CreateBooking {
     pub scheduled_end: DateTime<Utc>,
     pub price_cents: i64,
     pub notes: Option<String>,
+    pub recurring_series_id: Option<RecurringBookingSeriesId>,
+    pub occurrence_number: Option<i32>,
 }

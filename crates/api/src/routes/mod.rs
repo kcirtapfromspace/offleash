@@ -10,6 +10,8 @@ pub mod dashboard;
 pub mod health;
 pub mod locations;
 pub mod platform_auth;
+pub mod prometheus;
+pub mod recurring_bookings;
 pub mod services;
 pub mod users;
 pub mod working_hours;

@@ -60,6 +60,10 @@ define_id!(OrganizationId, "Unique identifier for an organization");
 define_id!(TenantDatabaseId, "Unique identifier for a tenant database");
 define_id!(PlatformAdminId, "Unique identifier for a platform admin");
 define_id!(WorkingHoursId, "Unique identifier for working hours entry");
+define_id!(
+    RecurringBookingSeriesId,
+    "Unique identifier for a recurring booking series"
+);
 
 #[cfg(test)]
 mod tests {

@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
-use shared::types::{BookingId, OrganizationId, UserId};
-use sqlx::PgPool;
+use shared::types::{BookingId, OrganizationId, RecurringBookingSeriesId, UserId};
+use sqlx::{PgPool, Postgres, Transaction};
 
 use crate::models::{Booking, BookingStatus, CreateBooking};
 
@@ -47,9 +47,9 @@ impl BookingRepository {
         // Insert the booking
         let booking = sqlx::query_as::<_, Booking>(
             r#"
-            INSERT INTO bookings (id, organization_id, customer_id, walker_id, service_id, location_id, scheduled_start, scheduled_end, price_cents, notes)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            RETURNING id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, created_at, updated_at
+            INSERT INTO bookings (id, organization_id, customer_id, walker_id, service_id, location_id, scheduled_start, scheduled_end, price_cents, notes, recurring_series_id, occurrence_number)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            RETURNING id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, recurring_series_id, occurrence_number, created_at, updated_at
             "#,
         )
         .bind(id.as_uuid())
@@ -62,11 +62,44 @@ impl BookingRepository {
         .bind(input.scheduled_end)
         .bind(input.price_cents)
         .bind(&input.notes)
+        .bind(input.recurring_series_id.map(|id| id.as_uuid().clone()))
+        .bind(input.occurrence_number)
         .fetch_one(&mut *tx)
         .await?;
 
         tx.commit().await?;
         Ok(booking)
+    }
+
+    /// Create a booking within an existing transaction (for batch operations)
+    /// Skips conflict check since caller is responsible for pre-checking
+    pub async fn create_in_tx(
+        tx: &mut Transaction<'_, Postgres>,
+        input: CreateBooking,
+    ) -> Result<Booking, sqlx::Error> {
+        let id = BookingId::new();
+
+        sqlx::query_as::<_, Booking>(
+            r#"
+            INSERT INTO bookings (id, organization_id, customer_id, walker_id, service_id, location_id, scheduled_start, scheduled_end, price_cents, notes, recurring_series_id, occurrence_number)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            RETURNING id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, recurring_series_id, occurrence_number, created_at, updated_at
+            "#,
+        )
+        .bind(id.as_uuid())
+        .bind(input.organization_id.as_uuid())
+        .bind(input.customer_id.as_uuid())
+        .bind(input.walker_id.as_uuid())
+        .bind(input.service_id.as_uuid())
+        .bind(input.location_id.as_uuid())
+        .bind(input.scheduled_start)
+        .bind(input.scheduled_end)
+        .bind(input.price_cents)
+        .bind(&input.notes)
+        .bind(input.recurring_series_id.map(|id| id.as_uuid().clone()))
+        .bind(input.occurrence_number)
+        .fetch_one(&mut **tx)
+        .await
     }
 
     pub async fn find_by_id(
@@ -76,7 +109,7 @@ impl BookingRepository {
     ) -> Result<Option<Booking>, sqlx::Error> {
         sqlx::query_as::<_, Booking>(
             r#"
-            SELECT id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, created_at, updated_at
+            SELECT id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, recurring_series_id, occurrence_number, created_at, updated_at
             FROM bookings
             WHERE id = $1 AND organization_id = $2
             "#,
@@ -96,7 +129,7 @@ impl BookingRepository {
     ) -> Result<Vec<Booking>, sqlx::Error> {
         sqlx::query_as::<_, Booking>(
             r#"
-            SELECT id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, created_at, updated_at
+            SELECT id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, recurring_series_id, occurrence_number, created_at, updated_at
             FROM bookings
             WHERE walker_id = $1
               AND organization_id = $2
@@ -121,7 +154,7 @@ impl BookingRepository {
     ) -> Result<Vec<Booking>, sqlx::Error> {
         sqlx::query_as::<_, Booking>(
             r#"
-            SELECT id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, created_at, updated_at
+            SELECT id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, recurring_series_id, occurrence_number, created_at, updated_at
             FROM bookings
             WHERE customer_id = $1 AND organization_id = $2
             ORDER BY scheduled_start DESC
@@ -144,7 +177,7 @@ impl BookingRepository {
             UPDATE bookings
             SET status = $3, updated_at = NOW()
             WHERE id = $1 AND organization_id = $2
-            RETURNING id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, created_at, updated_at
+            RETURNING id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, recurring_series_id, occurrence_number, created_at, updated_at
             "#,
         )
         .bind(id.as_uuid())
@@ -214,7 +247,7 @@ impl BookingRepository {
             Some(status) => {
                 sqlx::query_as::<_, Booking>(
                     r#"
-                    SELECT id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, created_at, updated_at
+                    SELECT id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, recurring_series_id, occurrence_number, created_at, updated_at
                     FROM bookings
                     WHERE organization_id = $1 AND status = $2
                     ORDER BY scheduled_start DESC
@@ -228,7 +261,7 @@ impl BookingRepository {
             None => {
                 sqlx::query_as::<_, Booking>(
                     r#"
-                    SELECT id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, created_at, updated_at
+                    SELECT id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, recurring_series_id, occurrence_number, created_at, updated_at
                     FROM bookings
                     WHERE organization_id = $1
                     ORDER BY scheduled_start DESC
@@ -248,5 +281,72 @@ impl BookingRepository {
         id: BookingId,
     ) -> Result<Option<Booking>, sqlx::Error> {
         Self::update_status(pool, org_id, id, BookingStatus::Completed).await
+    }
+
+    /// Find all bookings in a recurring series
+    pub async fn find_by_series(
+        pool: &PgPool,
+        org_id: OrganizationId,
+        series_id: RecurringBookingSeriesId,
+    ) -> Result<Vec<Booking>, sqlx::Error> {
+        sqlx::query_as::<_, Booking>(
+            r#"
+            SELECT id, organization_id, customer_id, walker_id, service_id, location_id, status, scheduled_start, scheduled_end, actual_start, actual_end, price_cents, notes, recurring_series_id, occurrence_number, created_at, updated_at
+            FROM bookings
+            WHERE recurring_series_id = $1 AND organization_id = $2
+            ORDER BY scheduled_start ASC
+            "#,
+        )
+        .bind(series_id.as_uuid())
+        .bind(org_id.as_uuid())
+        .fetch_all(pool)
+        .await
+    }
+
+    /// Cancel all future bookings in a recurring series
+    pub async fn cancel_future_by_series(
+        pool: &PgPool,
+        org_id: OrganizationId,
+        series_id: RecurringBookingSeriesId,
+    ) -> Result<i64, sqlx::Error> {
+        let result = sqlx::query(
+            r#"
+            UPDATE bookings
+            SET status = 'cancelled', updated_at = NOW()
+            WHERE recurring_series_id = $1
+              AND organization_id = $2
+              AND status IN ('pending', 'confirmed')
+              AND scheduled_start > NOW()
+            "#,
+        )
+        .bind(series_id.as_uuid())
+        .bind(org_id.as_uuid())
+        .execute(pool)
+        .await?;
+
+        Ok(result.rows_affected() as i64)
+    }
+
+    /// Cancel all bookings in a recurring series (entire series)
+    pub async fn cancel_all_by_series(
+        pool: &PgPool,
+        org_id: OrganizationId,
+        series_id: RecurringBookingSeriesId,
+    ) -> Result<i64, sqlx::Error> {
+        let result = sqlx::query(
+            r#"
+            UPDATE bookings
+            SET status = 'cancelled', updated_at = NOW()
+            WHERE recurring_series_id = $1
+              AND organization_id = $2
+              AND status IN ('pending', 'confirmed')
+            "#,
+        )
+        .bind(series_id.as_uuid())
+        .bind(org_id.as_uuid())
+        .execute(pool)
+        .await?;
+
+        Ok(result.rows_affected() as i64)
     }
 }
