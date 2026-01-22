@@ -1,13 +1,14 @@
 import type { LayoutServerLoad } from './$types';
 import type { Branding } from '$lib/stores/branding';
+import { PUBLIC_API_URL } from '$env/static/public';
 
 export const load: LayoutServerLoad = async ({ fetch, request }) => {
 	// Extract tenant from host header
 	const host = request.headers.get('host') || '';
 
 	try {
-		// Fetch branding from API
-		const response = await fetch('/api/branding', {
+		// Fetch branding from backend API
+		const response = await fetch(`${PUBLIC_API_URL}/api/branding`, {
 			headers: {
 				Host: host
 			}
