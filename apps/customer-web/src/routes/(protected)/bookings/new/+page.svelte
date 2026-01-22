@@ -109,8 +109,21 @@
 		return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 	}
 
+	function formatTravelTime(minutes: number): string {
+		if (minutes < 1) return '<1 min away';
+		if (minutes === 1) return '1 min away';
+		return `${minutes} min away`;
+	}
+
 	$: selectedService = data.services.find((s) => s.id === selectedServiceId);
 	$: canShowSlots = selectedServiceId && selectedDate && selectedLocationId;
+
+	// Get selected slot's travel info
+	$: selectedSlotData = selectedSlot
+		? data.availability
+				.find((w) => w.walkerId === selectedSlot.walkerId)
+				?.slots.find((s) => s.start === selectedSlot.start)
+		: null;
 
 	// Calculate total price for recurring bookings
 	$: totalOccurrences = endConditionType === 'occurrences' ? endOccurrences : estimatedOccurrences;
@@ -203,7 +216,8 @@
 
 				<!-- Dismiss button -->
 				<button
-					on:click={() => dismissToast(toast.id)}
+					aria-label="Dismiss notification"
+					onclick={() => dismissToast(toast.id)}
 					class="flex-shrink-0 {
 						toast.type === 'success' ? 'text-green-400 hover:text-green-600' :
 						toast.type === 'warning' ? 'text-yellow-400 hover:text-yellow-600' :
@@ -300,7 +314,7 @@
 			<select
 				name="service_id"
 				bind:value={selectedServiceId}
-				on:change={handleServiceChange}
+				onchange={handleServiceChange}
 				class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 				required
 			>
@@ -328,7 +342,7 @@
 				<select
 					name="location_id"
 					bind:value={selectedLocationId}
-					on:change={handleLocationChange}
+					onchange={handleLocationChange}
 					class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					required
 				>
@@ -352,7 +366,7 @@
 			<input
 				type="date"
 				bind:value={selectedDate}
-				on:change={handleDateChange}
+				onchange={handleDateChange}
 				min={minDate}
 				max={maxDate}
 				class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -375,21 +389,49 @@
 				</div>
 			{:else}
 				{#each data.availability as walker}
-					<div class="mb-4">
-						<h3 class="text-sm font-medium text-gray-700 mb-2">Available with {walker.walkerName}</h3>
-						<div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+					<div class="mb-6">
+						<h3 class="text-sm font-medium text-gray-700 mb-3">Available with {walker.walkerName}</h3>
+						<div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
 							{#each walker.slots as slot}
 								<button
 									type="button"
-									on:click={() => selectSlot(walker.walkerId, slot.start)}
-									class="px-3 py-2 text-sm rounded-lg border transition-colors {selectedSlot?.start === slot.start && selectedSlot?.walkerId === walker.walkerId
+									onclick={() => selectSlot(walker.walkerId, slot.start)}
+									class="relative px-3 py-3 text-sm rounded-lg border transition-colors text-left {selectedSlot?.start === slot.start && selectedSlot?.walkerId === walker.walkerId
 										? 'bg-blue-600 text-white border-blue-600'
-										: 'bg-white text-gray-700 border-gray-300 hover:border-blue-500'}"
+										: slot.is_tight
+											? 'bg-yellow-50 text-gray-700 border-yellow-300 hover:border-yellow-500'
+											: 'bg-white text-gray-700 border-gray-300 hover:border-blue-500'}"
 								>
-									{formatTime(slot.start)}
+									<div class="font-medium">{formatTime(slot.start)}</div>
+									{#if slot.travel_minutes !== null && slot.travel_minutes !== undefined}
+										<div class="text-xs mt-1 flex items-center gap-1 {selectedSlot?.start === slot.start && selectedSlot?.walkerId === walker.walkerId ? 'text-blue-100' : 'text-gray-500'}">
+											<!-- Car/travel icon -->
+											<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+											</svg>
+											<span>{formatTravelTime(slot.travel_minutes)}</span>
+										</div>
+									{/if}
+									{#if slot.is_tight}
+										<!-- Warning indicator -->
+										<div class="absolute top-1 right-1" title={slot.warning || 'Schedule may be tight'}>
+											<svg class="w-4 h-4 {selectedSlot?.start === slot.start && selectedSlot?.walkerId === walker.walkerId ? 'text-yellow-200' : 'text-yellow-500'}" fill="currentColor" viewBox="0 0 20 20">
+												<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+											</svg>
+										</div>
+									{/if}
 								</button>
 							{/each}
 						</div>
+						{#if walker.travelBufferMinutes}
+							<p class="text-xs text-gray-500 mt-2">
+								<svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+								</svg>
+								{walker.travelBufferMinutes} min travel buffer between appointments
+							</p>
+						{/if}
 					</div>
 				{/each}
 
@@ -436,8 +478,9 @@
 				<div class="space-y-4 pt-4 border-t border-gray-200">
 					<!-- Frequency Selection -->
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">Frequency</label>
+						<label for="recurring_frequency" class="block text-sm font-medium text-gray-700 mb-2">Frequency</label>
 						<select
+							id="recurring_frequency"
 							name="recurring_frequency"
 							bind:value={recurringFrequency}
 							class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -449,8 +492,8 @@
 					</div>
 
 					<!-- End Condition -->
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">Ends</label>
+					<fieldset>
+						<legend class="block text-sm font-medium text-gray-700 mb-2">Ends</legend>
 						<div class="space-y-3">
 							<label class="flex items-center gap-3 cursor-pointer">
 								<input
@@ -492,7 +535,7 @@
 								/>
 							</label>
 						</div>
-					</div>
+					</fieldset>
 
 					<!-- Preview -->
 					{#if selectedDate && selectedSlot}
@@ -525,6 +568,28 @@
 						<dt class="text-gray-600">Date & Time:</dt>
 						<dd class="font-medium">{new Date(selectedSlot.start).toLocaleString()}</dd>
 					</div>
+					{#if selectedSlotData?.travel_minutes !== null && selectedSlotData?.travel_minutes !== undefined}
+						<div class="flex justify-between">
+							<dt class="text-gray-600">Walker arrival:</dt>
+							<dd class="font-medium flex items-center gap-1">
+								<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+								</svg>
+								{formatTravelTime(selectedSlotData.travel_minutes)}
+								{#if selectedSlotData.travel_from}
+									<span class="text-gray-500 text-xs">({selectedSlotData.travel_from})</span>
+								{/if}
+							</dd>
+						</div>
+					{/if}
+					{#if selectedSlotData?.is_tight && selectedSlotData?.warning}
+						<div class="bg-yellow-100 rounded-lg p-2 flex items-start gap-2">
+							<svg class="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+								<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+							</svg>
+							<span class="text-yellow-800 text-xs">{selectedSlotData.warning}</span>
+						</div>
+					{/if}
 					{#if isRecurring}
 						<div class="flex justify-between">
 							<dt class="text-gray-600">Frequency:</dt>
