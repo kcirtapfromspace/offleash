@@ -35,6 +35,7 @@ pub fn create_app(state: AppState) -> Router {
         // Auth routes
         .route("/auth/register", post(routes::auth::register))
         .route("/auth/login", post(routes::auth::login))
+        .route("/auth/validate", get(routes::auth::validate_token))
         // Platform admin auth routes
         .route(
             "/platform/auth/login",
@@ -80,6 +81,7 @@ pub fn create_app(state: AppState) -> Router {
             "/bookings",
             get(routes::bookings::list_bookings).post(routes::bookings::create_booking),
         )
+        .route("/bookings/customer", get(routes::bookings::list_customer_bookings))
         .route("/bookings/:id", get(routes::bookings::get_booking))
         .route(
             "/bookings/:id/confirm",
@@ -128,6 +130,32 @@ pub fn create_app(state: AppState) -> Router {
             get(routes::working_hours::get_walker_hours)
                 .put(routes::working_hours::update_walker_hours)
                 .delete(routes::working_hours::delete_walker_hours),
+        )
+        // Calendar routes
+        .route(
+            "/calendar/events",
+            get(routes::calendar::list_events).post(routes::calendar::create_event),
+        )
+        .route(
+            "/calendar/events/:id",
+            get(routes::calendar::get_event)
+                .put(routes::calendar::update_event)
+                .delete(routes::calendar::delete_event),
+        )
+        // Travel time and location routes
+        .route(
+            "/walkers/:id/location",
+            get(routes::travel_time::get_walker_location)
+                .post(routes::travel_time::update_walker_location),
+        )
+        .route(
+            "/walkers/:id/on-duty",
+            post(routes::travel_time::set_walker_duty_status),
+        )
+        .route("/travel-time", get(routes::travel_time::get_travel_time))
+        .route(
+            "/availability/slots",
+            get(routes::travel_time::get_availability_slots),
         )
         // Add middleware
         .layer(TraceLayer::new_for_http())

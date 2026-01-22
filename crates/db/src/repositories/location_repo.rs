@@ -121,4 +121,17 @@ impl LocationRepository {
 
         Ok(result.rows_affected() > 0)
     }
+
+    /// Unset is_default for all locations belonging to a user
+    pub async fn unset_defaults_for_user(
+        pool: &PgPool,
+        user_id: UserId,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query("UPDATE locations SET is_default = false WHERE user_id = $1")
+            .bind(user_id.as_uuid())
+            .execute(pool)
+            .await?;
+
+        Ok(())
+    }
 }
