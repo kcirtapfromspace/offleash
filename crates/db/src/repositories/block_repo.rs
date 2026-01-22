@@ -47,6 +47,28 @@ impl BlockRepository {
         .await
     }
 
+    /// Find all blocks for a walker (from now onwards)
+    pub async fn find_by_walker(
+        pool: &PgPool,
+        org_id: OrganizationId,
+        walker_id: UserId,
+    ) -> Result<Vec<Block>, sqlx::Error> {
+        sqlx::query_as::<_, Block>(
+            r#"
+            SELECT id, organization_id, walker_id, reason, start_time, end_time, is_recurring, recurrence_rule, created_at, updated_at
+            FROM blocks
+            WHERE walker_id = $1
+              AND organization_id = $2
+              AND end_time > NOW()
+            ORDER BY start_time
+            "#,
+        )
+        .bind(walker_id.as_uuid())
+        .bind(org_id.as_uuid())
+        .fetch_all(pool)
+        .await
+    }
+
     pub async fn find_by_walker_in_range(
         pool: &PgPool,
         org_id: OrganizationId,
