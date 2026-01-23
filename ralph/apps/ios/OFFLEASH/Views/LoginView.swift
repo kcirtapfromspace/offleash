@@ -394,11 +394,13 @@ struct LoginView: View {
             Task {
                 do {
                     let orgSlug = ProcessInfo.processInfo.environment["ORG_SLUG"] ?? "demo"
+                    let roleString = selectedRole == .walker ? "walker" : "customer"
                     let request = OAuthAppleRequest(
                         orgSlug: orgSlug,
                         idToken: identityToken,
                         firstName: firstName,
-                        lastName: lastName
+                        lastName: lastName,
+                        role: roleString
                     )
 
                     let response: OAuthResponse = try await APIClient.shared.post("/auth/apple", body: request)
@@ -493,9 +495,11 @@ struct LoginView: View {
             Task {
                 do {
                     let orgSlug = ProcessInfo.processInfo.environment["ORG_SLUG"] ?? "demo"
+                    let roleString = selectedRole == .walker ? "walker" : "customer"
                     let request = OAuthGoogleRequest(
                         orgSlug: orgSlug,
-                        idToken: idToken
+                        idToken: idToken,
+                        role: roleString
                     )
 
                     let response: OAuthResponse = try await APIClient.shared.post("/auth/google", body: request)
