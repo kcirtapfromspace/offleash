@@ -226,20 +226,29 @@ pub async fn apple_auth(
     }
 
     // Apple may or may not provide email (privacy relay or hidden)
-    let email = claims.email.unwrap_or_else(|| format!("{}@privaterelay.appleid.com", claims.sub));
+    // If user chose "Hide My Email", Apple provides a privaterelay address
+    let (email, is_private_relay) = match &claims.email {
+        Some(e) if e.ends_with("@privaterelay.appleid.com") => (e.clone(), true),
+        Some(e) => (e.clone(), false),
+        None => (format!("{}@privaterelay.appleid.com", claims.sub), true),
+    };
 
-    // Try to find existing user by email globally and link identity
-    if let Some(existing_user) = UserRepository::find_by_email_globally(&state.pool, &email).await? {
-        // Link Apple identity
-        UserIdentityRepository::create(&state.pool, CreateUserIdentity {
-            user_id: existing_user.id.into_uuid(),
-            provider: AuthProvider::Apple,
-            provider_user_id: claims.sub,
-            provider_email: Some(email.clone()),
-            provider_data: None,
-        }).await?;
+    // Only auto-link by email if user shared their real email (not hidden)
+    // If they chose "Hide My Email", we respect that and create a new account
+    // Users can explicitly link accounts later in settings if needed
+    if !is_private_relay {
+        if let Some(existing_user) = UserRepository::find_by_email_globally(&state.pool, &email).await? {
+            // Link Apple identity to existing user
+            UserIdentityRepository::create(&state.pool, CreateUserIdentity {
+                user_id: existing_user.id.into_uuid(),
+                provider: AuthProvider::Apple,
+                provider_user_id: claims.sub,
+                provider_email: Some(email.clone()),
+                provider_data: None,
+            }).await?;
 
-        return build_oauth_response(&state, existing_user).await;
+            return build_oauth_response(&state, existing_user).await;
+        }
     }
 
     // New user - need to create account
