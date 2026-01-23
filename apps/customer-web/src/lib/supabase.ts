@@ -1,15 +1,27 @@
 import { createBrowserClient, createServerClient } from '@supabase/ssr';
-import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import type { Cookies } from '@sveltejs/kit';
+
+// Supabase is optional - if not configured, OAuth buttons won't work
+const SUPABASE_URL = env.PUBLIC_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = env.PUBLIC_SUPABASE_ANON_KEY || '';
+
+export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 // Browser client for client-side operations
 export function createSupabaseBrowserClient() {
-	return createBrowserClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY);
+	if (!isSupabaseConfigured) {
+		throw new Error('Supabase is not configured. Set PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_ANON_KEY.');
+	}
+	return createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
 // Server client for server-side operations (load functions, actions)
 export function createSupabaseServerClient(cookies: Cookies) {
-	return createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+	if (!isSupabaseConfigured) {
+		throw new Error('Supabase is not configured. Set PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_ANON_KEY.');
+	}
+	return createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 		cookies: {
 			getAll() {
 				return cookies.getAll();
