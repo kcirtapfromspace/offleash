@@ -25,19 +25,25 @@ interface LoginResponse {
 	memberships?: MembershipInfo[];
 }
 
-export const load: PageServerLoad = async ({ cookies }) => {
+export const load: PageServerLoad = async ({ cookies, url }) => {
 	const token = cookies.get('token');
 	if (token) {
 		throw redirect(303, '/services');
 	}
-	return {};
+	// Pass role and redirect params to the page
+	return {
+		role: url.searchParams.get('role'),
+		redirectTo: url.searchParams.get('redirect')
+	};
 };
 
 export const actions: Actions = {
-	default: async ({ request, cookies }) => {
+	default: async ({ request, cookies, url }) => {
 		const data = await request.formData();
 		const email = data.get('email')?.toString();
 		const password = data.get('password')?.toString();
+		const selectedRole = url.searchParams.get('role');
+		const redirectTo = url.searchParams.get('redirect');
 
 		if (!email || !password) {
 			return fail(400, { error: 'Email and password are required', email });
@@ -90,7 +96,25 @@ export const actions: Actions = {
 				});
 			}
 
-			throw redirect(303, '/services');
+			// Determine redirect destination
+			let destination = '/services';
+
+			if (selectedRole === 'walker') {
+				// Check if user has any walker/owner/admin memberships
+				const hasWalkerMembership = response.memberships?.some(
+					(m) => m.role === 'walker' || m.role === 'owner' || m.role === 'admin'
+				);
+
+				if (!hasWalkerMembership) {
+					// New walker with no business - go to onboarding
+					destination = '/onboarding/walker';
+				}
+			} else if (redirectTo && redirectTo.startsWith('/')) {
+				// Use provided redirect if it's a valid path
+				destination = redirectTo;
+			}
+
+			throw redirect(303, destination);
 		} catch (err) {
 			if (err instanceof ApiError) {
 				if (err.status === 401) {
