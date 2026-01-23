@@ -376,6 +376,55 @@ async fn build_oauth_response(
     }))
 }
 
+/// Public token verification result for linking identities
+#[derive(Debug)]
+pub struct VerifiedGoogleIdentity {
+    pub provider_user_id: String,
+    pub email: String,
+    pub name: Option<String>,
+    pub picture: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct VerifiedAppleIdentity {
+    pub provider_user_id: String,
+    pub email: Option<String>,
+}
+
+/// Public function to verify Google token and extract identity info
+pub async fn verify_google_token_public(token: &str) -> ApiResult<VerifiedGoogleIdentity> {
+    let google_client_id = std::env::var("PUBLIC_GOOGLE_CLIENT_ID")
+        .or_else(|_| std::env::var("GOOGLE_CLIENT_ID"))
+        .map_err(|_| ApiError::from(shared::AppError::Internal(
+            "Google OAuth not configured".to_string()
+        )))?;
+
+    let claims = verify_google_token(token, &google_client_id).await?;
+
+    Ok(VerifiedGoogleIdentity {
+        provider_user_id: claims.sub,
+        email: claims.email,
+        name: claims.name,
+        picture: claims.picture,
+    })
+}
+
+/// Public function to verify Apple token and extract identity info
+pub async fn verify_apple_token_public(token: &str) -> ApiResult<VerifiedAppleIdentity> {
+    let apple_client_id = std::env::var("PUBLIC_APPLE_CLIENT_ID")
+        .or_else(|_| std::env::var("APPLE_SERVICE_ID"))
+        .map_err(|_| ApiError::from(shared::AppError::Internal(
+            "Apple Sign-In not configured".to_string()
+        )))?;
+
+    let claims = verify_apple_token(token, &apple_client_id).await?;
+
+    Ok(VerifiedAppleIdentity {
+        provider_user_id: claims.sub,
+        email: claims.email,
+    })
+}
+
 // Helper: Verify Google ID token
 async fn verify_google_token(token: &str, client_id: &str) -> ApiResult<GoogleClaims> {
     let keys = get_google_keys().await?;
