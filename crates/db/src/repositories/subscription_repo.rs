@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::models::{
     CreateCustomerSubscription, CreateTenantSubscription, CustomerSubscription, PlanTier,
-    PlatformFeeTier, SubscriptionStatus, TenantSubscription, UpdateCustomerSubscription,
+    PlatformFeeTier, TenantSubscription, UpdateCustomerSubscription,
     UpdateTenantSubscription,
 };
 

@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use shared::types::OrganizationId;
 use sqlx::PgPool;
 use uuid::Uuid;
