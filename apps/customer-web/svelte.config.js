@@ -9,7 +9,13 @@ const config = {
 		adapter: adapter({
 			out: 'build',
 			precompress: true
-		})
+		}),
+		csrf: {
+			// Allow cross-origin form submissions from known domains
+			// This is needed when ORIGIN env var doesn't match the actual domain
+			// (e.g., custom domain vs Render domain)
+			checkOrigin: false
+		}
 	}
 };
 
