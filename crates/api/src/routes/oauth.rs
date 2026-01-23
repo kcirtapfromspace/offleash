@@ -65,6 +65,7 @@ struct GoogleClaims {
 struct AppleClaims {
     sub: String,           // Apple user ID
     email: Option<String>,
+    aud: String,           // Audience (bundle ID or service ID)
 }
 
 // Google JWK response
@@ -472,9 +473,22 @@ async fn verify_google_token(token: &str, client_id: &str) -> ApiResult<GoogleCl
     let decoding_key = DecodingKey::from_rsa_components(&key.n, &key.e)
         .map_err(|_| ApiError::from(shared::DomainError::InvalidCredentials))?;
 
+    // Build list of valid audiences (web + iOS client IDs)
+    let mut valid_audiences: Vec<String> = vec![client_id.to_string()];
+
+    // Add iOS client ID if configured (iOS uses a separate client ID)
+    if let Ok(ios_client_id) = std::env::var("GOOGLE_IOS_CLIENT_ID") {
+        valid_audiences.push(ios_client_id);
+    }
+
+    // Also check for alternative environment variable names
+    if let Ok(ios_client_id) = std::env::var("PUBLIC_GOOGLE_IOS_CLIENT_ID") {
+        valid_audiences.push(ios_client_id);
+    }
+
     // Set up validation
     let mut validation = Validation::new(Algorithm::RS256);
-    validation.set_audience(&[client_id]);
+    validation.set_audience(&valid_audiences);
     validation.set_issuer(&["https://accounts.google.com", "accounts.google.com"]);
 
     // Decode and verify the token
@@ -509,8 +523,40 @@ async fn verify_apple_token(token: &str, client_id: &str) -> ApiResult<AppleClai
     let decoding_key = DecodingKey::from_rsa_components(&key.n, &key.e)
         .map_err(|_| ApiError::from(shared::DomainError::InvalidCredentials))?;
 
+    // Build list of valid audiences (web Services ID + iOS bundle ID)
+    let mut valid_audiences: Vec<String> = vec![client_id.to_string()];
+
+    // Add iOS bundle ID if configured (iOS uses app bundle ID as audience)
+    if let Ok(ios_bundle_id) = std::env::var("APPLE_IOS_BUNDLE_ID") {
+        tracing::info!("Adding APPLE_IOS_BUNDLE_ID to valid audiences: {}", ios_bundle_id);
+        valid_audiences.push(ios_bundle_id);
+    }
+
+    // Also check for alternative environment variable names
+    if let Ok(ios_bundle_id) = std::env::var("PUBLIC_APPLE_IOS_BUNDLE_ID") {
+        tracing::info!("Adding PUBLIC_APPLE_IOS_BUNDLE_ID to valid audiences: {}", ios_bundle_id);
+        valid_audiences.push(ios_bundle_id);
+    }
+
+    // Common iOS bundle ID patterns
+    if let Ok(ios_bundle_id) = std::env::var("IOS_BUNDLE_ID") {
+        tracing::info!("Adding IOS_BUNDLE_ID to valid audiences: {}", ios_bundle_id);
+        valid_audiences.push(ios_bundle_id);
+    }
+
+    tracing::info!("Valid Apple audiences: {:?}", valid_audiences);
+
+    // Decode without validation first to see the actual audience
+    let mut no_validation = Validation::new(Algorithm::RS256);
+    no_validation.insecure_disable_signature_validation();
+    no_validation.validate_aud = false;
+    no_validation.validate_exp = false;
+    if let Ok(unverified) = decode::<AppleClaims>(token, &decoding_key, &no_validation) {
+        tracing::info!("Token audience (aud): {}", unverified.claims.aud);
+    }
+
     let mut validation = Validation::new(Algorithm::RS256);
-    validation.set_audience(&[client_id]);
+    validation.set_audience(&valid_audiences);
     validation.set_issuer(&["https://appleid.apple.com"]);
 
     let token_data = decode::<AppleClaims>(token, &decoding_key, &validation)
