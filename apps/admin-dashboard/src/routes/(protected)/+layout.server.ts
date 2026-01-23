@@ -10,6 +10,15 @@ interface UserInfo {
   role: string;
 }
 
+interface MembershipInfo {
+  id: string;
+  organization_id: string;
+  organization_name: string;
+  organization_slug: string;
+  role: string;
+  is_default: boolean;
+}
+
 export const load: LayoutServerLoad = async ({ cookies, url }) => {
   const token = cookies.get("token");
 
@@ -19,12 +28,33 @@ export const load: LayoutServerLoad = async ({ cookies, url }) => {
 
   // Parse user info from cookie
   let user: UserInfo | null = null;
+  let membership: MembershipInfo | null = null;
+  let memberships: MembershipInfo[] = [];
+
   const userCookie = cookies.get("user");
   if (userCookie) {
     try {
       user = JSON.parse(userCookie);
     } catch {
-      // Invalid user cookie, will fetch from API
+      // Invalid user cookie
+    }
+  }
+
+  const membershipCookie = cookies.get("membership");
+  if (membershipCookie) {
+    try {
+      membership = JSON.parse(membershipCookie);
+    } catch {
+      // Invalid membership cookie
+    }
+  }
+
+  const membershipsCookie = cookies.get("memberships");
+  if (membershipsCookie) {
+    try {
+      memberships = JSON.parse(membershipsCookie);
+    } catch {
+      // Invalid memberships cookie
     }
   }
 
@@ -41,5 +71,7 @@ export const load: LayoutServerLoad = async ({ cookies, url }) => {
   return {
     token,
     user,
+    membership,
+    memberships,
   };
 };
