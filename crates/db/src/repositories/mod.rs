@@ -2,17 +2,22 @@ mod block_repo;
 mod booking_repo;
 mod calendar_repo;
 mod customer_payment_method_repo;
+mod dispute_repo;
 mod invitation_repo;
 mod location_repo;
 mod membership_repo;
 mod organization_repo;
+mod payment_provider_repo;
 mod payment_repo;
+mod payout_repo;
 mod pet;
 mod platform_admin_repo;
 mod recurring_booking_repo;
 mod service_area_repo;
 mod service_repo;
+mod subscription_repo;
 mod tenant_database_repo;
+mod transaction_repo;
 mod travel_time_repo;
 mod user_identity_repo;
 mod user_repo;
@@ -23,11 +28,14 @@ pub use block_repo::BlockRepository;
 pub use booking_repo::BookingRepository;
 pub use calendar_repo::CalendarRepository;
 pub use customer_payment_method_repo::CustomerPaymentMethodRepository;
+pub use dispute_repo::{DisputeRepository, WebhookEventRepository};
 pub use invitation_repo::InvitationRepository;
 pub use location_repo::LocationRepository;
 pub use membership_repo::MembershipRepository;
 pub use organization_repo::OrganizationRepository;
+pub use payment_provider_repo::PaymentProviderRepository;
 pub use payment_repo::PaymentRepository;
+pub use payout_repo::PayoutRepository;
 pub use pet::PetRepository;
 pub use platform_admin_repo::PlatformAdminRepository;
 pub use recurring_booking_repo::{
@@ -36,7 +44,9 @@ pub use recurring_booking_repo::{
 };
 pub use service_area_repo::ServiceAreaRepository;
 pub use service_repo::ServiceRepository;
+pub use subscription_repo::SubscriptionRepository;
 pub use tenant_database_repo::TenantDatabaseRepository;
+pub use transaction_repo::{TransactionRepository, TransactionSummary};
 pub use travel_time_repo::{TravelTimeCacheRepository, WalkerLocationRepository};
 pub use user_identity_repo::{
     PhoneVerificationRepository, UserIdentityRepository, WalletChallengeRepository,

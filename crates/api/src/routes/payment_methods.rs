@@ -3,7 +3,7 @@ use axum::{
     Json,
 };
 use db::{
-    models::{CardBrand, CreateCustomerPaymentMethod, PaymentMethodType},
+    models::{CreateCustomerPaymentMethod, PaymentMethodType, PaymentProviderType, UpdateCustomerPaymentMethod},
     CustomerPaymentMethodRepository,
 };
 use serde::{Deserialize, Serialize};
@@ -21,13 +21,15 @@ pub struct PaymentMethodResponse {
     pub id: String,
     pub method_type: String,
     pub display_name: String,
-    pub card_last_four: Option<String>,
-    pub card_brand: Option<String>,
-    pub card_exp_month: Option<i32>,
-    pub card_exp_year: Option<i32>,
-    pub nickname: Option<String>,
+    pub last_four: Option<String>,
+    pub brand: Option<String>,
+    pub exp_month: Option<i32>,
+    pub exp_year: Option<i32>,
+    pub expiry: Option<String>,
+    pub wallet_type: Option<String>,
     pub is_default: bool,
     pub is_expired: bool,
+    pub icon: String,
     pub created_at: String,
 }
 
@@ -38,7 +40,7 @@ pub async fn list_payment_methods(
     tenant: TenantContext,
 ) -> ApiResult<Json<Vec<PaymentMethodResponse>>> {
     let methods =
-        CustomerPaymentMethodRepository::list_for_customer(&tenant.pool, tenant.org_id, auth_user.user_id)
+        CustomerPaymentMethodRepository::list_for_user(&tenant.pool, tenant.org_id, auth_user.user_id)
             .await?;
 
     let response: Vec<PaymentMethodResponse> = methods
@@ -47,13 +49,15 @@ pub async fn list_payment_methods(
             id: m.id.to_string(),
             method_type: m.method_type.to_string(),
             display_name: m.display_name(),
-            card_last_four: m.card_last_four.clone(),
-            card_brand: m.card_brand.map(|b| b.to_string()),
-            card_exp_month: m.card_exp_month,
-            card_exp_year: m.card_exp_year,
-            nickname: m.nickname.clone(),
+            last_four: m.last_four.clone(),
+            brand: m.brand.clone(),
+            exp_month: m.exp_month,
+            exp_year: m.exp_year,
+            expiry: m.expiry_display(),
+            wallet_type: m.wallet_type.clone(),
             is_default: m.is_default,
             is_expired: m.is_expired(),
+            icon: m.icon().to_string(),
             created_at: m.created_at.to_rfc3339(),
         })
         .collect();
@@ -63,22 +67,38 @@ pub async fn list_payment_methods(
 
 #[derive(Debug, Deserialize)]
 pub struct CreatePaymentMethodRequest {
-    /// "card", "apple_pay", or "bank_account"
+    /// Payment method type: "card", "apple_pay", "google_pay", "shop_pay", "link", "bank_account"
     pub method_type: String,
-    /// Square card nonce from SDK
-    pub card_nonce: Option<String>,
+    /// Provider type: "stripe", "square", "platform"
+    pub provider_type: Option<String>,
+    /// Stripe payment method ID (from Stripe Elements)
+    pub stripe_payment_method_id: Option<String>,
+    /// Stripe customer ID
+    pub stripe_customer_id: Option<String>,
+    /// Square card ID (from Square SDK)
+    pub square_card_id: Option<String>,
+    /// Square customer ID
+    pub square_customer_id: Option<String>,
     /// For cards: last 4 digits
-    pub card_last_four: Option<String>,
+    pub last_four: Option<String>,
     /// For cards: brand (visa, mastercard, amex, discover)
-    pub card_brand: Option<String>,
+    pub brand: Option<String>,
     /// For cards: expiration month (1-12)
-    pub card_exp_month: Option<i32>,
+    pub exp_month: Option<i32>,
     /// For cards: expiration year
-    pub card_exp_year: Option<i32>,
-    /// Optional nickname
-    pub nickname: Option<String>,
+    pub exp_year: Option<i32>,
+    /// Cardholder name
+    pub cardholder_name: Option<String>,
+    /// For bank accounts: bank name
+    pub bank_name: Option<String>,
+    /// For bank accounts: last 4 of account number
+    pub account_last_four: Option<String>,
+    /// For wallets: wallet type
+    pub wallet_type: Option<String>,
     /// Set as default payment method
     pub is_default: Option<bool>,
+    /// Billing address
+    pub billing_address: Option<serde_json::Value>,
 }
 
 /// Add a new payment method
@@ -92,49 +112,56 @@ pub async fn create_payment_method(
     let method_type = match req.method_type.to_lowercase().as_str() {
         "card" => PaymentMethodType::Card,
         "apple_pay" => PaymentMethodType::ApplePay,
+        "google_pay" => PaymentMethodType::GooglePay,
+        "shop_pay" => PaymentMethodType::ShopPay,
+        "link" => PaymentMethodType::Link,
         "bank_account" => PaymentMethodType::BankAccount,
         _ => {
             return Err(ApiError::from(AppError::Validation(
-                "Invalid method type. Must be 'card', 'apple_pay', or 'bank_account'".to_string(),
+                "Invalid method type. Must be 'card', 'apple_pay', 'google_pay', 'shop_pay', 'link', or 'bank_account'".to_string(),
             )))
         }
     };
 
-    // Parse card brand if provided
-    let card_brand = if let Some(brand_str) = &req.card_brand {
-        Some(match brand_str.to_lowercase().as_str() {
-            "visa" => CardBrand::Visa,
-            "mastercard" => CardBrand::Mastercard,
-            "amex" | "american_express" => CardBrand::Amex,
-            "discover" => CardBrand::Discover,
-            _ => CardBrand::Other,
-        })
-    } else {
-        None
+    // Parse provider type
+    let provider_type = match req.provider_type.as_deref().unwrap_or("stripe").to_lowercase().as_str() {
+        "stripe" => PaymentProviderType::Stripe,
+        "square" => PaymentProviderType::Square,
+        "platform" => PaymentProviderType::Platform,
+        _ => PaymentProviderType::Stripe,
     };
 
     // For cards, validate required fields
     if method_type == PaymentMethodType::Card {
-        if req.card_last_four.is_none() {
+        if req.last_four.is_none() {
             return Err(ApiError::from(AppError::Validation(
-                "card_last_four is required for card payment methods".to_string(),
+                "last_four is required for card payment methods".to_string(),
+            )));
+        }
+        if req.stripe_payment_method_id.is_none() && req.square_card_id.is_none() {
+            return Err(ApiError::from(AppError::Validation(
+                "Either stripe_payment_method_id or square_card_id is required".to_string(),
             )));
         }
     }
 
-    // TODO: In production, use Square SDK to create the card on file
-    // from the card_nonce and get back a square_card_id
-    let square_card_id = req.card_nonce.clone(); // Placeholder - would be Square's card ID
-
     let input = CreateCustomerPaymentMethod {
+        provider_type,
         method_type,
-        card_last_four: req.card_last_four,
-        card_brand,
-        card_exp_month: req.card_exp_month,
-        card_exp_year: req.card_exp_year,
-        square_card_id,
-        nickname: req.nickname,
+        stripe_payment_method_id: req.stripe_payment_method_id,
+        stripe_customer_id: req.stripe_customer_id,
+        square_card_id: req.square_card_id,
+        square_customer_id: req.square_customer_id,
+        last_four: req.last_four,
+        brand: req.brand,
+        exp_month: req.exp_month,
+        exp_year: req.exp_year,
+        cardholder_name: req.cardholder_name,
+        bank_name: req.bank_name,
+        account_last_four: req.account_last_four,
+        wallet_type: req.wallet_type,
         is_default: req.is_default.unwrap_or(false),
+        billing_address: req.billing_address,
     };
 
     let method = CustomerPaymentMethodRepository::create(
@@ -145,20 +172,25 @@ pub async fn create_payment_method(
     )
     .await?;
 
-    let is_expired = method.is_expired();
-    Ok(Json(PaymentMethodResponse {
+    Ok(Json(method_to_response(method)))
+}
+
+fn method_to_response(method: db::models::CustomerPaymentMethod) -> PaymentMethodResponse {
+    PaymentMethodResponse {
         id: method.id.to_string(),
         method_type: method.method_type.to_string(),
         display_name: method.display_name(),
-        card_last_four: method.card_last_four,
-        card_brand: method.card_brand.map(|b| b.to_string()),
-        card_exp_month: method.card_exp_month,
-        card_exp_year: method.card_exp_year,
-        nickname: method.nickname,
+        last_four: method.last_four.clone(),
+        brand: method.brand.clone(),
+        exp_month: method.exp_month,
+        exp_year: method.exp_year,
+        expiry: method.expiry_display(),
+        wallet_type: method.wallet_type.clone(),
         is_default: method.is_default,
-        is_expired,
+        is_expired: method.is_expired(),
+        icon: method.icon().to_string(),
         created_at: method.created_at.to_rfc3339(),
-    }))
+    }
 }
 
 /// Set a payment method as the default
@@ -181,20 +213,7 @@ pub async fn set_default_payment_method(
     .await?
     .ok_or_else(|| ApiError::from(AppError::NotFound("Payment method not found".to_string())))?;
 
-    let is_expired = method.is_expired();
-    Ok(Json(PaymentMethodResponse {
-        id: method.id.to_string(),
-        method_type: method.method_type.to_string(),
-        display_name: method.display_name(),
-        card_last_four: method.card_last_four,
-        card_brand: method.card_brand.map(|b| b.to_string()),
-        card_exp_month: method.card_exp_month,
-        card_exp_year: method.card_exp_year,
-        nickname: method.nickname,
-        is_default: method.is_default,
-        is_expired,
-        created_at: method.created_at.to_rfc3339(),
-    }))
+    Ok(Json(method_to_response(method)))
 }
 
 /// Delete a payment method
@@ -227,10 +246,11 @@ pub async fn delete_payment_method(
 
 #[derive(Debug, Deserialize)]
 pub struct UpdatePaymentMethodRequest {
-    pub nickname: Option<String>,
+    pub is_default: Option<bool>,
+    pub billing_address: Option<serde_json::Value>,
 }
 
-/// Update a payment method (currently only nickname)
+/// Update a payment method
 pub async fn update_payment_method(
     State(_state): State<AppState>,
     auth_user: AuthUser,
@@ -242,28 +262,22 @@ pub async fn update_payment_method(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid payment method ID".to_string())))?;
 
-    let method = CustomerPaymentMethodRepository::update_nickname(
+    let input = UpdateCustomerPaymentMethod {
+        is_default: req.is_default,
+        is_active: None,
+        billing_address: req.billing_address,
+        metadata: None,
+    };
+
+    let method = CustomerPaymentMethodRepository::update(
         &tenant.pool,
         tenant.org_id,
         auth_user.user_id,
         method_id,
-        req.nickname.as_deref(),
+        input,
     )
     .await?
     .ok_or_else(|| ApiError::from(AppError::NotFound("Payment method not found".to_string())))?;
 
-    let is_expired = method.is_expired();
-    Ok(Json(PaymentMethodResponse {
-        id: method.id.to_string(),
-        method_type: method.method_type.to_string(),
-        display_name: method.display_name(),
-        card_last_four: method.card_last_four,
-        card_brand: method.card_brand.map(|b| b.to_string()),
-        card_exp_month: method.card_exp_month,
-        card_exp_year: method.card_exp_year,
-        nickname: method.nickname,
-        is_default: method.is_default,
-        is_expired,
-        created_at: method.created_at.to_rfc3339(),
-    }))
+    Ok(Json(method_to_response(method)))
 }
