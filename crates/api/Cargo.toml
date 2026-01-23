@@ -34,5 +34,8 @@ metrics-exporter-prometheus = { workspace = true }
 reqwest = { workspace = true }
 once_cell = "1.19"
 rand = "0.8"
+siwe = { workspace = true }
+ethers-core = { workspace = true }
+hex = { workspace = true }
 
 [dev-dependencies]
