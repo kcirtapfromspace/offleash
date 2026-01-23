@@ -12,7 +12,7 @@
 		{ path: '/services', label: 'Services' },
 		{ path: '/locations', label: 'My Locations' },
 		{ path: '/bookings', label: 'My Bookings' },
-		{ path: '/profile', label: 'Profile' }
+		{ path: '/settings', label: 'Settings' }
 	];
 
 	function isActive(path: string): boolean {
