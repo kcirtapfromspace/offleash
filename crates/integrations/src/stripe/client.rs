@@ -128,6 +128,7 @@ struct StripeErrorResponse {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct StripeErrorDetail {
     #[serde(rename = "type")]
     error_type: Option<String>,

@@ -438,7 +438,7 @@ pub async fn cancel_customer_subscription(
 /// Get a specific customer subscription
 pub async fn get_customer_subscription(
     State(_state): State<AppState>,
-    auth_user: AuthUser,
+    _auth_user: AuthUser,
     tenant: TenantContext,
     Path(id): Path<String>,
 ) -> ApiResult<Json<CustomerSubscriptionResponse>> {

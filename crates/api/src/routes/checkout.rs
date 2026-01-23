@@ -54,7 +54,7 @@ pub struct CreateCheckoutRequest {
 
 /// Create a checkout session / payment intent
 pub async fn create_checkout(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     auth_user: AuthUser,
     tenant: TenantContext,
     Json(req): Json<CreateCheckoutRequest>,
@@ -269,7 +269,7 @@ pub async fn confirm_payment(
     auth_user: AuthUser,
     tenant: TenantContext,
     Path(id): Path<String>,
-    Json(req): Json<ConfirmPaymentRequest>,
+    Json(_req): Json<ConfirmPaymentRequest>,
 ) -> ApiResult<Json<CheckoutResponse>> {
     let transaction_id: Uuid = id
         .parse()
