@@ -68,6 +68,10 @@ platform :ios do
   end
 
   desc "Push a new beta build to TestFlight (manual signing)"
+  desc "Options:"
+  desc "  groups: Comma-separated TestFlight group names to distribute to (e.g., 'Beta Testers,Internal')"
+  desc "  build_number: Custom build number (default: timestamp)"
+  desc "  changelog: What's new in this build"
   lane :beta_manual do |options|
     # Increment build number
     increment_build_number(
@@ -82,16 +86,25 @@ platform :ios do
       xcargs: "-allowProvisioningUpdates"
     )
 
+    # Parse groups if provided
+    groups = options[:groups] ? options[:groups].split(",").map(&:strip) : nil
+
     # Upload to TestFlight
     upload_to_testflight(
-      skip_waiting_for_build_processing: true,
-      distribute_external: false
+      skip_waiting_for_build_processing: groups.nil?, # Wait if distributing to groups
+      distribute_external: !groups.nil?,
+      groups: groups,
+      changelog: options[:changelog] || "Bug fixes and improvements"
     )
 
     # Clean up
     clean_build_artifacts
 
-    UI.success("🚀 Build uploaded to TestFlight!")
+    if groups
+      UI.success("🚀 Build uploaded and distributed to: #{groups.join(', ')}")
+    else
+      UI.success("🚀 Build uploaded to TestFlight!")
+    end
   end
 
   # ============================================
