@@ -49,21 +49,10 @@ async fn main() {
 
     // Get remaining configuration
     let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
-    let supabase_jwt_secret = std::env::var("SUPABASE_JWT_SECRET").ok();
     let google_maps_key = std::env::var("GOOGLE_MAPS_API_KEY").ok();
 
-    if supabase_jwt_secret.is_some() {
-        tracing::info!("Supabase Auth enabled");
-    }
-
     // Create app state
-    let state = AppState::with_supabase(
-        pool,
-        jwt_secret,
-        supabase_jwt_secret,
-        google_maps_key,
-        metrics_handle,
-    );
+    let state = AppState::new(pool, jwt_secret, google_maps_key, metrics_handle);
 
     // Create the app
     let app = create_app(state);
