@@ -50,6 +50,23 @@ impl UserRepository {
         .await
     }
 
+    /// Find user by ID only (no org check) - for OAuth identity lookups
+    pub async fn find_by_id_unchecked(
+        pool: &PgPool,
+        id: UserId,
+    ) -> Result<Option<User>, sqlx::Error> {
+        sqlx::query_as::<_, User>(
+            r#"
+            SELECT id, organization_id, email, password_hash, role, first_name, last_name, phone, timezone, created_at, updated_at
+            FROM users
+            WHERE id = $1
+            "#,
+        )
+        .bind(id.as_uuid())
+        .fetch_optional(pool)
+        .await
+    }
+
     pub async fn find_by_email(
         pool: &PgPool,
         org_id: OrganizationId,
