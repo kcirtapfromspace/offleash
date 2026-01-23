@@ -1,6 +1,6 @@
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use super::error::{StripeError, StripeResult};
 

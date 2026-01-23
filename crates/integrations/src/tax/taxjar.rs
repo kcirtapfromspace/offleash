@@ -366,8 +366,10 @@ impl TaxJarClient {
 }
 
 /// Simplified tax calculation without external API (for fallback/testing)
+#[allow(dead_code)]
 pub struct SimpleTaxCalculator;
 
+#[allow(dead_code)]
 impl SimpleTaxCalculator {
     /// Calculate tax using a simple flat rate (fallback when API unavailable)
     /// This should only be used as a fallback

@@ -80,7 +80,7 @@ pub struct StripeConnectQuery {
 
 /// Get Stripe Connect OAuth URL
 pub async fn get_stripe_connect_url(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     _auth_user: AuthUser,
     tenant: TenantContext,
     Query(query): Query<StripeConnectQuery>,
@@ -114,7 +114,7 @@ pub struct StripeOAuthCallback {
 
 /// Handle Stripe Connect OAuth callback
 pub async fn stripe_connect_callback(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     _auth_user: AuthUser,
     tenant: TenantContext,
     Json(req): Json<StripeOAuthCallback>,
@@ -162,6 +162,7 @@ pub async fn stripe_connect_callback(
     }
 
     #[derive(Deserialize)]
+    #[allow(dead_code)]
     struct StripeOAuthResponse {
         access_token: String,
         refresh_token: Option<String>,
@@ -199,7 +200,7 @@ pub struct SquareOAuthQuery {
 
 /// Get Square OAuth URL
 pub async fn get_square_oauth_url(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     _auth_user: AuthUser,
     tenant: TenantContext,
     Query(query): Query<SquareOAuthQuery>,
@@ -255,7 +256,7 @@ pub struct SquareOAuthCallback {
 
 /// Handle Square OAuth callback
 pub async fn square_oauth_callback(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     _auth_user: AuthUser,
     tenant: TenantContext,
     Json(req): Json<SquareOAuthCallback>,
@@ -316,6 +317,7 @@ pub async fn square_oauth_callback(
     }
 
     #[derive(Deserialize)]
+    #[allow(dead_code)]
     struct SquareOAuthResponse {
         access_token: String,
         token_type: String,
