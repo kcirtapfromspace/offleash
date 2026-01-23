@@ -129,7 +129,18 @@
 							{data.user.first_name}
 						</span>
 					{/if}
-					<form method="POST" action="/logout" use:enhance>
+					<form
+						method="POST"
+						action="/logout"
+						use:enhance={() => {
+							return async ({ result }) => {
+								if (result.type === 'redirect') {
+									// Force navigation to login page
+									window.location.href = '/login';
+								}
+							};
+						}}
+					>
 						<button
 							type="submit"
 							class="text-sm text-gray-600 hover:text-gray-900"
