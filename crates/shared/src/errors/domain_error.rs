@@ -68,4 +68,10 @@ pub enum DomainError {
 
     #[error("Token expired")]
     TokenExpired,
+
+    #[error("Validation error: {0}")]
+    ValidationError(String),
+
+    #[error("Rate limit exceeded")]
+    RateLimitExceeded,
 }
