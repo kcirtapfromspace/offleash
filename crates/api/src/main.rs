@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use api::{create_app, init_metrics, AppState};
+use api::{create_app, init_metrics, state::AppConfig, AppState};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -51,8 +51,14 @@ async fn main() {
     let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
     let google_maps_key = std::env::var("GOOGLE_MAPS_API_KEY").ok();
 
+    // GitHub configuration for feedback
+    let config = AppConfig {
+        github_token: std::env::var("GITHUB_TOKEN").ok(),
+        github_feedback_repo: std::env::var("GITHUB_FEEDBACK_REPO").ok(),
+    };
+
     // Create app state
-    let state = AppState::new(pool, jwt_secret, google_maps_key, metrics_handle);
+    let state = AppState::with_config(pool, jwt_secret, google_maps_key, metrics_handle, config);
 
     // Create the app
     let app = create_app(state);

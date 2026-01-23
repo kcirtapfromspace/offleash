@@ -9,6 +9,7 @@ pub mod branding;
 pub mod calendar;
 pub mod contexts;
 pub mod dashboard;
+pub mod feedback;
 pub mod health;
 pub mod invitations;
 pub mod locations;
