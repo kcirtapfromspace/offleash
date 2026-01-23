@@ -349,10 +349,9 @@ struct CustomerBookingsView: View {
     }
 }
 
-// MARK: - Empty Request/Response for Cancel
+// MARK: - Empty Request for Cancel
 
 struct EmptyRequest: Encodable {}
-struct EmptyResponse: Decodable {}
 
 // MARK: - Reschedule Request
 

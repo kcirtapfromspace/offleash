@@ -19,9 +19,10 @@ enum AppState {
     case unauthenticated
 }
 
-// MARK: - Auth Screen State
+// MARK: - Auth Flow State
 
-enum AuthScreen {
+enum AuthFlowState {
+    case roleSelection
     case login
     case register
 }
@@ -57,7 +58,8 @@ struct OFFLEASHApp: App {
     @StateObject private var themeManager = ThemeManager.shared
     @StateObject private var sessionStateManager = SessionStateManager.shared
     @State private var appState: AppState = .launching
-    @State private var currentAuthScreen: AuthScreen = .login
+    @State private var authFlowState: AuthFlowState = .roleSelection
+    @State private var selectedRole: SelectedRole = .customer
     @State private var showSessionExpiredAlert = false
 
     init() {
@@ -108,24 +110,40 @@ struct OFFLEASHApp: App {
                         .environmentObject(sessionStateManager)
 
                 case .unauthenticated:
-                    switch currentAuthScreen {
+                    switch authFlowState {
+                    case .roleSelection:
+                        RoleSelectionView { role in
+                            selectedRole = role
+                            authFlowState = .login
+                        }
+                        .withThemeManager(themeManager)
+
                     case .login:
                         LoginView(
+                            selectedRole: selectedRole,
                             onLoginSuccess: {
                                 appState = .authenticated
                             },
                             onNavigateToRegister: {
-                                currentAuthScreen = .register
+                                authFlowState = .register
+                            },
+                            onBack: {
+                                authFlowState = .roleSelection
                             }
                         )
                         .withThemeManager(themeManager)
+
                     case .register:
                         RegisterView(
+                            selectedRole: selectedRole,
                             onRegisterSuccess: {
                                 appState = .authenticated
                             },
                             onNavigateToLogin: {
-                                currentAuthScreen = .login
+                                authFlowState = .login
+                            },
+                            onBack: {
+                                authFlowState = .roleSelection
                             }
                         )
                         .withThemeManager(themeManager)
@@ -150,10 +168,10 @@ struct OFFLEASHApp: App {
             }
             .alert("Session Expired", isPresented: $showSessionExpiredAlert) {
                 Button("OK") {
-                    // Clear session state and navigate to login
+                    // Clear session state and navigate to role selection
                     sessionStateManager.resetSessionState()
                     appState = .unauthenticated
-                    currentAuthScreen = .login
+                    authFlowState = .roleSelection
                 }
             } message: {
                 Text("Your session has expired. Please log in again.")

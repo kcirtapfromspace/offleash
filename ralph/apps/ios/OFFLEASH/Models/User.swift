@@ -35,6 +35,7 @@ struct User: Codable, Identifiable {
     let firstName: String?
     let lastName: String?
     let role: UserRole
+    let organizationId: String?
 
     var fullName: String {
         [firstName, lastName].compactMap { $0 }.joined(separator: " ")
@@ -42,6 +43,10 @@ struct User: Codable, Identifiable {
 
     var displayName: String {
         fullName.isEmpty ? email : fullName
+    }
+
+    var needsOnboarding: Bool {
+        role == .walker && organizationId == nil
     }
 }
 
@@ -82,6 +87,10 @@ class UserSession: ObservableObject {
 
     var isAdmin: Bool {
         currentUser?.role.isAdmin ?? false
+    }
+
+    var needsOnboarding: Bool {
+        currentUser?.needsOnboarding ?? false
     }
 
     private func loadStoredUser() {
