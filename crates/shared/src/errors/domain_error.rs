@@ -74,4 +74,25 @@ pub enum DomainError {
 
     #[error("Rate limit exceeded")]
     RateLimitExceeded,
+
+    #[error("Invitation not found")]
+    InvitationNotFound,
+
+    #[error("Invitation has already been accepted")]
+    InvitationAlreadyAccepted,
+
+    #[error("Invitation has expired")]
+    InvitationExpired,
+
+    #[error("Invitation has been revoked")]
+    InvitationRevoked,
+
+    #[error("A pending invitation already exists for this contact")]
+    InvitationAlreadyExists,
+
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
+
+    #[error("User is already a member of this organization")]
+    AlreadyMember,
 }
