@@ -55,7 +55,7 @@
 		(window as any).AppleID.auth.init({
 			clientId: appleClientId,
 			scope: 'name email',
-			redirectURI: `${$page.url.origin}/auth/apple/callback`,
+			redirectURI: $page.url.origin,
 			usePopup: true,
 		});
 	}

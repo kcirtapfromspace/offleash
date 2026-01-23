@@ -1,6 +1,6 @@
 use axum::{extract::State, Json};
-use db::models::{AuthProvider, CreateUser, CreateUserIdentity, UserRole};
-use db::{OrganizationRepository, UserIdentityRepository, UserRepository};
+use db::models::{AuthProvider, CreateMembership, CreateUser, CreateUserIdentity, MembershipRole, MembershipStatus, UserRole};
+use db::{MembershipRepository, OrganizationRepository, UserIdentityRepository, UserRepository};
 use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
 use once_cell::sync::Lazy;
 use reqwest::Client;
@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 use crate::{
     auth::create_token,
     error::{ApiError, ApiResult},
-    routes::auth::{AuthResponse, UserResponse},
+    routes::auth::{AuthResponse, MembershipInfo, UserResponse},
     state::AppState,
 };
 
@@ -28,13 +28,15 @@ const KEYS_CACHE_DURATION: Duration = Duration::from_secs(3600); // 1 hour
 
 #[derive(Debug, Deserialize)]
 pub struct GoogleAuthRequest {
-    pub org_slug: String,
+    #[serde(default)]
+    pub org_slug: Option<String>,
     pub id_token: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct AppleAuthRequest {
-    pub org_slug: String,
+    #[serde(default)]
+    pub org_slug: Option<String>,
     pub id_token: String,
     pub first_name: Option<String>,
     pub last_name: Option<String>,
@@ -78,7 +80,7 @@ struct JwkKey {
     e: String,   // RSA exponent
 }
 
-/// Google OAuth sign-in
+/// Google OAuth sign-in (Universal - works with or without org_slug)
 pub async fn google_auth(
     State(state): State<AppState>,
     Json(req): Json<GoogleAuthRequest>,
@@ -92,42 +94,23 @@ pub async fn google_auth(
     // Verify the ID token
     let claims = verify_google_token(&req.id_token, &google_client_id).await?;
 
-    // Look up organization
-    let organization = OrganizationRepository::find_by_slug(&state.pool, &req.org_slug)
-        .await?
-        .ok_or_else(|| ApiError::from(shared::DomainError::OrganizationNotFound(req.org_slug.clone())))?;
-
-    // Try to find existing identity
+    // Try to find existing identity (existing OAuth user)
     if let Some(identity) = UserIdentityRepository::find_by_provider(
         &state.pool,
         AuthProvider::Google,
         &claims.sub,
     ).await? {
-        // Existing user - fetch and return token
+        // Existing user - return with all memberships (universal style)
         let user_id = UserId::from_uuid(identity.user_id);
         let user = UserRepository::find_by_id_unchecked(&state.pool, user_id)
             .await?
             .ok_or_else(|| ApiError::from(shared::AppError::Internal("User not found".to_string())))?;
 
-        let token = create_token(user.id, Some(user.organization_id), &state.jwt_secret)
-            .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
-
-        return Ok(Json(AuthResponse {
-            token,
-            user: UserResponse {
-                id: user.id.to_string(),
-                email: user.email,
-                first_name: user.first_name,
-                last_name: user.last_name,
-                role: user.role.to_string(),
-            },
-            membership: None,
-            memberships: None,
-        }));
+        return build_oauth_response(&state, user).await;
     }
 
-    // Try to find existing user by email to link accounts
-    if let Some(existing_user) = UserRepository::find_by_email(&state.pool, organization.id, &claims.email).await? {
+    // Try to find existing user by email globally and link identity
+    if let Some(existing_user) = UserRepository::find_by_email_globally(&state.pool, &claims.email).await? {
         // Link Google identity to existing user
         UserIdentityRepository::create(&state.pool, CreateUserIdentity {
             user_id: existing_user.id.into_uuid(),
@@ -140,24 +123,24 @@ pub async fn google_auth(
             })),
         }).await?;
 
-        let token = create_token(existing_user.id, Some(existing_user.organization_id), &state.jwt_secret)
-            .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
-
-        return Ok(Json(AuthResponse {
-            token,
-            user: UserResponse {
-                id: existing_user.id.to_string(),
-                email: existing_user.email,
-                first_name: existing_user.first_name,
-                last_name: existing_user.last_name,
-                role: existing_user.role.to_string(),
-            },
-            membership: None,
-            memberships: None,
-        }));
+        return build_oauth_response(&state, existing_user).await;
     }
 
-    // Create new user
+    // New user - need to create account
+    // Get or create default organization for new OAuth users
+    let organization = if let Some(ref slug) = req.org_slug {
+        OrganizationRepository::find_by_slug(&state.pool, slug)
+            .await?
+            .ok_or_else(|| ApiError::from(shared::DomainError::OrganizationNotFound(slug.clone())))?
+    } else {
+        // Use first/default organization or create one
+        OrganizationRepository::find_default(&state.pool)
+            .await?
+            .ok_or_else(|| ApiError::from(shared::AppError::Internal(
+                "No default organization configured".to_string()
+            )))?
+    };
+
     let first_name = claims.given_name.unwrap_or_else(||
         claims.name.clone().unwrap_or_else(|| "User".to_string())
     );
@@ -177,6 +160,25 @@ pub async fn google_auth(
         },
     ).await?;
 
+    // Create membership for the user
+    let membership = MembershipRepository::create(
+        &state.pool,
+        CreateMembership {
+            user_id: user.id,
+            organization_id: organization.id,
+            role: MembershipRole::Customer,
+            status: Some(MembershipStatus::Active),
+            title: None,
+        },
+    ).await?;
+
+    // Set as default membership
+    sqlx::query("UPDATE users SET default_membership_id = $1 WHERE id = $2")
+        .bind(membership.id)
+        .bind(user.id)
+        .execute(&state.pool)
+        .await?;
+
     // Create identity
     UserIdentityRepository::create(&state.pool, CreateUserIdentity {
         user_id: user.id.into_uuid(),
@@ -189,24 +191,10 @@ pub async fn google_auth(
         })),
     }).await?;
 
-    let token = create_token(user.id, Some(user.organization_id), &state.jwt_secret)
-        .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
-
-    Ok(Json(AuthResponse {
-        token,
-        user: UserResponse {
-            id: user.id.to_string(),
-            email: user.email,
-            first_name: user.first_name,
-            last_name: user.last_name,
-            role: user.role.to_string(),
-        },
-        membership: None,
-        memberships: None,
-    }))
+    build_oauth_response(&state, user).await
 }
 
-/// Apple Sign-In
+/// Apple Sign-In (Universal - works with or without org_slug)
 pub async fn apple_auth(
     State(state): State<AppState>,
     Json(req): Json<AppleAuthRequest>,
@@ -220,45 +208,26 @@ pub async fn apple_auth(
     // Verify the ID token
     let claims = verify_apple_token(&req.id_token, &apple_client_id).await?;
 
-    // Look up organization
-    let organization = OrganizationRepository::find_by_slug(&state.pool, &req.org_slug)
-        .await?
-        .ok_or_else(|| ApiError::from(shared::DomainError::OrganizationNotFound(req.org_slug.clone())))?;
-
     // Try to find existing identity
     if let Some(identity) = UserIdentityRepository::find_by_provider(
         &state.pool,
         AuthProvider::Apple,
         &claims.sub,
     ).await? {
-        // Existing user
+        // Existing user - return with all memberships
         let user_id = UserId::from_uuid(identity.user_id);
         let user = UserRepository::find_by_id_unchecked(&state.pool, user_id)
             .await?
             .ok_or_else(|| ApiError::from(shared::AppError::Internal("User not found".to_string())))?;
 
-        let token = create_token(user.id, Some(user.organization_id), &state.jwt_secret)
-            .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
-
-        return Ok(Json(AuthResponse {
-            token,
-            user: UserResponse {
-                id: user.id.to_string(),
-                email: user.email,
-                first_name: user.first_name,
-                last_name: user.last_name,
-                role: user.role.to_string(),
-            },
-            membership: None,
-            memberships: None,
-        }));
+        return build_oauth_response(&state, user).await;
     }
 
     // Apple may or may not provide email (privacy relay or hidden)
     let email = claims.email.unwrap_or_else(|| format!("{}@privaterelay.appleid.com", claims.sub));
 
-    // Try to find existing user by email
-    if let Some(existing_user) = UserRepository::find_by_email(&state.pool, organization.id, &email).await? {
+    // Try to find existing user by email globally and link identity
+    if let Some(existing_user) = UserRepository::find_by_email_globally(&state.pool, &email).await? {
         // Link Apple identity
         UserIdentityRepository::create(&state.pool, CreateUserIdentity {
             user_id: existing_user.id.into_uuid(),
@@ -268,24 +237,22 @@ pub async fn apple_auth(
             provider_data: None,
         }).await?;
 
-        let token = create_token(existing_user.id, Some(existing_user.organization_id), &state.jwt_secret)
-            .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
-
-        return Ok(Json(AuthResponse {
-            token,
-            user: UserResponse {
-                id: existing_user.id.to_string(),
-                email: existing_user.email,
-                first_name: existing_user.first_name,
-                last_name: existing_user.last_name,
-                role: existing_user.role.to_string(),
-            },
-            membership: None,
-            memberships: None,
-        }));
+        return build_oauth_response(&state, existing_user).await;
     }
 
-    // Create new user (Apple only sends name on first sign-in)
+    // New user - need to create account
+    let organization = if let Some(ref slug) = req.org_slug {
+        OrganizationRepository::find_by_slug(&state.pool, slug)
+            .await?
+            .ok_or_else(|| ApiError::from(shared::DomainError::OrganizationNotFound(slug.clone())))?
+    } else {
+        OrganizationRepository::find_default(&state.pool)
+            .await?
+            .ok_or_else(|| ApiError::from(shared::AppError::Internal(
+                "No default organization configured".to_string()
+            )))?
+    };
+
     let first_name = req.first_name.unwrap_or_else(|| "Apple".to_string());
     let last_name = req.last_name.unwrap_or_else(|| "User".to_string());
 
@@ -303,6 +270,25 @@ pub async fn apple_auth(
         },
     ).await?;
 
+    // Create membership
+    let membership = MembershipRepository::create(
+        &state.pool,
+        CreateMembership {
+            user_id: user.id,
+            organization_id: organization.id,
+            role: MembershipRole::Customer,
+            status: Some(MembershipStatus::Active),
+            title: None,
+        },
+    ).await?;
+
+    // Set as default membership
+    sqlx::query("UPDATE users SET default_membership_id = $1 WHERE id = $2")
+        .bind(membership.id)
+        .bind(user.id)
+        .execute(&state.pool)
+        .await?;
+
     // Create identity
     UserIdentityRepository::create(&state.pool, CreateUserIdentity {
         user_id: user.id.into_uuid(),
@@ -312,8 +298,67 @@ pub async fn apple_auth(
         provider_data: None,
     }).await?;
 
-    let token = create_token(user.id, Some(user.organization_id), &state.jwt_secret)
-        .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
+    build_oauth_response(&state, user).await
+}
+
+/// Helper: Build OAuth response with all memberships (like universal_login)
+async fn build_oauth_response(
+    state: &AppState,
+    user: db::models::User,
+) -> ApiResult<Json<AuthResponse>> {
+    use shared::types::OrganizationId;
+
+    // Get all user's memberships
+    let all_memberships = MembershipRepository::find_with_org_by_user(&state.pool, user.id).await?;
+
+    // Get default membership ID
+    let default_membership_id: Option<uuid::Uuid> = sqlx::query_scalar(
+        "SELECT default_membership_id FROM users WHERE id = $1",
+    )
+    .bind(user.id)
+    .fetch_optional(&state.pool)
+    .await?
+    .flatten();
+
+    let memberships_info: Vec<MembershipInfo> = all_memberships
+        .into_iter()
+        .map(|m| MembershipInfo {
+            id: m.id.to_string(),
+            organization_id: m.organization_id.to_string(),
+            organization_name: m.organization_name,
+            organization_slug: m.organization_slug,
+            role: m.role.to_string(),
+            is_default: default_membership_id.map(|d| d == m.id).unwrap_or(false),
+        })
+        .collect();
+
+    // Create token with default org context if available
+    let (token, default_membership) = if let Some(default_id) = default_membership_id {
+        if let Some(default_mem) = memberships_info.iter().find(|m| m.id == default_id.to_string()) {
+            let org_id: uuid::Uuid = default_mem.organization_id.parse().unwrap();
+            let token = create_token(user.id, Some(OrganizationId::from_uuid(org_id)), &state.jwt_secret)
+                .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
+            (token, Some(default_mem.clone()))
+        } else {
+            let token = create_token(user.id, None, &state.jwt_secret)
+                .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
+            (token, None)
+        }
+    } else if let Some(first_membership) = memberships_info.first() {
+        let org_id: uuid::Uuid = first_membership.organization_id.parse().unwrap();
+        let token = create_token(user.id, Some(OrganizationId::from_uuid(org_id)), &state.jwt_secret)
+            .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
+        (token, Some(first_membership.clone()))
+    } else {
+        let token = create_token(user.id, None, &state.jwt_secret)
+            .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
+        (token, None)
+    };
+
+    let role = default_membership
+        .as_ref()
+        .map(|m| m.role.clone())
+        .unwrap_or_else(|| user.role.to_string());
 
     Ok(Json(AuthResponse {
         token,
@@ -322,10 +367,10 @@ pub async fn apple_auth(
             email: user.email,
             first_name: user.first_name,
             last_name: user.last_name,
-            role: user.role.to_string(),
+            role,
         },
-        membership: None,
-        memberships: None,
+        membership: default_membership,
+        memberships: Some(memberships_info),
     }))
 }
 
