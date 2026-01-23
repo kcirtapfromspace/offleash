@@ -415,6 +415,15 @@ struct LoginView: View {
     }
 
     private func signInWithGoogle() {
+        // Check if Google Sign-In is configured
+        guard let clientID = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String,
+              !clientID.isEmpty,
+              !clientID.hasPrefix("$(") else {
+            errorMessage = "Google Sign-In is not configured. Please use Apple Sign-In or email/password."
+            showError = true
+            return
+        }
+
         // Get the root view controller for presenting the sign-in flow
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let rootViewController = windowScene.windows.first?.rootViewController else {
