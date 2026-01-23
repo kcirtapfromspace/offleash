@@ -36,7 +36,7 @@
 					name="email"
 					required
 					class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-					placeholder="admin@offleash.io"
+					placeholder="admin@offleash.pro"
 					disabled={isLoading}
 					value={form?.email ?? ''}
 				/>

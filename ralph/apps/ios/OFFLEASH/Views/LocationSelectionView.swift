@@ -20,6 +20,7 @@ struct LocationSelectionView: View {
     @State private var showAddLocation = false
     @State private var startTime: Date?
     @State private var wasCacheHit = false
+    @State private var wasLoading = true  // Track previous loading state for iOS 16 onChange
 
     var serviceId: String?
     var onLocationSelected: ((Location) -> Void)?
@@ -60,9 +61,9 @@ struct LocationSelectionView: View {
             analyticsService.trackScreenView(screenName: "location_selection")
             startTime = Date()
         }
-        .onChange(of: isLoading) { oldValue, newValue in
+        .onChange(of: isLoading) { newValue in
             // Track TTI when loading completes (transitions from true to false)
-            if oldValue == true && newValue == false, let start = startTime {
+            if wasLoading == true && newValue == false, let start = startTime {
                 let durationMs = Int(Date().timeIntervalSince(start) * 1000)
                 analyticsService.trackEvent(name: "tti", params: [
                     "screen": "LocationSelectionView",
@@ -71,6 +72,7 @@ struct LocationSelectionView: View {
                 ])
                 startTime = nil // Reset to avoid duplicate tracking
             }
+            wasLoading = newValue
         }
         .alert("Error", isPresented: $showError) {
             Button("Retry") {

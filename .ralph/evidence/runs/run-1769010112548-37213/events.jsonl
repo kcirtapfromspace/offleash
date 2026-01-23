@@ -1,0 +1,2 @@
+{"schema_version":1,"run_id":"run-1769010112548-37213","recorded_at":"2026-01-21T15:41:52.548344Z","kind":"lifecycle","payload":{"event_type":"run_start","run_id":"run-1769010112548-37213","schema_version":"v1","step_id":"run","timestamp":"2026-01-21T15:41:52.548Z"}}
+{"schema_version":1,"run_id":"run-1769010112548-37213","recorded_at":"2026-01-21T15:41:52.562267Z","kind":"lifecycle","payload":{"event_type":"run_complete","run_id":"run-1769010112548-37213","schema_version":"v1","status":"success","step_id":"run","timestamp":"2026-01-21T15:41:52.562Z"}}

@@ -1,0 +1,27 @@
+{
+  "run_id": "run-1769010112548-37213",
+  "started_at": {
+    "secs_since_epoch": 1769010112,
+    "nanos_since_epoch": 548229000
+  },
+  "completed_at": {
+    "secs_since_epoch": 1769010112,
+    "nanos_since_epoch": 574092000
+  },
+  "recorded_at": {
+    "secs_since_epoch": 1769010112,
+    "nanos_since_epoch": 574092000
+  },
+  "run_duration": {
+    "secs": 0,
+    "nanos": 25863417
+  },
+  "expected_steps": 0,
+  "steps_attempted": 0,
+  "steps_completed": 0,
+  "failures": 0,
+  "retries": 0,
+  "completeness_percent": 100.0,
+  "step_durations": {},
+  "steps": []
+}

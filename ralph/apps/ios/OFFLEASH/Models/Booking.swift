@@ -49,6 +49,8 @@ struct Booking: Identifiable, Codable {
     let serviceName: String?
     let locationId: String
     let locationAddress: String?
+    let latitude: Double?
+    let longitude: Double?
     let status: BookingStatus
     let scheduledStart: Date
     let scheduledEnd: Date

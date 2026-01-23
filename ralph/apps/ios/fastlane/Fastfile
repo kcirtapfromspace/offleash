@@ -1,0 +1,165 @@
+# Fastfile for OFFLEASH iOS App
+# https://docs.fastlane.tools
+
+default_platform(:ios)
+
+platform :ios do
+  # ============================================
+  # SETUP & CONFIGURATION
+  # ============================================
+
+  before_all do
+    # Set up App Store Connect API Key
+    if ENV["APP_STORE_CONNECT_API_KEY_ID"] && ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"]
+      app_store_connect_api_key(
+        key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+        issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
+        key_filepath: ENV["APP_STORE_CONNECT_API_KEY_KEY_FILEPATH"] || "./fastlane/AuthKey.p8",
+        in_house: false
+      )
+    end
+  end
+
+  # ============================================
+  # BUILD LANES
+  # ============================================
+
+  desc "Build the app for testing (Debug)"
+  lane :build_debug do
+    build_app(
+      scheme: "OFFLEASH",
+      configuration: "Debug",
+      skip_archive: true,
+      skip_codesigning: true
+    )
+  end
+
+  # ============================================
+  # TESTFLIGHT LANES
+  # ============================================
+
+  desc "Push a new beta build to TestFlight"
+  lane :beta do |options|
+    # Increment build number
+    increment_build_number(
+      build_number: options[:build_number] || (latest_testflight_build_number + 1)
+    )
+
+    # Build the app
+    build_app(
+      scheme: "OFFLEASH",
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          "com.offleash.ios" => "match AppStore com.offleash.ios"
+        }
+      }
+    )
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      distribute_external: false
+    )
+
+    # Clean up
+    clean_build_artifacts
+  end
+
+  desc "Push a new beta build to TestFlight (manual signing)"
+  lane :beta_manual do |options|
+    # Increment build number
+    increment_build_number(
+      build_number: options[:build_number] || Time.now.strftime("%Y%m%d%H%M")
+    )
+
+    # Build the app with automatic signing
+    build_app(
+      scheme: "OFFLEASH",
+      configuration: "Release",
+      export_method: "app-store",
+      xcargs: "-allowProvisioningUpdates"
+    )
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      distribute_external: false
+    )
+
+    # Clean up
+    clean_build_artifacts
+
+    UI.success("🚀 Build uploaded to TestFlight!")
+  end
+
+  # ============================================
+  # CERTIFICATE MANAGEMENT
+  # ============================================
+
+  desc "Sync development certificates"
+  lane :sync_dev_certs do
+    match(type: "development", readonly: true)
+  end
+
+  desc "Sync App Store certificates"
+  lane :sync_appstore_certs do
+    match(type: "appstore", readonly: true)
+  end
+
+  desc "Create new certificates (run once for new projects)"
+  lane :create_certs do
+    match(type: "development", readonly: false)
+    match(type: "appstore", readonly: false)
+  end
+
+  # ============================================
+  # TESTING LANES
+  # ============================================
+
+  desc "Run unit tests"
+  lane :test do
+    run_tests(
+      scheme: "OFFLEASH",
+      device: "iPhone 15",
+      clean: true
+    )
+  end
+
+  desc "Run UI tests"
+  lane :ui_test do
+    run_tests(
+      scheme: "OFFLEASH",
+      device: "iPhone 15",
+      only_testing: ["OFFLEASHUITests"],
+      clean: true
+    )
+  end
+
+  # ============================================
+  # UTILITY LANES
+  # ============================================
+
+  desc "Increment version number"
+  lane :bump_version do |options|
+    increment_version_number(
+      bump_type: options[:type] || "patch" # major, minor, patch
+    )
+  end
+
+  desc "Get current version and build number"
+  lane :version_info do
+    version = get_version_number(target: "OFFLEASH")
+    build = get_build_number
+    UI.message("Version: #{version} (#{build})")
+  end
+
+  # ============================================
+  # ERROR HANDLING
+  # ============================================
+
+  error do |lane, exception|
+    UI.error("Lane #{lane} failed with error: #{exception.message}")
+  end
+end
