@@ -1,4 +1,5 @@
 use chrono::{DateTime, NaiveDate, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use shared::types::{OrganizationId, UserId};
 use sqlx::FromRow;
@@ -14,7 +15,7 @@ pub struct Pet {
     pub species: String,
     pub breed: Option<String>,
     pub date_of_birth: Option<NaiveDate>,
-    pub weight_lbs: Option<rust_decimal::Decimal>,
+    pub weight_lbs: Option<Decimal>,
     pub gender: Option<String>,
     pub color: Option<String>,
     pub microchip_id: Option<String>,
@@ -51,7 +52,7 @@ pub struct CreatePet {
     pub species: Option<String>,
     pub breed: Option<String>,
     pub date_of_birth: Option<NaiveDate>,
-    pub weight_lbs: Option<rust_decimal::Decimal>,
+    pub weight_lbs: Option<Decimal>,
     pub gender: Option<String>,
     pub color: Option<String>,
     pub microchip_id: Option<String>,
@@ -74,7 +75,7 @@ pub struct UpdatePet {
     pub species: Option<String>,
     pub breed: Option<String>,
     pub date_of_birth: Option<NaiveDate>,
-    pub weight_lbs: Option<rust_decimal::Decimal>,
+    pub weight_lbs: Option<Decimal>,
     pub gender: Option<String>,
     pub color: Option<String>,
     pub microchip_id: Option<String>,
