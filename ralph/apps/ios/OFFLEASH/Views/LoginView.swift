@@ -8,6 +8,7 @@
 import SwiftUI
 import AuthenticationServices
 import FirebaseCrashlytics
+import GoogleSignIn
 
 // MARK: - Login Request/Response Models
 
@@ -414,10 +415,83 @@ struct LoginView: View {
     }
 
     private func signInWithGoogle() {
-        // Google Sign-In requires the GoogleSignIn SDK
-        // For now, show a message that it's coming soon
-        errorMessage = "Google Sign-In coming soon. Please use Apple Sign-In or email/password."
-        showError = true
+        // Get the root view controller for presenting the sign-in flow
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            errorMessage = "Unable to present Google Sign-In"
+            showError = true
+            return
+        }
+
+        isOAuthLoading = true
+
+        GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { result, error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    isOAuthLoading = false
+                    // Check if user cancelled
+                    if (error as NSError).code == GIDSignInError.canceled.rawValue {
+                        return
+                    }
+                    errorMessage = error.localizedDescription
+                    showError = true
+                }
+                return
+            }
+
+            guard let user = result?.user,
+                  let idToken = user.idToken?.tokenString else {
+                DispatchQueue.main.async {
+                    isOAuthLoading = false
+                    errorMessage = "Failed to get Google credentials"
+                    showError = true
+                }
+                return
+            }
+
+            // Send the ID token to the backend
+            Task {
+                do {
+                    let orgSlug = ProcessInfo.processInfo.environment["ORG_SLUG"] ?? "demo"
+                    let request = OAuthGoogleRequest(
+                        orgSlug: orgSlug,
+                        idToken: idToken
+                    )
+
+                    let response: OAuthResponse = try await APIClient.shared.post("/auth/google", body: request)
+                    await APIClient.shared.setAuthToken(response.token)
+
+                    // Save user to session
+                    let role = UserRole(rawValue: response.user.role ?? "customer") ?? .customer
+                    let sessionUser = User(
+                        id: response.user.id,
+                        email: response.user.email,
+                        firstName: response.user.firstName,
+                        lastName: response.user.lastName,
+                        role: role
+                    )
+
+                    await MainActor.run {
+                        UserSession.shared.setUser(sessionUser)
+                        isOAuthLoading = false
+                        analyticsService.trackEvent(name: "login_success", params: ["method": "google"])
+                        onLoginSuccess()
+                    }
+                } catch let error as APIError {
+                    await MainActor.run {
+                        isOAuthLoading = false
+                        errorMessage = error.errorDescription ?? "Google Sign-In failed"
+                        showError = true
+                    }
+                } catch {
+                    await MainActor.run {
+                        isOAuthLoading = false
+                        errorMessage = "Google Sign-In failed. Please try again."
+                        showError = true
+                    }
+                }
+            }
+        }
     }
 }
 

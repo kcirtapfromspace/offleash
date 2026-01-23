@@ -304,6 +304,8 @@
 			packageProductDependencies = (
 				A1000001229D0079000A0001 /* FirebaseAnalytics */,
 				A1000001229D007C000A0001 /* FirebaseCrashlytics */,
+				A1000001229D00C2000A0001 /* GoogleSignIn */,
+				A1000001229D00C3000A0001 /* GoogleSignInSwift */,
 			);
 			productName = OFFLEASH;
 			productReference = A1000001229D0009000A0001 /* OFFLEASH.app */;
@@ -357,6 +359,7 @@
 			mainGroup = A1000001229D000B000A0001;
 			packageReferences = (
 				A1000001229D007A000A0001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				A1000001229D00C1000A0001 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			productRefGroup = A1000001229D000D000A0001 /* Products */;
 			projectDirPath = "";
@@ -715,7 +718,15 @@
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 10.0.0;
+				minimumVersion = 11.0.0;
+			};
+		};
+		A1000001229D00C1000A0001 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -730,6 +741,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A1000001229D007A000A0001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseCrashlytics;
+		};
+		A1000001229D00C2000A0001 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1000001229D00C1000A0001 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		A1000001229D00C3000A0001 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1000001229D00C1000A0001 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
