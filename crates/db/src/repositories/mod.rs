@@ -11,6 +11,7 @@ mod service_area_repo;
 mod service_repo;
 mod tenant_database_repo;
 mod travel_time_repo;
+mod user_identity_repo;
 mod user_repo;
 mod walker_profile_repo;
 mod working_hours_repo;
@@ -31,6 +32,9 @@ pub use service_area_repo::ServiceAreaRepository;
 pub use service_repo::ServiceRepository;
 pub use tenant_database_repo::TenantDatabaseRepository;
 pub use travel_time_repo::{TravelTimeCacheRepository, WalkerLocationRepository};
+pub use user_identity_repo::{
+    PhoneVerificationRepository, UserIdentityRepository, WalletChallengeRepository,
+};
 pub use user_repo::UserRepository;
 pub use walker_profile_repo::WalkerProfileRepository;
 pub use working_hours_repo::WorkingHoursRepository;
