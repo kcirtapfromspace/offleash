@@ -19,6 +19,7 @@ struct ServicesView: View {
     @State private var selectedService: Service?
     @State private var startTime: Date?
     @State private var wasCacheHit = false
+    @State private var wasLoading = true  // Track previous loading state for iOS 16 onChange
 
     var onServiceSelected: ((Service) -> Void)?
 
@@ -46,9 +47,9 @@ struct ServicesView: View {
             analyticsService.trackFunnelStep(step: "services_viewed", serviceId: nil, locationId: nil)
             startTime = Date()
         }
-        .onChange(of: isLoading) { oldValue, newValue in
+        .onChange(of: isLoading) { newValue in
             // Track TTI when loading completes (transitions from true to false)
-            if oldValue == true && newValue == false, let start = startTime {
+            if wasLoading == true && newValue == false, let start = startTime {
                 let durationMs = Int(Date().timeIntervalSince(start) * 1000)
                 analyticsService.trackEvent(name: "tti", params: [
                     "screen": "ServicesView",
@@ -57,6 +58,7 @@ struct ServicesView: View {
                 ])
                 startTime = nil // Reset to avoid duplicate tracking
             }
+            wasLoading = newValue
         }
         .alert("Error", isPresented: $showError) {
             Button("Retry") {

@@ -1,8 +1,12 @@
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { createSupabaseServerClient } from '$lib/supabase';
+import { createSupabaseServerClient, isSupabaseConfigured } from '$lib/supabase';
 
 export const GET: RequestHandler = async ({ url, cookies }) => {
+	if (!isSupabaseConfigured) {
+		throw redirect(303, '/login?error=oauth_not_configured');
+	}
+
 	const code = url.searchParams.get('code');
 	const next = url.searchParams.get('next') ?? '/services';
 

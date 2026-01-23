@@ -158,7 +158,7 @@ final class KeychainHelper: @unchecked Sendable {
 /// To generate a SHA-256 hash of a certificate's public key:
 /// ```bash
 /// # Extract public key and generate hash
-/// openssl s_client -connect api.offleash.app:443 -servername api.offleash.app 2>/dev/null </dev/null \
+/// openssl s_client -connect api.offleash.pro:443 -servername api.offleash.pro 2>/dev/null
 ///   | openssl x509 -pubkey -noout \
 ///   | openssl pkey -pubin -outform DER \
 ///   | openssl dgst -sha256 -binary \
@@ -170,7 +170,7 @@ final class CertificatePinningDelegate: NSObject, URLSessionDelegate {
     /// The first hash is the primary (current) certificate, subsequent hashes are backups for rotation.
     /// These are Base64-encoded SHA-256 hashes of the Subject Public Key Info (SPKI).
     static let pinnedPublicKeyHashes: [String] = [
-        // Primary certificate hash for api.offleash.app
+        // Primary certificate hash for api.offleash.pro
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
         // Backup certificate hash for rotation
         "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
@@ -307,7 +307,7 @@ actor APIClient {
         #if DEBUG
         self.baseURL = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "http://192.168.25.201:8080"
         #else
-        self.baseURL = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "https://api.offleash.app"
+        self.baseURL = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "https://api.offleash.pro"
         #endif
 
         // Configure URLSession with certificate pinning delegate

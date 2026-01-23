@@ -1,0 +1,44 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+*.xcworkspace
+!*.xcodeproj/project.xcworkspace/
+
+# Swift Package Manager
+.build/
+Package.resolved
+.swiftpm/
+
+# CocoaPods (if used)
+Pods/
+Podfile.lock
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+fastlane/.env
+*.ipa
+*.dSYM.zip
+*.app.dSYM
+
+# Sensitive files - NEVER commit these!
+*.p8
+*.p12
+*.mobileprovision
+AuthKey*.p8
+GoogleService-Info.plist
+
+# OS files
+.DS_Store
+*.swp
+*~
+
+# IDE
+.idea/
+*.iml
+.vscode/

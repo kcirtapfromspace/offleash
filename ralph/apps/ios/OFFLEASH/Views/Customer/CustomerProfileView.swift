@@ -48,22 +48,19 @@ struct CustomerProfileView: View {
             // Account Section
             Section("Account") {
                 NavigationLink {
-                    Text("Edit Profile")
-                        .navigationTitle("Edit Profile")
+                    EditProfileView()
                 } label: {
                     Label("Edit Profile", systemImage: "person.circle")
                 }
 
                 NavigationLink {
-                    Text("My Locations")
-                        .navigationTitle("My Locations")
+                    MyLocationsView()
                 } label: {
                     Label("My Locations", systemImage: "mappin.circle")
                 }
 
                 NavigationLink {
-                    Text("Payment Methods")
-                        .navigationTitle("Payment Methods")
+                    PaymentMethodsView()
                 } label: {
                     Label("Payment Methods", systemImage: "creditcard")
                 }

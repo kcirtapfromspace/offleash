@@ -1,9 +1,13 @@
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
 	import { enhance } from '$app/forms';
+	import { page } from '$app/stores';
 
 	export let data: PageData;
 	export let form: ActionData;
+
+	// Check if current user is admin (from layout data)
+	$: isAdmin = $page.data.user?.role === 'admin';
 
 	let showCreateModal = false;
 	let showScheduleModal = false;
@@ -88,15 +92,17 @@
 			<h1 class="text-2xl font-bold text-gray-900">Walkers</h1>
 			<p class="text-gray-600">Manage your dog walkers</p>
 		</div>
-		<button
-			on:click={() => (showCreateModal = true)}
-			class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
-		>
-			<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-			</svg>
-			Add Walker
-		</button>
+		{#if isAdmin}
+			<button
+				on:click={() => (showCreateModal = true)}
+				class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+			>
+				<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+				</svg>
+				Add Walker
+			</button>
+		{/if}
 	</div>
 
 	{#if form?.error}
@@ -230,9 +236,15 @@
 
 					<!-- Actions -->
 					<div class="px-6 py-3 bg-gray-50 border-t border-gray-200 flex gap-4">
+						<a
+							href="/walkers/{walker.id}"
+							class="text-sm font-medium text-purple-600 hover:text-purple-800"
+						>
+							Manage
+						</a>
 						<button
 							on:click={() => openScheduleModal(walker)}
-							class="text-sm font-medium text-purple-600 hover:text-purple-800"
+							class="text-sm font-medium text-gray-600 hover:text-gray-800"
 						>
 							{walker.working_hours && walker.working_hours.length > 0 ? 'Edit Schedule' : 'Set Schedule'}
 						</button>

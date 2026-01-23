@@ -1,0 +1,15 @@
+# Fastlane Appfile
+# https://docs.fastlane.tools/advanced/Appfile/
+
+app_identifier("com.offleash.ios")
+
+# Your Apple Developer Team ID
+# Find this at: https://developer.apple.com/account -> Membership -> Team ID
+team_id(ENV["APPLE_TEAM_ID"])
+
+# App Store Connect Team ID (usually same as team_id for individual accounts)
+itc_team_id(ENV["APPLE_TEAM_ID"])
+
+# For App Store Connect API Key authentication (recommended)
+# Generate at: https://appstoreconnect.apple.com/access/integrations/api
+# Required: Key ID, Issuer ID, and .p8 key file

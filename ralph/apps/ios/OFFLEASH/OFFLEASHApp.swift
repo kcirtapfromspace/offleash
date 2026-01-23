@@ -28,6 +28,7 @@ enum AuthScreen {
 // MARK: - Session State Manager
 
 /// Manages session state across the app, allowing child views to clear their state on session expiry
+@MainActor
 final class SessionStateManager: ObservableObject {
     static let shared = SessionStateManager()
 
@@ -44,6 +45,12 @@ final class SessionStateManager: ObservableObject {
     }
 }
 
+/// Tracks whether Firebase was successfully configured
+@MainActor
+enum FirebaseState {
+    static var isConfigured = false
+}
+
 @main
 struct OFFLEASHApp: App {
     @StateObject private var themeManager = ThemeManager.shared
@@ -53,7 +60,28 @@ struct OFFLEASHApp: App {
     @State private var showSessionExpiredAlert = false
 
     init() {
+        // Skip Firebase in UI testing mode or if configuration is invalid
+        let isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
+        if !isUITesting {
+            configureFirebaseSafely()
+        }
+    }
+
+    private func configureFirebaseSafely() {
+        // Check if GoogleService-Info.plist has valid configuration
+        guard let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+              let plist = NSDictionary(contentsOfFile: path),
+              let appId = plist["GOOGLE_APP_ID"] as? String,
+              !appId.isEmpty,
+              !appId.hasPrefix("YOUR_"),
+              !appId.contains("placeholder"),
+              !appId.contains("HERE") else {
+            print("⚠️ Firebase: Skipping configuration - invalid or placeholder GoogleService-Info.plist")
+            return
+        }
+
         FirebaseApp.configure()
+        FirebaseState.isConfigured = true
     }
 
     var body: some Scene {

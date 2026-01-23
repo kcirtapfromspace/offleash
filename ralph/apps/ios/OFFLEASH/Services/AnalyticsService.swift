@@ -12,6 +12,7 @@ import SwiftUI
 
 /// Protocol defining the analytics service interface for tracking user events and errors.
 /// Use this abstraction to enable testability and swap implementations.
+@MainActor
 protocol AnalyticsService: AnyObject {
     /// Track a screen view event
     /// - Parameter screenName: The name of the screen being viewed
@@ -42,7 +43,7 @@ protocol AnalyticsService: AnyObject {
 /// A stub implementation of AnalyticsService that logs to console.
 /// Use this for development and testing purposes.
 @MainActor
-final class StubAnalyticsService: AnalyticsService, ObservableObject {
+final class StubAnalyticsService: AnalyticsService, ObservableObject, Sendable {
     static let shared = StubAnalyticsService()
 
     private let isLoggingEnabled: Bool
@@ -86,8 +87,8 @@ final class StubAnalyticsService: AnalyticsService, ObservableObject {
 
 // MARK: - Environment Key
 
-private struct AnalyticsServiceKey: EnvironmentKey {
-    static let defaultValue: AnalyticsService = StubAnalyticsService.shared
+private struct AnalyticsServiceKey: @preconcurrency EnvironmentKey {
+    @MainActor static let defaultValue: AnalyticsService = StubAnalyticsService.shared
 }
 
 extension EnvironmentValues {

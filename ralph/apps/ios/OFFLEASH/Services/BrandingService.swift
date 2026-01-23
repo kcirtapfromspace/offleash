@@ -11,7 +11,7 @@ import SwiftUI
 // MARK: - Branding Service
 
 @MainActor
-final class BrandingService: ObservableObject {
+final class BrandingService: ObservableObject, Sendable {
     static let shared = BrandingService()
 
     @Published private(set) var config: BrandingConfig
@@ -71,8 +71,8 @@ final class BrandingService: ObservableObject {
 
 // MARK: - Environment Key
 
-private struct BrandingServiceKey: EnvironmentKey {
-    static let defaultValue = BrandingService.shared
+private struct BrandingServiceKey: @preconcurrency EnvironmentKey {
+    @MainActor static let defaultValue = BrandingService.shared
 }
 
 extension EnvironmentValues {

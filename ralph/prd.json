@@ -289,7 +289,7 @@
       "description": "As a security engineer, I want to prevent MITM attacks on API communication.",
       "id": "US-079",
       "notes": "",
-      "passes": false,
+      "passes": true,
       "priority": 79,
       "title": "Implement certificate pinning"
     },

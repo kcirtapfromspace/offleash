@@ -15,7 +15,7 @@ export const defaultBranding: Branding = {
 	primary_color: '#3B82F6',
 	secondary_color: '#1E40AF',
 	accent_color: '#10B981',
-	support_email: 'support@offleash.com'
+	support_email: 'support@offleash.pro'
 };
 
 export const branding = writable<Branding>(defaultBranding);
