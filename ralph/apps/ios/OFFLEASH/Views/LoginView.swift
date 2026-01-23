@@ -29,6 +29,7 @@ struct LoginUser: Decodable {
     let firstName: String?
     let lastName: String?
     let role: String?
+    let organizationId: String?
 }
 
 // MARK: - Login View
@@ -44,15 +45,43 @@ struct LoginView: View {
     @State private var errorMessage = ""
     @State private var emailError: String?
 
+    let selectedRole: SelectedRole
     var onLoginSuccess: () -> Void
     var onNavigateToRegister: (() -> Void)?
+    var onBack: (() -> Void)?
+
+    private var roleDisplayText: String {
+        switch selectedRole {
+        case .customer:
+            return "Sign in to book walks"
+        case .walker:
+            return "Sign in to walk dogs"
+        }
+    }
 
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(spacing: 24) {
-                    Spacer()
-                        .frame(height: geometry.size.height * 0.08)
+                    // Back Button
+                    if let onBack = onBack {
+                        HStack {
+                            Button(action: onBack) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "chevron.left")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("Back")
+                                        .font(.body)
+                                }
+                                .foregroundColor(themeManager.primaryColor)
+                            }
+                            Spacer()
+                        }
+                        .padding(.top, 16)
+                    } else {
+                        Spacer()
+                            .frame(height: geometry.size.height * 0.08)
+                    }
 
                     // Logo and Title
                     VStack(spacing: 16) {
@@ -65,7 +94,7 @@ struct LoginView: View {
                             .fontWeight(.bold)
                             .foregroundColor(themeManager.primaryColor)
 
-                        Text("Sign in to continue")
+                        Text(roleDisplayText)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -311,7 +340,8 @@ struct LoginView: View {
                         email: loginUser.email,
                         firstName: loginUser.firstName,
                         lastName: loginUser.lastName,
-                        role: role
+                        role: role,
+                        organizationId: loginUser.organizationId
                     )
                     await MainActor.run {
                         UserSession.shared.setUser(user)
@@ -381,7 +411,8 @@ struct LoginView: View {
                         email: response.user.email,
                         firstName: response.user.firstName,
                         lastName: response.user.lastName,
-                        role: role
+                        role: role,
+                        organizationId: response.user.organizationId
                     )
                     await MainActor.run {
                         UserSession.shared.setUser(user)
@@ -477,7 +508,8 @@ struct LoginView: View {
                         email: response.user.email,
                         firstName: response.user.firstName,
                         lastName: response.user.lastName,
-                        role: role
+                        role: role,
+                        organizationId: response.user.organizationId
                     )
 
                     await MainActor.run {
@@ -507,8 +539,14 @@ struct LoginView: View {
 // MARK: - Preview
 
 #Preview {
-    LoginView(onLoginSuccess: {
-        print("Login successful!")
-    })
+    LoginView(
+        selectedRole: .customer,
+        onLoginSuccess: {
+            print("Login successful!")
+        },
+        onBack: {
+            print("Back to role selection")
+        }
+    )
     .withThemeManager()
 }

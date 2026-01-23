@@ -32,6 +32,7 @@ struct OAuthUser: Decodable {
     let firstName: String?
     let lastName: String?
     let role: String?
+    let organizationId: String?
 }
 
 // MARK: - OAuth Errors
