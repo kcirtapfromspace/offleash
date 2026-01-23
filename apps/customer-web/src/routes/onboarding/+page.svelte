@@ -73,7 +73,6 @@
 				</svg>
 			</button>
 		</div>
-	</div>
 
 		<!-- Already have account -->
 		<div class="mt-8 text-center">
