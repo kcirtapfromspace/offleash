@@ -2,10 +2,12 @@
 	import { goto } from '$app/navigation';
 
 	function selectRole(role: 'customer' | 'walker') {
+		// Redirect to login/register with role parameter
+		// After auth, they'll be routed to the appropriate flow
 		if (role === 'customer') {
-			goto('/services');
+			goto('/login?role=customer&redirect=/services');
 		} else {
-			goto('/onboarding/walker');
+			goto('/login?role=walker&redirect=/onboarding/walker');
 		}
 	}
 </script>
@@ -70,6 +72,17 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 				</svg>
 			</button>
+		</div>
+	</div>
+
+		<!-- Already have account -->
+		<div class="mt-8 text-center">
+			<p class="text-sm text-gray-500">
+				Already have an account?
+				<a href="/login" class="font-medium hover:underline" style="color: var(--color-primary, #3b82f6)">
+					Sign in
+				</a>
+			</p>
 		</div>
 	</div>
 
