@@ -39,6 +39,14 @@ Push a new beta build to TestFlight
 
 Push a new beta build to TestFlight (manual signing)
 
+Options:
+
+  groups: Comma-separated TestFlight group names to distribute to (e.g., 'Beta Testers,Internal')
+
+  build_number: Custom build number (default: timestamp)
+
+  changelog: What's new in this build
+
 ### ios sync_dev_certs
 
 ```sh

@@ -8,6 +8,7 @@
 import SwiftUI
 import FirebaseCore
 import FirebaseCrashlytics
+import GoogleSignIn
 
 // MARK: - App State
 
@@ -156,6 +157,10 @@ struct OFFLEASHApp: App {
                 }
             } message: {
                 Text("Your session has expired. Please log in again.")
+            }
+            .onOpenURL { url in
+                // Handle Google Sign-In callback
+                GIDSignIn.sharedInstance.handle(url)
             }
         }
     }
