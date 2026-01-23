@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8FA62CFB2F232B6B00CDC946 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = A1000001229D00C2000A0001 /* GoogleSignIn */; };
+		8FA62CFC2F232B6B00CDC946 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = A1000001229D00C3000A0001 /* GoogleSignInSwift */; };
 		A1000001229D0001000A0001 /* OFFLEASHApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0002000A0001 /* OFFLEASHApp.swift */; };
 		A1000001229D0003000A0001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0004000A0001 /* ContentView.swift */; };
 		A1000001229D0005000A0001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1000001229D0006000A0001 /* Assets.xcassets */; };
@@ -29,7 +31,6 @@
 		A1000001229D0082000A0001 /* TokenValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0083000A0001 /* TokenValidation.swift */; };
 		A1000001229D0084000A0001 /* CacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0085000A0001 /* CacheManager.swift */; };
 		A1000001229D0086000A0001 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0087000A0001 /* LocationService.swift */; };
-		A1000001229D00BC000A0001 /* OAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00BD000A0001 /* OAuthService.swift */; };
 		A1000001229D0088000A0001 /* SessionExpiredAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0089000A0001 /* SessionExpiredAlert.swift */; };
 		A1000001229D008A000A0001 /* Validators.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D008B000A0001 /* Validators.swift */; };
 		A1000001229D008C000A0001 /* PasswordRequirements.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D008D000A0001 /* PasswordRequirements.swift */; };
@@ -40,10 +41,6 @@
 		A1000001229D009A000A0001 /* BookingDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0099000A0001 /* BookingDetailView.swift */; };
 		A1000001229D009C000A0001 /* PendingBookingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D009B000A0001 /* PendingBookingsView.swift */; };
 		A1000001229D009E000A0001 /* WalkerTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D009D000A0001 /* WalkerTabView.swift */; };
-		A1000001229D00B5000A0001 /* WalkerMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00B4000A0001 /* WalkerMapView.swift */; };
-		A1000001229D00B7000A0001 /* WalkerProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00B6000A0001 /* WalkerProfileView.swift */; };
-		A1000001229D00B9000A0001 /* WorkingHoursView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00B8000A0001 /* WorkingHoursView.swift */; };
-		A1000001229D00BB000A0001 /* ServiceAreasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00BA000A0001 /* ServiceAreasView.swift */; };
 		A1000001229D00A0000A0001 /* CustomerTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D009F000A0001 /* CustomerTabView.swift */; };
 		A1000001229D00A2000A0001 /* CustomerProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00A1000A0001 /* CustomerProfileView.swift */; };
 		A1000001229D00A4000A0001 /* CustomerBookingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00A3000A0001 /* CustomerBookingsView.swift */; };
@@ -54,6 +51,11 @@
 		A1000001229D00AF000A0001 /* PaymentMethod.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00AE000A0001 /* PaymentMethod.swift */; };
 		A1000001229D00B1000A0001 /* PaymentMethodsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00B0000A0001 /* PaymentMethodsView.swift */; };
 		A1000001229D00B3000A0001 /* AddPaymentMethodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00B2000A0001 /* AddPaymentMethodView.swift */; };
+		A1000001229D00B5000A0001 /* WalkerMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00B4000A0001 /* WalkerMapView.swift */; };
+		A1000001229D00B7000A0001 /* WalkerProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00B6000A0001 /* WalkerProfileView.swift */; };
+		A1000001229D00B9000A0001 /* WorkingHoursView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00B8000A0001 /* WorkingHoursView.swift */; };
+		A1000001229D00BB000A0001 /* ServiceAreasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00BA000A0001 /* ServiceAreasView.swift */; };
+		A1000001229D00BC000A0001 /* OAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00BD000A0001 /* OAuthService.swift */; };
 		A2UITEST229D0001000A0001 /* WalkerAppDemoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2UITEST229D0002000A0001 /* WalkerAppDemoTests.swift */; };
 		A2UITEST229D0003000A0001 /* E2ETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2UITEST229D0004000A0001 /* E2ETests.swift */; };
 /* End PBXBuildFile section */
@@ -86,12 +88,10 @@
 		A1000001229D0073000A0001 /* BrandingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandingService.swift; sourceTree = "<group>"; };
 		A1000001229D0075000A0001 /* FirebaseAnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseAnalyticsService.swift; sourceTree = "<group>"; };
 		A1000001229D0077000A0001 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
-		A1000001229D00BF000A0001 /* OFFLEASH.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OFFLEASH.entitlements; sourceTree = "<group>"; };
 		A1000001229D0081000A0001 /* AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsService.swift; sourceTree = "<group>"; };
 		A1000001229D0083000A0001 /* TokenValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenValidation.swift; sourceTree = "<group>"; };
 		A1000001229D0085000A0001 /* CacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheManager.swift; sourceTree = "<group>"; };
 		A1000001229D0087000A0001 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
-		A1000001229D00BD000A0001 /* OAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuthService.swift; sourceTree = "<group>"; };
 		A1000001229D0089000A0001 /* SessionExpiredAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionExpiredAlert.swift; sourceTree = "<group>"; };
 		A1000001229D008B000A0001 /* Validators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validators.swift; sourceTree = "<group>"; };
 		A1000001229D008D000A0001 /* PasswordRequirements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordRequirements.swift; sourceTree = "<group>"; };
@@ -102,10 +102,6 @@
 		A1000001229D0099000A0001 /* BookingDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookingDetailView.swift; sourceTree = "<group>"; };
 		A1000001229D009B000A0001 /* PendingBookingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingBookingsView.swift; sourceTree = "<group>"; };
 		A1000001229D009D000A0001 /* WalkerTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerTabView.swift; sourceTree = "<group>"; };
-		A1000001229D00B4000A0001 /* WalkerMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerMapView.swift; sourceTree = "<group>"; };
-		A1000001229D00B6000A0001 /* WalkerProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerProfileView.swift; sourceTree = "<group>"; };
-		A1000001229D00B8000A0001 /* WorkingHoursView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkingHoursView.swift; sourceTree = "<group>"; };
-		A1000001229D00BA000A0001 /* ServiceAreasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceAreasView.swift; sourceTree = "<group>"; };
 		A1000001229D009F000A0001 /* CustomerTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerTabView.swift; sourceTree = "<group>"; };
 		A1000001229D00A1000A0001 /* CustomerProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerProfileView.swift; sourceTree = "<group>"; };
 		A1000001229D00A3000A0001 /* CustomerBookingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerBookingsView.swift; sourceTree = "<group>"; };
@@ -116,6 +112,12 @@
 		A1000001229D00AE000A0001 /* PaymentMethod.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentMethod.swift; sourceTree = "<group>"; };
 		A1000001229D00B0000A0001 /* PaymentMethodsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentMethodsView.swift; sourceTree = "<group>"; };
 		A1000001229D00B2000A0001 /* AddPaymentMethodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddPaymentMethodView.swift; sourceTree = "<group>"; };
+		A1000001229D00B4000A0001 /* WalkerMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerMapView.swift; sourceTree = "<group>"; };
+		A1000001229D00B6000A0001 /* WalkerProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerProfileView.swift; sourceTree = "<group>"; };
+		A1000001229D00B8000A0001 /* WorkingHoursView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkingHoursView.swift; sourceTree = "<group>"; };
+		A1000001229D00BA000A0001 /* ServiceAreasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceAreasView.swift; sourceTree = "<group>"; };
+		A1000001229D00BD000A0001 /* OAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuthService.swift; sourceTree = "<group>"; };
+		A1000001229D00BF000A0001 /* OFFLEASH.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OFFLEASH.entitlements; sourceTree = "<group>"; };
 		A2UITEST229D0002000A0001 /* WalkerAppDemoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerAppDemoTests.swift; sourceTree = "<group>"; };
 		A2UITEST229D0004000A0001 /* E2ETests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = E2ETests.swift; sourceTree = "<group>"; };
 		A2UITEST229D0009000A0001 /* OFFLEASHUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OFFLEASHUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -126,6 +128,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8FA62CFC2F232B6B00CDC946 /* GoogleSignInSwift in Frameworks */,
+				8FA62CFB2F232B6B00CDC946 /* GoogleSignIn in Frameworks */,
 				A1000001229D0078000A0001 /* FirebaseAnalytics in Frameworks */,
 				A1000001229D007B000A0001 /* FirebaseCrashlytics in Frameworks */,
 			);
@@ -198,38 +202,6 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
-		A1000001229D00A7000A0001 /* Customer */ = {
-			isa = PBXGroup;
-			children = (
-				A1000001229D009F000A0001 /* CustomerTabView.swift */,
-				A1000001229D00A1000A0001 /* CustomerProfileView.swift */,
-				A1000001229D00A3000A0001 /* CustomerBookingsView.swift */,
-				A1000001229D00A5000A0001 /* BookingFlowView.swift */,
-				A1000001229D00A9000A0001 /* AddLocationView.swift */,
-				A1000001229D00AB000A0001 /* EditProfileView.swift */,
-				A1000001229D00AD000A0001 /* MyLocationsView.swift */,
-				A1000001229D00B0000A0001 /* PaymentMethodsView.swift */,
-				A1000001229D00B2000A0001 /* AddPaymentMethodView.swift */,
-			);
-			path = Customer;
-			sourceTree = "<group>";
-		};
-		A1000001229D0094000A0001 /* Walker */ = {
-			isa = PBXGroup;
-			children = (
-				A1000001229D009D000A0001 /* WalkerTabView.swift */,
-				A1000001229D0095000A0001 /* WalkerDashboardView.swift */,
-				A1000001229D0097000A0001 /* WalkerCalendarView.swift */,
-				A1000001229D00B4000A0001 /* WalkerMapView.swift */,
-				A1000001229D0099000A0001 /* BookingDetailView.swift */,
-				A1000001229D009B000A0001 /* PendingBookingsView.swift */,
-				A1000001229D00B6000A0001 /* WalkerProfileView.swift */,
-				A1000001229D00B8000A0001 /* WorkingHoursView.swift */,
-				A1000001229D00BA000A0001 /* ServiceAreasView.swift */,
-			);
-			path = Walker;
-			sourceTree = "<group>";
-		};
 		A1000001229D0021000A0001 /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -274,6 +246,38 @@
 				A1000001229D008D000A0001 /* PasswordRequirements.swift */,
 			);
 			path = Components;
+			sourceTree = "<group>";
+		};
+		A1000001229D0094000A0001 /* Walker */ = {
+			isa = PBXGroup;
+			children = (
+				A1000001229D009D000A0001 /* WalkerTabView.swift */,
+				A1000001229D0095000A0001 /* WalkerDashboardView.swift */,
+				A1000001229D0097000A0001 /* WalkerCalendarView.swift */,
+				A1000001229D00B4000A0001 /* WalkerMapView.swift */,
+				A1000001229D0099000A0001 /* BookingDetailView.swift */,
+				A1000001229D009B000A0001 /* PendingBookingsView.swift */,
+				A1000001229D00B6000A0001 /* WalkerProfileView.swift */,
+				A1000001229D00B8000A0001 /* WorkingHoursView.swift */,
+				A1000001229D00BA000A0001 /* ServiceAreasView.swift */,
+			);
+			path = Walker;
+			sourceTree = "<group>";
+		};
+		A1000001229D00A7000A0001 /* Customer */ = {
+			isa = PBXGroup;
+			children = (
+				A1000001229D009F000A0001 /* CustomerTabView.swift */,
+				A1000001229D00A1000A0001 /* CustomerProfileView.swift */,
+				A1000001229D00A3000A0001 /* CustomerBookingsView.swift */,
+				A1000001229D00A5000A0001 /* BookingFlowView.swift */,
+				A1000001229D00A9000A0001 /* AddLocationView.swift */,
+				A1000001229D00AB000A0001 /* EditProfileView.swift */,
+				A1000001229D00AD000A0001 /* MyLocationsView.swift */,
+				A1000001229D00B0000A0001 /* PaymentMethodsView.swift */,
+				A1000001229D00B2000A0001 /* AddPaymentMethodView.swift */,
+			);
+			path = Customer;
 			sourceTree = "<group>";
 		};
 		A2UITEST229D000C000A0001 /* OFFLEASHUITests */ = {
@@ -513,6 +517,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				GOOGLE_CLIENT_ID = "120633628567-nhecmop27e3cvnpofm6592h6ithf9rdo.apps.googleusercontent.com";
+				GOOGLE_REVERSED_CLIENT_ID = "com.googleusercontent.apps.120633628567-nhecmop27e3cvnpofm6592h6ithf9rdo";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
@@ -571,6 +577,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				GOOGLE_CLIENT_ID = "120633628567-nhecmop27e3cvnpofm6592h6ithf9rdo.apps.googleusercontent.com";
+				GOOGLE_REVERSED_CLIENT_ID = "com.googleusercontent.apps.120633628567-nhecmop27e3cvnpofm6592h6ithf9rdo";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
@@ -589,7 +597,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = OFFLEASH/OFFLEASH.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202601222008;
+				CURRENT_PROJECT_VERSION = 202601222107;
 				DEVELOPMENT_ASSET_PATHS = "\"OFFLEASH/Preview Content\"";
 				DEVELOPMENT_TEAM = 67C7724279;
 				ENABLE_PREVIEWS = YES;
@@ -621,7 +629,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = OFFLEASH/OFFLEASH.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202601222008;
+				CURRENT_PROJECT_VERSION = 202601222107;
 				DEVELOPMENT_ASSET_PATHS = "\"OFFLEASH/Preview Content\"";
 				DEVELOPMENT_TEAM = 67C7724279;
 				ENABLE_PREVIEWS = YES;
@@ -650,7 +658,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202601222008;
+				CURRENT_PROJECT_VERSION = 202601222107;
 				DEVELOPMENT_TEAM = 67C7724279;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
@@ -667,7 +675,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202601222008;
+				CURRENT_PROJECT_VERSION = 202601222107;
 				DEVELOPMENT_TEAM = 67C7724279;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;

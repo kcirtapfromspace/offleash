@@ -77,6 +77,26 @@ struct Booking: Identifiable, Codable {
         scheduledEnd < Date()
     }
 
+    /// Whether the booking can be cancelled (not already cancelled/completed and not in progress)
+    var canCancel: Bool {
+        switch status {
+        case .pending, .confirmed:
+            return !isPast
+        case .inProgress, .completed, .cancelled:
+            return false
+        }
+    }
+
+    /// Whether the booking can be rescheduled (pending or confirmed, not past)
+    var canReschedule: Bool {
+        switch status {
+        case .pending, .confirmed:
+            return !isPast
+        case .inProgress, .completed, .cancelled:
+            return false
+        }
+    }
+
     var timeString: String {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
