@@ -41,9 +41,6 @@
 	const isAppleConfigured = Boolean(appleClientId);
 	const hasOAuthProviders = isGoogleConfigured || isAppleConfigured;
 
-	// Get org slug from URL or default
-	const orgSlug = $page.url.searchParams.get('org') || 'demo';
-
 	onMount(() => {
 		// Load Google Identity Services
 		if (isGoogleConfigured && typeof window !== 'undefined') {
@@ -82,7 +79,7 @@
 		(window as any).AppleID.auth.init({
 			clientId: appleClientId,
 			scope: 'name email',
-			redirectURI: `${$page.url.origin}/auth/apple/callback`,
+			redirectURI: $page.url.origin,
 			usePopup: true,
 		});
 	}
@@ -121,12 +118,11 @@
 				throw new Error('No token received from Google');
 			}
 
-			// Call the Rust API directly (not through SvelteKit proxy)
+			// Call the Rust API directly (universal auth - no org_slug required)
 			const res = await fetch(`${apiUrl}/auth/google`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					org_slug: orgSlug,
 					id_token: idToken,
 				}),
 			});
@@ -138,8 +134,17 @@
 
 			const result = await res.json();
 
-			// Store token and redirect
+			// Store cookies (like normal login)
 			document.cookie = `token=${result.token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+			if (result.user) {
+				document.cookie = `user=${JSON.stringify(result.user)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+			}
+			if (result.membership) {
+				document.cookie = `membership=${JSON.stringify(result.membership)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+			}
+			if (result.memberships) {
+				document.cookie = `memberships=${JSON.stringify(result.memberships)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+			}
 			await goto('/services');
 		} catch (err) {
 			oauthError = err instanceof Error ? err.message : 'Google authentication failed';
@@ -160,12 +165,11 @@
 		try {
 			const appleResponse = await (window as any).AppleID.auth.signIn();
 
-			// Call the Rust API directly (not through SvelteKit proxy)
+			// Call the Rust API directly (universal auth - no org_slug required)
 			const res = await fetch(`${apiUrl}/auth/apple`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					org_slug: orgSlug,
 					id_token: appleResponse.authorization.id_token,
 					first_name: appleResponse.user?.name?.firstName,
 					last_name: appleResponse.user?.name?.lastName,
@@ -179,8 +183,17 @@
 
 			const result = await res.json();
 
-			// Store token and redirect
+			// Store cookies (like normal login)
 			document.cookie = `token=${result.token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+			if (result.user) {
+				document.cookie = `user=${JSON.stringify(result.user)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+			}
+			if (result.membership) {
+				document.cookie = `membership=${JSON.stringify(result.membership)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+			}
+			if (result.memberships) {
+				document.cookie = `memberships=${JSON.stringify(result.memberships)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+			}
 			await goto('/services');
 		} catch (err) {
 			if ((err as any)?.error === 'popup_closed_by_user') {
