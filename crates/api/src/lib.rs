@@ -307,6 +307,8 @@ pub fn create_app(state: AppState) -> Router {
             put(routes::service_areas::update_service_area)
                 .delete(routes::service_areas::delete_service_area),
         )
+        // Feedback routes (for bug reports and feature requests)
+        .route("/feedback", post(routes::feedback::submit_feedback))
         // Add middleware
         .layer(TraceLayer::new_for_http())
         .layer(cors)

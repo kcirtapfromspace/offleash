@@ -42,13 +42,16 @@ pub struct PetResponse {
 
 impl From<db::models::Pet> for PetResponse {
     fn from(pet: db::models::Pet) -> Self {
+        // Calculate age before moving fields
+        let age_years = pet.age_years();
+
         Self {
             id: pet.id.to_string(),
             name: pet.name,
             species: pet.species,
             breed: pet.breed,
             date_of_birth: pet.date_of_birth.map(|d| d.to_string()),
-            age_years: pet.age_years(),
+            age_years,
             weight_lbs: pet.weight_lbs.map(|w| w.to_string().parse().unwrap_or(0.0)),
             gender: pet.gender,
             color: pet.color,
