@@ -102,10 +102,20 @@ CREATE TABLE IF NOT EXISTS payment_providers (
 -- We need to rename customer_id to user_id and add missing columns
 
 -- First, rename customer_id to user_id if it exists (from earlier migration)
-DO $$ BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.columns
-               WHERE table_name = 'customer_payment_methods' AND column_name = 'customer_id') THEN
+DO $$
+BEGIN
+    -- Check if table exists with customer_id column and rename to user_id
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'customer_payment_methods'
+        AND column_name = 'customer_id'
+    ) THEN
         ALTER TABLE customer_payment_methods RENAME COLUMN customer_id TO user_id;
+
+        -- Also drop old indexes that reference customer_id
+        DROP INDEX IF EXISTS idx_customer_payment_methods_customer;
+        DROP INDEX IF EXISTS idx_customer_payment_methods_single_default;
     END IF;
 END $$;
 
