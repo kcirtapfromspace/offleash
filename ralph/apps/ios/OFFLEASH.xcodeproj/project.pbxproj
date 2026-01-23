@@ -86,6 +86,7 @@
 		A1000001229D0073000A0001 /* BrandingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandingService.swift; sourceTree = "<group>"; };
 		A1000001229D0075000A0001 /* FirebaseAnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseAnalyticsService.swift; sourceTree = "<group>"; };
 		A1000001229D0077000A0001 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		A1000001229D00BF000A0001 /* OFFLEASH.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OFFLEASH.entitlements; sourceTree = "<group>"; };
 		A1000001229D0081000A0001 /* AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsService.swift; sourceTree = "<group>"; };
 		A1000001229D0083000A0001 /* TokenValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenValidation.swift; sourceTree = "<group>"; };
 		A1000001229D0085000A0001 /* CacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheManager.swift; sourceTree = "<group>"; };
@@ -161,6 +162,7 @@
 				A1000001229D0023000A0001 /* Utilities */,
 				A1000001229D0006000A0001 /* Assets.xcassets */,
 				A1000001229D0077000A0001 /* GoogleService-Info.plist */,
+				A1000001229D00BF000A0001 /* OFFLEASH.entitlements */,
 				A1000001229D000E000A0001 /* Preview Content */,
 			);
 			path = OFFLEASH;
@@ -582,8 +584,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = OFFLEASH/OFFLEASH.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202601221947;
+				CURRENT_PROJECT_VERSION = 202601222008;
 				DEVELOPMENT_ASSET_PATHS = "\"OFFLEASH/Preview Content\"";
 				DEVELOPMENT_TEAM = 67C7724279;
 				ENABLE_PREVIEWS = YES;
@@ -613,8 +616,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = OFFLEASH/OFFLEASH.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202601221947;
+				CURRENT_PROJECT_VERSION = 202601222008;
 				DEVELOPMENT_ASSET_PATHS = "\"OFFLEASH/Preview Content\"";
 				DEVELOPMENT_TEAM = 67C7724279;
 				ENABLE_PREVIEWS = YES;
@@ -643,7 +647,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202601221947;
+				CURRENT_PROJECT_VERSION = 202601222008;
 				DEVELOPMENT_TEAM = 67C7724279;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
@@ -660,7 +664,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202601221947;
+				CURRENT_PROJECT_VERSION = 202601222008;
 				DEVELOPMENT_TEAM = 67C7724279;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
