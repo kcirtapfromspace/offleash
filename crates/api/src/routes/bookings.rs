@@ -28,6 +28,11 @@ pub struct CreateBookingRequest {
     pub notes: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct RescheduleBookingRequest {
+    pub scheduled_start: String, // ISO 8601
+}
+
 #[derive(Debug, Serialize)]
 pub struct BookingResponse {
     pub id: String,
@@ -282,6 +287,69 @@ pub async fn cancel_booking(
     let updated = BookingRepository::cancel(&tenant.pool, tenant.org_id, booking_id)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::BookingNotFound(id)))?;
+
+    Ok(Json(BookingResponse {
+        id: updated.id.to_string(),
+        customer_id: updated.customer_id.to_string(),
+        walker_id: updated.walker_id.to_string(),
+        service_id: updated.service_id.to_string(),
+        location_id: updated.location_id.to_string(),
+        status: updated.status.to_string(),
+        scheduled_start: updated.scheduled_start.to_rfc3339(),
+        scheduled_end: updated.scheduled_end.to_rfc3339(),
+        price_cents: updated.price_cents,
+        price_display: format!("${:.2}", updated.price_dollars()),
+        notes: updated.notes,
+    }))
+}
+
+/// Reschedule a booking to a new time
+pub async fn reschedule_booking(
+    State(_state): State<AppState>,
+    tenant: TenantContext,
+    auth: AuthUser,
+    Path(id): Path<String>,
+    Json(req): Json<RescheduleBookingRequest>,
+) -> ApiResult<Json<BookingResponse>> {
+    let booking_id = id
+        .parse()
+        .map_err(|_| ApiError::from(AppError::Validation("Invalid booking ID".to_string())))?;
+
+    let booking = BookingRepository::find_by_id(&tenant.pool, tenant.org_id, booking_id)
+        .await?
+        .ok_or_else(|| ApiError::from(DomainError::BookingNotFound(id.clone())))?;
+
+    // Only customer can reschedule their own booking
+    if booking.customer_id != auth.user_id {
+        return Err(ApiError::from(AppError::Forbidden));
+    }
+
+    // Can only reschedule pending or confirmed bookings
+    if !booking.can_cancel() {
+        return Err(ApiError::from(DomainError::InvalidStateTransition(
+            booking.status.to_string(),
+        )));
+    }
+
+    // Parse the new scheduled start time
+    let new_start = DateTime::parse_from_rfc3339(&req.scheduled_start)
+        .map_err(|_| ApiError::from(AppError::Validation("Invalid date format".to_string())))?
+        .with_timezone(&chrono::Utc);
+
+    // Calculate new end time based on original duration
+    let duration = booking.scheduled_end - booking.scheduled_start;
+    let new_end = new_start + duration;
+
+    // Update the booking
+    let updated = BookingRepository::reschedule(
+        &tenant.pool,
+        tenant.org_id,
+        booking_id,
+        new_start,
+        new_end,
+    )
+    .await?
+    .ok_or_else(|| ApiError::from(DomainError::BookingNotFound(id)))?;
 
     Ok(Json(BookingResponse {
         id: updated.id.to_string(),

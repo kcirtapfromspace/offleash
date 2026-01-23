@@ -18,6 +18,15 @@ struct CustomerBookingsView: View {
     @State private var errorMessage = ""
     @State private var selectedFilter: BookingFilter = .upcoming
 
+    // Swipe action states
+    @State private var bookingToCancel: Booking?
+    @State private var showCancelConfirmation = false
+    @State private var bookingToReschedule: Booking?
+    @State private var showRescheduleSheet = false
+    @State private var isCancelling = false
+    @State private var cancelError: String?
+    @State private var showCancelError = false
+
     enum BookingFilter: String, CaseIterable {
         case upcoming = "Upcoming"
         case past = "Past"
@@ -67,6 +76,46 @@ struct CustomerBookingsView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text(errorMessage)
+        }
+        .alert("Cancel Booking", isPresented: $showCancelConfirmation) {
+            Button("Keep Booking", role: .cancel) {
+                bookingToCancel = nil
+            }
+            Button("Cancel Booking", role: .destructive) {
+                if let booking = bookingToCancel {
+                    Task {
+                        await cancelBooking(booking)
+                    }
+                }
+            }
+        } message: {
+            if let booking = bookingToCancel {
+                Text("Are you sure you want to cancel your \(booking.serviceName ?? "booking") on \(booking.dateString)?")
+            } else {
+                Text("Are you sure you want to cancel this booking?")
+            }
+        }
+        .alert("Unable to Cancel", isPresented: $showCancelError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(cancelError ?? "An error occurred while cancelling the booking.")
+        }
+        .sheet(isPresented: $showRescheduleSheet) {
+            if let booking = bookingToReschedule {
+                RescheduleBookingSheet(
+                    booking: booking,
+                    onReschedule: { newDate in
+                        Task {
+                            await rescheduleBooking(booking, to: newDate)
+                        }
+                    },
+                    onDismiss: {
+                        showRescheduleSheet = false
+                        bookingToReschedule = nil
+                    }
+                )
+                .environmentObject(themeManager)
+            }
         }
     }
 
@@ -176,6 +225,27 @@ struct CustomerBookingsView: View {
     private var bookingsList: some View {
         List(filteredBookings) { booking in
             CustomerBookingRowView(booking: booking, themeManager: themeManager)
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    if booking.canCancel {
+                        Button(role: .destructive) {
+                            bookingToCancel = booking
+                            showCancelConfirmation = true
+                        } label: {
+                            Label("Cancel", systemImage: "xmark.circle")
+                        }
+                    }
+                }
+                .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                    if booking.canReschedule {
+                        Button {
+                            bookingToReschedule = booking
+                            showRescheduleSheet = true
+                        } label: {
+                            Label("Reschedule", systemImage: "calendar.badge.clock")
+                        }
+                        .tint(.blue)
+                    }
+                }
         }
         .listStyle(.plain)
     }
@@ -208,6 +278,86 @@ struct CustomerBookingsView: View {
     private func refreshBookings() async {
         await fetchBookings()
     }
+
+    // MARK: - Cancel Booking
+
+    private func cancelBooking(_ booking: Booking) async {
+        isCancelling = true
+
+        do {
+            let _: EmptyResponse = try await APIClient.shared.post("/bookings/\(booking.id)/cancel", body: EmptyRequest())
+
+            // Remove from local list or refresh
+            await MainActor.run {
+                bookings.removeAll { $0.id == booking.id }
+                bookingToCancel = nil
+                isCancelling = false
+            }
+
+            analyticsService.trackEvent(name: "booking_cancelled", params: ["booking_id": booking.id])
+
+            // Refresh to get updated list
+            await fetchBookings()
+        } catch let error as APIError {
+            await MainActor.run {
+                isCancelling = false
+                cancelError = error.errorDescription ?? "Failed to cancel booking"
+                showCancelError = true
+                bookingToCancel = nil
+            }
+        } catch {
+            await MainActor.run {
+                isCancelling = false
+                cancelError = "An unexpected error occurred"
+                showCancelError = true
+                bookingToCancel = nil
+            }
+        }
+    }
+
+    // MARK: - Reschedule Booking
+
+    private func rescheduleBooking(_ booking: Booking, to newDate: Date) async {
+        do {
+            let request = RescheduleBookingRequest(scheduledStart: ISO8601DateFormatter().string(from: newDate))
+            let _: Booking = try await APIClient.shared.post("/bookings/\(booking.id)/reschedule", body: request)
+
+            await MainActor.run {
+                showRescheduleSheet = false
+                bookingToReschedule = nil
+            }
+
+            analyticsService.trackEvent(name: "booking_rescheduled", params: ["booking_id": booking.id])
+
+            // Refresh to get updated list
+            await fetchBookings()
+        } catch let error as APIError {
+            await MainActor.run {
+                showRescheduleSheet = false
+                cancelError = error.errorDescription ?? "Failed to reschedule booking"
+                showCancelError = true
+                bookingToReschedule = nil
+            }
+        } catch {
+            await MainActor.run {
+                showRescheduleSheet = false
+                cancelError = "An unexpected error occurred"
+                showCancelError = true
+                bookingToReschedule = nil
+            }
+        }
+    }
+}
+
+// MARK: - Empty Request/Response for Cancel
+
+struct EmptyRequest: Encodable {}
+struct EmptyResponse: Decodable {}
+
+// MARK: - Reschedule Request
+
+struct RescheduleBookingRequest: Encodable {
+    let scheduledStart: String
 }
 
 // MARK: - Customer Booking Row View

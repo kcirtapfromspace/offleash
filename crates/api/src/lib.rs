@@ -102,6 +102,10 @@ pub fn create_app(state: AppState) -> Router {
             post(routes::bookings::cancel_booking),
         )
         .route(
+            "/bookings/:id/reschedule",
+            post(routes::bookings::reschedule_booking),
+        )
+        .route(
             "/bookings/:id/complete",
             post(routes::bookings::complete_booking),
         )

@@ -223,6 +223,34 @@ impl BookingRepository {
         Self::update_status(pool, org_id, id, BookingStatus::Cancelled).await
     }
 
+    /// Reschedule a booking to a new time
+    pub async fn reschedule(
+        pool: &PgPool,
+        org_id: OrganizationId,
+        id: BookingId,
+        new_start: chrono::DateTime<chrono::Utc>,
+        new_end: chrono::DateTime<chrono::Utc>,
+    ) -> Result<Option<Booking>, sqlx::Error> {
+        sqlx::query_as::<_, Booking>(
+            r#"
+            UPDATE bookings
+            SET scheduled_start = $3,
+                scheduled_end = $4,
+                updated_at = NOW()
+            WHERE id = $1
+              AND organization_id = $2
+              AND status IN ('pending', 'confirmed')
+            RETURNING *
+            "#,
+        )
+        .bind(id.as_uuid())
+        .bind(org_id.as_uuid())
+        .bind(new_start)
+        .bind(new_end)
+        .fetch_optional(pool)
+        .await
+    }
+
     /// Count bookings for today
     pub async fn count_today(pool: &PgPool, org_id: OrganizationId) -> Result<i64, sqlx::Error> {
         let result: (i64,) = sqlx::query_as(
