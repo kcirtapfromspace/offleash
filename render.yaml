@@ -94,8 +94,10 @@ services:
         value: 3000
       - key: PUBLIC_API_URL
         value: https://offleash-api.onrender.com
+      # IMPORTANT: Set ORIGIN to your actual domain in Render dashboard
+      # If using custom domain (app.offleash.world), set to https://app.offleash.world
       - key: ORIGIN
-        value: https://offleash-app.onrender.com
+        sync: false  # Set in Render dashboard to match your actual domain
       # OAuth Configuration - Set these in Render Dashboard
       - key: PUBLIC_GOOGLE_CLIENT_ID
         sync: false  # Set manually in dashboard
