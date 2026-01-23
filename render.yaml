@@ -127,6 +127,11 @@ services:
         value: https://offleash-api.onrender.com
       - key: ORIGIN
         value: https://offleash-admin.onrender.com
+      # OAuth Configuration - Set these in Render Dashboard
+      - key: PUBLIC_GOOGLE_CLIENT_ID
+        sync: false  # Set manually in dashboard
+      - key: PUBLIC_APPLE_CLIENT_ID
+        sync: false  # Set manually in dashboard
     autoDeploy: true
     buildFilter:
       paths:
