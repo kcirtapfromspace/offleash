@@ -1,39 +1,75 @@
 -- Multi-tenant Payment System Migration
 -- Supports Stripe Connect, Square, and Platform Default processing
 
--- Create provider type enum
-CREATE TYPE payment_provider_type AS ENUM ('stripe', 'square', 'platform');
+-- Create provider type enum (if not exists)
+DO $$ BEGIN
+    CREATE TYPE payment_provider_type AS ENUM ('stripe', 'square', 'platform');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
--- Create payment method type enum (extended)
-CREATE TYPE payment_method_type AS ENUM (
-    'card', 'apple_pay', 'google_pay', 'shop_pay', 'link', 'bank_account'
-);
+-- Create payment method type enum (extended) - may already exist from earlier migration
+DO $$ BEGIN
+    CREATE TYPE payment_method_type AS ENUM (
+        'card', 'apple_pay', 'google_pay', 'shop_pay', 'link', 'bank_account'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN
+        -- Type exists, try to add new values if needed
+        BEGIN
+            ALTER TYPE payment_method_type ADD VALUE IF NOT EXISTS 'google_pay';
+            ALTER TYPE payment_method_type ADD VALUE IF NOT EXISTS 'shop_pay';
+            ALTER TYPE payment_method_type ADD VALUE IF NOT EXISTS 'link';
+        EXCEPTION
+            WHEN others THEN null;
+        END;
+END $$;
 
--- Create transaction status enum
-CREATE TYPE transaction_status AS ENUM (
-    'pending', 'processing', 'succeeded', 'failed', 'refunded', 'partially_refunded', 'disputed'
-);
+-- Create transaction status enum (if not exists)
+DO $$ BEGIN
+    CREATE TYPE transaction_status AS ENUM (
+        'pending', 'processing', 'succeeded', 'failed', 'refunded', 'partially_refunded', 'disputed'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
--- Create subscription status enum
-CREATE TYPE subscription_status AS ENUM (
-    'active', 'paused', 'canceled', 'past_due', 'trialing', 'incomplete'
-);
+-- Create subscription status enum (if not exists)
+DO $$ BEGIN
+    CREATE TYPE subscription_status AS ENUM (
+        'active', 'paused', 'canceled', 'past_due', 'trialing', 'incomplete'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
--- Create payout status enum
-CREATE TYPE payout_status AS ENUM (
-    'pending', 'in_transit', 'paid', 'failed', 'canceled'
-);
+-- Create payout status enum (if not exists)
+DO $$ BEGIN
+    CREATE TYPE payout_status AS ENUM (
+        'pending', 'in_transit', 'paid', 'failed', 'canceled'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
--- Create dispute status enum
-CREATE TYPE dispute_status AS ENUM (
-    'needs_response', 'under_review', 'won', 'lost'
-);
+-- Create dispute status enum (if not exists)
+DO $$ BEGIN
+    CREATE TYPE dispute_status AS ENUM (
+        'needs_response', 'under_review', 'won', 'lost'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
--- Create plan tier enum for platform subscriptions
-CREATE TYPE plan_tier AS ENUM ('free', 'professional', 'business', 'enterprise');
+-- Create plan tier enum for platform subscriptions (if not exists)
+DO $$ BEGIN
+    CREATE TYPE plan_tier AS ENUM ('free', 'professional', 'business', 'enterprise');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- Payment Providers: Stores tenant payment processor configurations
-CREATE TABLE payment_providers (
+CREATE TABLE IF NOT EXISTS payment_providers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     provider_type payment_provider_type NOT NULL,
@@ -62,7 +98,7 @@ CREATE TABLE payment_providers (
 );
 
 -- Customer Payment Methods: Stored payment methods for customers
-CREATE TABLE customer_payment_methods (
+CREATE TABLE IF NOT EXISTS customer_payment_methods (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -95,7 +131,7 @@ CREATE TABLE customer_payment_methods (
 );
 
 -- Platform Fee Tiers: Defines fee structure per plan
-CREATE TABLE platform_fee_tiers (
+CREATE TABLE IF NOT EXISTS platform_fee_tiers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     plan_tier plan_tier NOT NULL UNIQUE,
     display_name VARCHAR(100) NOT NULL,
@@ -116,15 +152,16 @@ CREATE TABLE platform_fee_tiers (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Insert default fee tiers
+-- Insert default fee tiers (only if not exists)
 INSERT INTO platform_fee_tiers (plan_tier, display_name, customer_fee_percent, provider_fee_percent, min_provider_fee_cents, monthly_price_cents, annual_price_cents, features) VALUES
     ('free', 'Free', 0.0300, 0.2000, 50, 0, 0, '["Basic scheduling", "Up to 10 bookings/month"]'),
     ('professional', 'Professional', 0.0200, 0.1500, 50, 2900, 29000, '["Unlimited bookings", "Customer subscriptions", "Priority support"]'),
     ('business', 'Business', 0.0100, 0.1000, 50, 7900, 79000, '["Everything in Pro", "Custom branding", "API access", "Dedicated support"]'),
-    ('enterprise', 'Enterprise', 0.0050, 0.0500, 50, 0, 0, '["Custom pricing", "SLA", "Dedicated account manager"]');
+    ('enterprise', 'Enterprise', 0.0050, 0.0500, 50, 0, 0, '["Custom pricing", "SLA", "Dedicated account manager"]')
+ON CONFLICT (plan_tier) DO NOTHING;
 
 -- Tenant Subscriptions: Platform SaaS billing for tenants
-CREATE TABLE tenant_subscriptions (
+CREATE TABLE IF NOT EXISTS tenant_subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE UNIQUE,
     plan_tier plan_tier NOT NULL DEFAULT 'free',
@@ -149,7 +186,7 @@ CREATE TABLE tenant_subscriptions (
 );
 
 -- Transactions: Comprehensive payment transaction records
-CREATE TABLE transactions (
+CREATE TABLE IF NOT EXISTS transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
@@ -200,7 +237,7 @@ CREATE TABLE transactions (
 );
 
 -- Customer Subscriptions: Recurring service packages for customers
-CREATE TABLE customer_subscriptions (
+CREATE TABLE IF NOT EXISTS customer_subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -241,7 +278,7 @@ CREATE TABLE customer_subscriptions (
 );
 
 -- Payout Settings: How tenants receive their money
-CREATE TABLE payout_settings (
+CREATE TABLE IF NOT EXISTS payout_settings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE UNIQUE,
 
@@ -272,7 +309,7 @@ CREATE TABLE payout_settings (
 );
 
 -- Payouts: Track payouts to tenants
-CREATE TABLE payouts (
+CREATE TABLE IF NOT EXISTS payouts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
 
@@ -313,7 +350,7 @@ CREATE TABLE payouts (
 );
 
 -- Disputes: Track payment disputes/chargebacks
-CREATE TABLE disputes (
+CREATE TABLE IF NOT EXISTS disputes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     transaction_id UUID NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
@@ -345,7 +382,7 @@ CREATE TABLE disputes (
 );
 
 -- Webhook Events: Log all webhook events for audit
-CREATE TABLE payment_webhook_events (
+CREATE TABLE IF NOT EXISTS payment_webhook_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     provider payment_provider_type NOT NULL,
     event_id VARCHAR(255) NOT NULL,
@@ -360,36 +397,36 @@ CREATE TABLE payment_webhook_events (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_payment_providers_org ON payment_providers(organization_id);
-CREATE INDEX idx_payment_providers_active ON payment_providers(organization_id, is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_payment_providers_org ON payment_providers(organization_id);
+CREATE INDEX IF NOT EXISTS idx_payment_providers_active ON payment_providers(organization_id, is_active) WHERE is_active = true;
 
-CREATE INDEX idx_customer_payment_methods_user ON customer_payment_methods(user_id);
-CREATE INDEX idx_customer_payment_methods_org_user ON customer_payment_methods(organization_id, user_id);
-CREATE INDEX idx_customer_payment_methods_default ON customer_payment_methods(user_id, is_default) WHERE is_default = true;
+CREATE INDEX IF NOT EXISTS idx_customer_payment_methods_user ON customer_payment_methods(user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_payment_methods_org_user ON customer_payment_methods(organization_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_payment_methods_default ON customer_payment_methods(user_id, is_default) WHERE is_default = true;
 
-CREATE INDEX idx_transactions_org ON transactions(organization_id);
-CREATE INDEX idx_transactions_user ON transactions(user_id);
-CREATE INDEX idx_transactions_booking ON transactions(booking_id);
-CREATE INDEX idx_transactions_status ON transactions(organization_id, status);
-CREATE INDEX idx_transactions_created ON transactions(organization_id, created_at DESC);
-CREATE INDEX idx_transactions_stripe_pi ON transactions(stripe_payment_intent_id) WHERE stripe_payment_intent_id IS NOT NULL;
-CREATE INDEX idx_transactions_square ON transactions(square_payment_id) WHERE square_payment_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_transactions_org ON transactions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_booking ON transactions(booking_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_transactions_created ON transactions(organization_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_stripe_pi ON transactions(stripe_payment_intent_id) WHERE stripe_payment_intent_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_transactions_square ON transactions(square_payment_id) WHERE square_payment_id IS NOT NULL;
 
-CREATE INDEX idx_customer_subscriptions_org ON customer_subscriptions(organization_id);
-CREATE INDEX idx_customer_subscriptions_user ON customer_subscriptions(user_id);
-CREATE INDEX idx_customer_subscriptions_status ON customer_subscriptions(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_customer_subscriptions_org ON customer_subscriptions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_customer_subscriptions_user ON customer_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_customer_subscriptions_status ON customer_subscriptions(organization_id, status);
 
-CREATE INDEX idx_tenant_subscriptions_status ON tenant_subscriptions(status);
+CREATE INDEX IF NOT EXISTS idx_tenant_subscriptions_status ON tenant_subscriptions(status);
 
-CREATE INDEX idx_payouts_org ON payouts(organization_id);
-CREATE INDEX idx_payouts_status ON payouts(organization_id, status);
-CREATE INDEX idx_payouts_period ON payouts(organization_id, period_start, period_end);
+CREATE INDEX IF NOT EXISTS idx_payouts_org ON payouts(organization_id);
+CREATE INDEX IF NOT EXISTS idx_payouts_status ON payouts(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_payouts_period ON payouts(organization_id, period_start, period_end);
 
-CREATE INDEX idx_disputes_org ON disputes(organization_id);
-CREATE INDEX idx_disputes_status ON disputes(organization_id, status);
-CREATE INDEX idx_disputes_transaction ON disputes(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_disputes_org ON disputes(organization_id);
+CREATE INDEX IF NOT EXISTS idx_disputes_status ON disputes(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_disputes_transaction ON disputes(transaction_id);
 
-CREATE INDEX idx_webhook_events_unprocessed ON payment_webhook_events(provider, processed, created_at) WHERE processed = false;
+CREATE INDEX IF NOT EXISTS idx_webhook_events_unprocessed ON payment_webhook_events(provider, processed, created_at) WHERE processed = false;
 
 -- Add plan_tier column to organizations for quick access
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS plan_tier plan_tier NOT NULL DEFAULT 'free';
@@ -403,11 +440,26 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_payment_providers_updated_at ON payment_providers;
 CREATE TRIGGER update_payment_providers_updated_at BEFORE UPDATE ON payment_providers FOR EACH ROW EXECUTE FUNCTION update_payment_updated_at();
+
+DROP TRIGGER IF EXISTS update_customer_payment_methods_updated_at ON customer_payment_methods;
 CREATE TRIGGER update_customer_payment_methods_updated_at BEFORE UPDATE ON customer_payment_methods FOR EACH ROW EXECUTE FUNCTION update_payment_updated_at();
+
+DROP TRIGGER IF EXISTS update_transactions_updated_at ON transactions;
 CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON transactions FOR EACH ROW EXECUTE FUNCTION update_payment_updated_at();
+
+DROP TRIGGER IF EXISTS update_customer_subscriptions_updated_at ON customer_subscriptions;
 CREATE TRIGGER update_customer_subscriptions_updated_at BEFORE UPDATE ON customer_subscriptions FOR EACH ROW EXECUTE FUNCTION update_payment_updated_at();
+
+DROP TRIGGER IF EXISTS update_tenant_subscriptions_updated_at ON tenant_subscriptions;
 CREATE TRIGGER update_tenant_subscriptions_updated_at BEFORE UPDATE ON tenant_subscriptions FOR EACH ROW EXECUTE FUNCTION update_payment_updated_at();
+
+DROP TRIGGER IF EXISTS update_payout_settings_updated_at ON payout_settings;
 CREATE TRIGGER update_payout_settings_updated_at BEFORE UPDATE ON payout_settings FOR EACH ROW EXECUTE FUNCTION update_payment_updated_at();
+
+DROP TRIGGER IF EXISTS update_payouts_updated_at ON payouts;
 CREATE TRIGGER update_payouts_updated_at BEFORE UPDATE ON payouts FOR EACH ROW EXECUTE FUNCTION update_payment_updated_at();
+
+DROP TRIGGER IF EXISTS update_disputes_updated_at ON disputes;
 CREATE TRIGGER update_disputes_updated_at BEFORE UPDATE ON disputes FOR EACH ROW EXECUTE FUNCTION update_payment_updated_at();
