@@ -43,6 +43,7 @@ struct BookingFlowView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var createdBooking: Booking?
+    @State private var showCheckout = false
 
     // Available time slots (in production, these would come from API)
     @State private var availableTimeSlots: [TimeSlot] = []
@@ -113,6 +114,17 @@ struct BookingFlowView: View {
                 }
             })
             .withThemeManager(themeManager)
+        }
+        .sheet(isPresented: $showCheckout) {
+            if let booking = createdBooking {
+                CheckoutView(
+                    bookingId: booking.id,
+                    serviceName: booking.serviceName ?? service.name,
+                    subtotalCents: service.priceCents,
+                    providerUserId: booking.walkerId ?? ""
+                )
+                .environmentObject(themeManager)
+            }
         }
     }
 
@@ -510,16 +522,29 @@ struct BookingFlowView: View {
 
             Spacer()
 
-            // Done Button
+            // Pay Now Button
             Button {
-                dismiss()
+                showCheckout = true
             } label: {
-                Text("Done")
+                Text("Pay Now")
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(themeManager.primaryColor)
                     .foregroundColor(.white)
+                    .cornerRadius(12)
+            }
+
+            // Done Button (pay later)
+            Button {
+                dismiss()
+            } label: {
+                Text("Pay Later")
+                    .fontWeight(.medium)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .foregroundColor(.primary)
                     .cornerRadius(12)
             }
         }

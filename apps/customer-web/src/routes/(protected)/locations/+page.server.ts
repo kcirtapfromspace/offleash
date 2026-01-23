@@ -82,5 +82,112 @@ export const actions: Actions = {
 			}
 			throw err;
 		}
+	},
+
+	update: async ({ request, cookies }) => {
+		const token = cookies.get('token');
+		if (!token) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const formData = await request.formData();
+		const id = formData.get('id')?.toString();
+		const name = formData.get('name')?.toString();
+		const address = formData.get('address')?.toString();
+		const city = formData.get('city')?.toString();
+		const state = formData.get('state')?.toString();
+		const zip_code = formData.get('zip_code')?.toString();
+		const notes = formData.get('notes')?.toString() || null;
+		const is_default = formData.get('is_default') === 'on';
+
+		if (!id) {
+			return fail(400, { error: 'Location ID is required' });
+		}
+
+		// Simple validation
+		if (!name || !address || !city || !state || !zip_code) {
+			return fail(400, {
+				error: 'All address fields are required',
+				name,
+				address,
+				city,
+				state,
+				zip_code,
+				notes
+			});
+		}
+
+		try {
+			await api.put(
+				`/locations/${id}`,
+				{
+					name,
+					address,
+					city,
+					state,
+					zip_code,
+					latitude: 39.7392, // Denver coordinates as default
+					longitude: -104.9903,
+					notes,
+					is_default
+				},
+				token
+			);
+
+			return { success: true, updated: true };
+		} catch (err) {
+			if (err instanceof ApiError) {
+				return fail(err.status, { error: err.message || 'Failed to update location' });
+			}
+			throw err;
+		}
+	},
+
+	delete: async ({ request, cookies }) => {
+		const token = cookies.get('token');
+		if (!token) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const formData = await request.formData();
+		const id = formData.get('id')?.toString();
+
+		if (!id) {
+			return fail(400, { error: 'Location ID is required' });
+		}
+
+		try {
+			await api.delete(`/locations/${id}`, token);
+			return { success: true, deleted: true };
+		} catch (err) {
+			if (err instanceof ApiError) {
+				return fail(err.status, { error: err.message || 'Failed to delete location' });
+			}
+			throw err;
+		}
+	},
+
+	setDefault: async ({ request, cookies }) => {
+		const token = cookies.get('token');
+		if (!token) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const formData = await request.formData();
+		const id = formData.get('id')?.toString();
+
+		if (!id) {
+			return fail(400, { error: 'Location ID is required' });
+		}
+
+		try {
+			await api.put(`/locations/${id}/default`, {}, token);
+			return { success: true };
+		} catch (err) {
+			if (err instanceof ApiError) {
+				return fail(err.status, { error: err.message || 'Failed to set default location' });
+			}
+			throw err;
+		}
 	}
 };

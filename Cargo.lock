@@ -62,12 +62,14 @@ version = "0.1.0"
 dependencies = [
  "argon2",
  "axum",
+ "base64 0.22.1",
  "chrono",
  "db",
  "domain",
  "dotenvy",
  "ethers-core",
  "hex",
+ "hmac",
  "integrations",
  "jsonwebtoken",
  "metrics",
@@ -78,6 +80,7 @@ dependencies = [
  "rust_decimal",
  "serde",
  "serde_json",
+ "sha2",
  "shared",
  "siwe",
  "sqlx",
@@ -1660,12 +1663,16 @@ name = "integrations"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "hex",
+ "hmac",
  "reqwest",
  "serde",
  "serde_json",
+ "sha2",
  "shared",
  "thiserror 1.0.69",
  "tracing",
+ "uuid",
 ]
 
 [[package]]

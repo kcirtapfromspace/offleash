@@ -64,6 +64,18 @@ struct CustomerProfileView: View {
                 } label: {
                     Label("Payment Methods", systemImage: "creditcard")
                 }
+
+                NavigationLink {
+                    TransactionHistoryView()
+                } label: {
+                    Label("Transaction History", systemImage: "clock.arrow.circlepath")
+                }
+
+                NavigationLink {
+                    SubscriptionsView()
+                } label: {
+                    Label("Subscriptions", systemImage: "repeat.circle")
+                }
             }
 
             // Preferences Section
