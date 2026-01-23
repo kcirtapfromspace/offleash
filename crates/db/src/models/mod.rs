@@ -12,6 +12,7 @@ mod service_area;
 mod tenant_database;
 mod travel_time;
 mod user;
+mod user_identity;
 mod walker_profile;
 mod working_hours;
 
@@ -29,5 +30,6 @@ pub use service_area::*;
 pub use tenant_database::*;
 pub use travel_time::*;
 pub use user::*;
+pub use user_identity::*;
 pub use walker_profile::*;
 pub use working_hours::*;
