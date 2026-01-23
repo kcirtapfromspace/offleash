@@ -6,5 +6,6 @@ export const load: PageServerLoad = async ({ cookies }) => {
 	if (token) {
 		throw redirect(303, '/services');
 	}
-	throw redirect(303, '/login');
+	// Send unauthenticated users to onboarding/role selection
+	throw redirect(303, '/onboarding');
 };
