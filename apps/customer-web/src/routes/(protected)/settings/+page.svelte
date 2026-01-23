@@ -1,5 +1,13 @@
 <script lang="ts">
 	// Settings hub page - links to various settings sections
+	let { data } = $props();
+
+	// Check if user has any walker/owner/admin memberships
+	const hasWalkerBusiness = $derived(
+		data.memberships?.some(
+			(m: { role: string }) => m.role === 'walker' || m.role === 'owner' || m.role === 'admin'
+		) ?? false
+	);
 </script>
 
 <div class="max-w-2xl mx-auto p-4">
@@ -86,5 +94,51 @@
 				</svg>
 			</div>
 		</a>
+	</div>
+
+	<!-- Walker Business Section -->
+	<h2 class="text-lg font-semibold mt-8 mb-4 text-gray-700">Walker Business</h2>
+	<div class="bg-white rounded-lg shadow divide-y">
+		{#if hasWalkerBusiness}
+			<!-- Already has a business -->
+			<a href="/onboarding/walker" class="block p-4 hover:bg-gray-50 transition-colors">
+				<div class="flex items-center justify-between">
+					<div class="flex items-center gap-3">
+						<div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+							</svg>
+						</div>
+						<div>
+							<p class="font-medium">Manage Businesses</p>
+							<p class="text-sm text-gray-500">Create or join another business</p>
+						</div>
+					</div>
+					<svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+					</svg>
+				</div>
+			</a>
+		{:else}
+			<!-- No business yet -->
+			<a href="/onboarding/walker" class="block p-4 hover:bg-gray-50 transition-colors">
+				<div class="flex items-center justify-between">
+					<div class="flex items-center gap-3">
+						<div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+							</svg>
+						</div>
+						<div>
+							<p class="font-medium">Become a Walker</p>
+							<p class="text-sm text-gray-500">Start or join a dog walking business</p>
+						</div>
+					</div>
+					<svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+					</svg>
+				</div>
+			</a>
+		{/if}
 	</div>
 </div>
