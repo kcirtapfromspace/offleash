@@ -10,6 +10,29 @@
 	let oauthLoading = $state<'google' | 'apple' | null>(null);
 	let oauthError = $state<string | null>(null);
 
+	// Phone auth state
+	let phoneAuthMode = $state(false);
+	let phoneNumber = $state('');
+	let countryCode = $state('+1');
+	let verificationCode = $state('');
+	let codeSent = $state(false);
+	let phoneLoading = $state(false);
+	let phoneError = $state<string | null>(null);
+	let resendCooldown = $state(0);
+	let resendTimer: ReturnType<typeof setInterval> | null = null;
+
+	// Wallet auth state
+	let walletLoading = $state(false);
+	let walletError = $state<string | null>(null);
+	let hasWallet = $state(false);
+
+	// Check if browser has Ethereum wallet
+	$effect(() => {
+		if (typeof window !== 'undefined') {
+			hasWallet = !!(window as any).ethereum;
+		}
+	});
+
 	// Check if OAuth is configured
 	const googleClientId = env.PUBLIC_GOOGLE_CLIENT_ID || '';
 	const appleClientId = env.PUBLIC_APPLE_CLIENT_ID || '';
@@ -170,6 +193,196 @@
 			oauthLoading = null;
 		}
 	}
+
+	// Phone auth functions
+	function startPhoneAuth() {
+		phoneAuthMode = true;
+		codeSent = false;
+		verificationCode = '';
+		phoneError = null;
+	}
+
+	function cancelPhoneAuth() {
+		phoneAuthMode = false;
+		codeSent = false;
+		phoneNumber = '';
+		verificationCode = '';
+		phoneError = null;
+		if (resendTimer) {
+			clearInterval(resendTimer);
+			resendTimer = null;
+		}
+		resendCooldown = 0;
+	}
+
+	function startResendCooldown() {
+		resendCooldown = 60;
+		if (resendTimer) clearInterval(resendTimer);
+		resendTimer = setInterval(() => {
+			resendCooldown--;
+			if (resendCooldown <= 0) {
+				if (resendTimer) clearInterval(resendTimer);
+				resendTimer = null;
+			}
+		}, 1000);
+	}
+
+	async function sendPhoneCode() {
+		phoneLoading = true;
+		phoneError = null;
+
+		const fullPhoneNumber = countryCode + phoneNumber.replace(/\D/g, '');
+
+		try {
+			const res = await fetch(`${apiUrl}/auth/phone/send-code`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					org_slug: orgSlug,
+					phone_number: fullPhoneNumber,
+				}),
+			});
+
+			if (!res.ok) {
+				const error = await res.json().catch(() => ({ message: 'Failed to send code' }));
+				throw new Error(error.message || 'Failed to send verification code');
+			}
+
+			codeSent = true;
+			startResendCooldown();
+		} catch (err) {
+			phoneError = err instanceof Error ? err.message : 'Failed to send code';
+		} finally {
+			phoneLoading = false;
+		}
+	}
+
+	async function verifyPhoneCode() {
+		phoneLoading = true;
+		phoneError = null;
+
+		const fullPhoneNumber = countryCode + phoneNumber.replace(/\D/g, '');
+
+		try {
+			const res = await fetch(`${apiUrl}/auth/phone/verify`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					org_slug: orgSlug,
+					phone_number: fullPhoneNumber,
+					code: verificationCode,
+				}),
+			});
+
+			if (!res.ok) {
+				const error = await res.json().catch(() => ({ message: 'Verification failed' }));
+				throw new Error(error.message || 'Invalid verification code');
+			}
+
+			const result = await res.json();
+
+			// Store token and redirect
+			document.cookie = `token=${result.token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+			await goto('/services');
+		} catch (err) {
+			phoneError = err instanceof Error ? err.message : 'Verification failed';
+		} finally {
+			phoneLoading = false;
+		}
+	}
+
+	// Auto-submit when code is complete
+	function handleCodeInput(event: Event) {
+		const input = event.target as HTMLInputElement;
+		verificationCode = input.value.replace(/\D/g, '').slice(0, 6);
+		if (verificationCode.length === 6) {
+			verifyPhoneCode();
+		}
+	}
+
+	// Format phone number as user types
+	function formatPhoneNumber(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const cleaned = input.value.replace(/\D/g, '');
+		phoneNumber = cleaned;
+	}
+
+	// Wallet auth functions
+	async function handleWalletLogin() {
+		const ethereum = (window as any).ethereum;
+		if (!ethereum) {
+			walletError = 'No Ethereum wallet detected. Please install MetaMask.';
+			return;
+		}
+
+		walletLoading = true;
+		walletError = null;
+		oauthError = null;
+
+		try {
+			// Request account access
+			const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+			if (!accounts || accounts.length === 0) {
+				throw new Error('No accounts found. Please unlock your wallet.');
+			}
+			const walletAddress = accounts[0].toLowerCase();
+
+			// Get challenge from backend
+			const challengeRes = await fetch(`${apiUrl}/auth/wallet/challenge`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					org_slug: orgSlug,
+					wallet_address: walletAddress,
+				}),
+			});
+
+			if (!challengeRes.ok) {
+				const error = await challengeRes.json().catch(() => ({ message: 'Failed to get challenge' }));
+				throw new Error(error.message || 'Failed to get signing challenge');
+			}
+
+			const { message } = await challengeRes.json();
+
+			// Sign the message with the wallet
+			const signature = await ethereum.request({
+				method: 'personal_sign',
+				params: [message, walletAddress],
+			});
+
+			// Verify signature with backend
+			const verifyRes = await fetch(`${apiUrl}/auth/wallet/verify`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					org_slug: orgSlug,
+					wallet_address: walletAddress,
+					message,
+					signature,
+				}),
+			});
+
+			if (!verifyRes.ok) {
+				const error = await verifyRes.json().catch(() => ({ message: 'Verification failed' }));
+				throw new Error(error.message || 'Wallet verification failed');
+			}
+
+			const result = await verifyRes.json();
+
+			// Store token and redirect
+			document.cookie = `token=${result.token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+			await goto('/services');
+		} catch (err: any) {
+			// Handle user rejection
+			if (err.code === 4001) {
+				walletError = 'You rejected the signature request.';
+			} else {
+				walletError = err instanceof Error ? err.message : 'Wallet login failed';
+			}
+		} finally {
+			walletLoading = false;
+		}
+	}
 </script>
 
 <div class="min-h-screen flex items-center justify-center bg-gray-100">
@@ -178,20 +391,133 @@
 			Login
 		</h1>
 
-		{#if form?.error || oauthError}
+		{#if form?.error || oauthError || phoneError || walletError}
 			<div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-				{form?.error || oauthError}
+				{form?.error || oauthError || phoneError || walletError}
 			</div>
 		{/if}
 
-		<!-- OAuth Buttons (only shown when configured) -->
-		{#if hasOAuthProviders}
+		<!-- Phone Auth Mode -->
+		{#if phoneAuthMode}
+		<div class="space-y-4">
+			<button
+				type="button"
+				onclick={cancelPhoneAuth}
+				class="flex items-center text-gray-600 hover:text-gray-900 text-sm mb-2"
+			>
+				<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+				</svg>
+				Back to login options
+			</button>
+
+			{#if !codeSent}
+				<!-- Phone number input -->
+				<div>
+					<label for="phone" class="block text-sm font-medium text-gray-700 mb-1">
+						Phone Number
+					</label>
+					<div class="flex gap-2">
+						<select
+							bind:value={countryCode}
+							disabled={phoneLoading}
+							class="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+						>
+							<option value="+1">+1 (US)</option>
+							<option value="+44">+44 (UK)</option>
+							<option value="+61">+61 (AU)</option>
+							<option value="+91">+91 (IN)</option>
+							<option value="+86">+86 (CN)</option>
+							<option value="+81">+81 (JP)</option>
+							<option value="+49">+49 (DE)</option>
+							<option value="+33">+33 (FR)</option>
+							<option value="+52">+52 (MX)</option>
+							<option value="+55">+55 (BR)</option>
+						</select>
+						<input
+							type="tel"
+							id="phone"
+							value={phoneNumber}
+							oninput={formatPhoneNumber}
+							required
+							disabled={phoneLoading}
+							class="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+							placeholder="(555) 123-4567"
+						/>
+					</div>
+					<p class="text-xs text-gray-500 mt-1">We'll send you a verification code</p>
+				</div>
+
+				<button
+					type="button"
+					onclick={sendPhoneCode}
+					disabled={phoneLoading || phoneNumber.length < 10}
+					class="w-full text-white py-2.5 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+					style="background-color: var(--color-primary)"
+				>
+					{phoneLoading ? 'Sending...' : 'Send Verification Code'}
+				</button>
+			{:else}
+				<!-- Verification code input -->
+				<div>
+					<p class="text-sm text-gray-600 mb-3">
+						Enter the 6-digit code sent to {countryCode}{phoneNumber}
+					</p>
+					<label for="code" class="block text-sm font-medium text-gray-700 mb-1">
+						Verification Code
+					</label>
+					<input
+						type="text"
+						id="code"
+						value={verificationCode}
+						oninput={handleCodeInput}
+						maxlength="6"
+						disabled={phoneLoading}
+						class="w-full px-3 py-3 border border-gray-300 rounded text-center text-2xl tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+						placeholder="000000"
+						autocomplete="one-time-code"
+					/>
+				</div>
+
+				<button
+					type="button"
+					onclick={verifyPhoneCode}
+					disabled={phoneLoading || verificationCode.length !== 6}
+					class="w-full text-white py-2.5 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+					style="background-color: var(--color-primary)"
+				>
+					{phoneLoading ? 'Verifying...' : 'Verify Code'}
+				</button>
+
+				<div class="text-center">
+					{#if resendCooldown > 0}
+						<p class="text-sm text-gray-500">
+							Resend code in {resendCooldown}s
+						</p>
+					{:else}
+						<button
+							type="button"
+							onclick={sendPhoneCode}
+							disabled={phoneLoading}
+							class="text-sm hover:underline disabled:opacity-50"
+							style="color: var(--color-primary)"
+						>
+							Resend code
+						</button>
+					{/if}
+				</div>
+			{/if}
+		</div>
+		{:else}
+		<!-- Standard login options -->
+
+		<!-- OAuth & Phone Buttons -->
 		<div class="space-y-3 mb-6">
 			{#if isGoogleConfigured}
 			<button
 				type="button"
 				onclick={handleGoogleLogin}
-				disabled={oauthLoading !== null}
+				disabled={oauthLoading !== null || walletLoading}
 				class="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 py-2.5 px-4 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 			>
 				<svg class="w-5 h-5" viewBox="0 0 24 24">
@@ -208,13 +534,41 @@
 			<button
 				type="button"
 				onclick={handleAppleLogin}
-				disabled={oauthLoading !== null}
+				disabled={oauthLoading !== null || walletLoading}
 				class="w-full flex items-center justify-center gap-3 bg-black text-white py-2.5 px-4 rounded-lg hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 			>
 				<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
 					<path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
 				</svg>
 				{oauthLoading === 'apple' ? 'Connecting...' : 'Continue with Apple'}
+			</button>
+			{/if}
+
+			<!-- Phone auth button (always shown) -->
+			<button
+				type="button"
+				onclick={startPhoneAuth}
+				disabled={oauthLoading !== null || walletLoading}
+				class="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 py-2.5 px-4 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+			>
+				<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+				</svg>
+				Continue with Phone
+			</button>
+
+			<!-- Wallet auth button (shown when wallet detected) -->
+			{#if hasWallet}
+			<button
+				type="button"
+				onclick={handleWalletLogin}
+				disabled={oauthLoading !== null || walletLoading}
+				class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-purple-600 to-blue-500 text-white py-2.5 px-4 rounded-lg hover:from-purple-700 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+			>
+				<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+				</svg>
+				{walletLoading ? 'Connecting Wallet...' : 'Continue with Wallet'}
 			</button>
 			{/if}
 		</div>
@@ -228,7 +582,6 @@
 				<span class="px-2 bg-white text-gray-500">or continue with email</span>
 			</div>
 		</div>
-		{/if}
 
 		<!-- Email/Password Form -->
 		<form
@@ -288,5 +641,6 @@
 				Register
 			</a>
 		</p>
+		{/if}
 	</div>
 </div>
