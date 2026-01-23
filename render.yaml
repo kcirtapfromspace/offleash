@@ -59,6 +59,9 @@ services:
         value: offleash.world
       - key: CORS_ORIGINS
         value: https://app.offleash.world,https://admin.offleash.world,https://platform.offleash.world,https://offleash-app.onrender.com,https://offleash-admin.onrender.com,https://offleash-platform.onrender.com
+      # Apple Sign-In Service ID (iOS Bundle ID)
+      - key: APPLE_SERVICE_ID
+        value: com.offleash.ios
     autoDeploy: true
     buildFilter:
       paths:

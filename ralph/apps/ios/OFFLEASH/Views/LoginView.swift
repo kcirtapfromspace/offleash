@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AuthenticationServices
 import FirebaseCrashlytics
 
 // MARK: - Login Request/Response Models
@@ -37,6 +38,7 @@ struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var isLoading = false
+    @State private var isOAuthLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var emailError: String?
@@ -49,7 +51,7 @@ struct LoginView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     Spacer()
-                        .frame(height: geometry.size.height * 0.1)
+                        .frame(height: geometry.size.height * 0.08)
 
                     // Logo and Title
                     VStack(spacing: 16) {
@@ -66,7 +68,58 @@ struct LoginView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
-                    .padding(.bottom, 32)
+                    .padding(.bottom, 24)
+
+                    // OAuth Buttons
+                    VStack(spacing: 12) {
+                        // Sign in with Apple
+                        SignInWithAppleButton(
+                            .signIn,
+                            onRequest: { request in
+                                request.requestedScopes = [.email, .fullName]
+                            },
+                            onCompletion: handleAppleSignIn
+                        )
+                        .signInWithAppleButtonStyle(.black)
+                        .frame(height: 50)
+                        .cornerRadius(12)
+                        .disabled(isLoading || isOAuthLoading)
+
+                        // Google Sign In Button (styled)
+                        Button(action: signInWithGoogle) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "g.circle.fill")
+                                    .font(.title2)
+                                Text("Sign in with Google")
+                                    .fontWeight(.medium)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(Color.white)
+                            .foregroundColor(.black)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color(.systemGray3), lineWidth: 1)
+                            )
+                        }
+                        .disabled(isLoading || isOAuthLoading)
+                    }
+
+                    // Divider
+                    HStack {
+                        Rectangle()
+                            .fill(Color(.systemGray4))
+                            .frame(height: 1)
+                        Text("or")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 16)
+                        Rectangle()
+                            .fill(Color(.systemGray4))
+                            .frame(height: 1)
+                    }
+                    .padding(.vertical, 8)
 
                     // Email Field
                     VStack(alignment: .leading, spacing: 8) {
@@ -141,8 +194,8 @@ struct LoginView: View {
                         )
                         .foregroundColor(.white)
                     }
-                    .disabled(!isLoginEnabled || isLoading)
-                    .padding(.top, 16)
+                    .disabled(!isLoginEnabled || isLoading || isOAuthLoading)
+                    .padding(.top, 8)
 
                     // Register Link
                     if let onNavigateToRegister = onNavigateToRegister {
@@ -177,6 +230,15 @@ struct LoginView: View {
                 }
                 .padding(.horizontal, 24)
                 .frame(minHeight: geometry.size.height)
+            }
+        }
+        .overlay {
+            if isOAuthLoading {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .tint(.white)
             }
         }
         .alert("Login Failed", isPresented: $showError) {
@@ -277,6 +339,85 @@ struct LoginView: View {
                 }
             }
         }
+    }
+
+    // MARK: - OAuth Actions
+
+    private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) {
+        switch result {
+        case .success(let authorization):
+            guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                  let identityTokenData = appleIDCredential.identityToken,
+                  let identityToken = String(data: identityTokenData, encoding: .utf8) else {
+                errorMessage = "Invalid credentials received from Apple"
+                showError = true
+                return
+            }
+
+            // Get name (only available on first sign-in)
+            let firstName = appleIDCredential.fullName?.givenName
+            let lastName = appleIDCredential.fullName?.familyName
+
+            isOAuthLoading = true
+
+            Task {
+                do {
+                    let orgSlug = ProcessInfo.processInfo.environment["ORG_SLUG"] ?? "demo"
+                    let request = OAuthAppleRequest(
+                        orgSlug: orgSlug,
+                        idToken: identityToken,
+                        firstName: firstName,
+                        lastName: lastName
+                    )
+
+                    let response: OAuthResponse = try await APIClient.shared.post("/auth/apple", body: request)
+                    await APIClient.shared.setAuthToken(response.token)
+
+                    // Save user to session
+                    let role = UserRole(rawValue: response.user.role ?? "customer") ?? .customer
+                    let user = User(
+                        id: response.user.id,
+                        email: response.user.email,
+                        firstName: response.user.firstName,
+                        lastName: response.user.lastName,
+                        role: role
+                    )
+                    await MainActor.run {
+                        UserSession.shared.setUser(user)
+                        isOAuthLoading = false
+                        analyticsService.trackEvent(name: "login_success", params: ["method": "apple"])
+                        onLoginSuccess()
+                    }
+                } catch let error as APIError {
+                    await MainActor.run {
+                        isOAuthLoading = false
+                        errorMessage = error.errorDescription ?? "Apple Sign-In failed"
+                        showError = true
+                    }
+                } catch {
+                    await MainActor.run {
+                        isOAuthLoading = false
+                        errorMessage = "Apple Sign-In failed. Please try again."
+                        showError = true
+                    }
+                }
+            }
+
+        case .failure(let error):
+            // User cancelled - don't show error
+            if (error as NSError).code == ASAuthorizationError.canceled.rawValue {
+                return
+            }
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+
+    private func signInWithGoogle() {
+        // Google Sign-In requires the GoogleSignIn SDK
+        // For now, show a message that it's coming soon
+        errorMessage = "Google Sign-In coming soon. Please use Apple Sign-In or email/password."
+        showError = true
     }
 }
 

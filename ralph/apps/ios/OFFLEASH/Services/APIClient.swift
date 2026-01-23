@@ -307,7 +307,9 @@ actor APIClient {
         #if DEBUG
         self.baseURL = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "http://192.168.25.201:8080"
         #else
-        self.baseURL = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "https://api.offleash.pro"
+        // TestFlight/Release builds use demo environment
+        // Change to https://api.offleash.pro for production App Store release
+        self.baseURL = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "https://api.offleash.world"
         #endif
 
         // Configure URLSession with certificate pinning delegate
@@ -316,11 +318,13 @@ actor APIClient {
         configuration.timeoutIntervalForResource = 60
         self.certificatePinningDelegate = CertificatePinningDelegate()
 
-        // Skip certificate pinning for localhost/development
+        // Skip certificate pinning for localhost/development and demo environment
+        // TODO: Enable certificate pinning for production release with proper certificate hashes
         let isLocalhost = self.baseURL.contains("localhost") || self.baseURL.contains("127.0.0.1") || self.baseURL.contains("192.168.")
+        let isDemoEnvironment = self.baseURL.contains("offleash.world")
         self.session = URLSession(
             configuration: configuration,
-            delegate: isLocalhost ? nil : certificatePinningDelegate,
+            delegate: (isLocalhost || isDemoEnvironment) ? nil : certificatePinningDelegate,
             delegateQueue: nil
         )
 
