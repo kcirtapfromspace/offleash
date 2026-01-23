@@ -83,7 +83,8 @@ platform :ios do
       scheme: "OFFLEASH",
       configuration: "Release",
       export_method: "app-store",
-      xcargs: "-allowProvisioningUpdates"
+      xcargs: "-allowProvisioningUpdates",
+      derived_data_path: "./build/DerivedData"
     )
 
     # Parse groups if provided
