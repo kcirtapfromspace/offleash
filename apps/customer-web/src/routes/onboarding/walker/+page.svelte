@@ -1,5 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+
+	// Check if user came from settings
+	const fromSettings = $derived(page.url.searchParams.get('from') === 'settings');
+	const backUrl = $derived(fromSettings ? '/settings' : '/onboarding');
+	const backLabel = $derived(fromSettings ? 'Back to settings' : 'Back to role selection');
 </script>
 
 <svelte:head>
@@ -25,7 +31,7 @@
 			<button
 				type="button"
 				class="w-full p-4 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all text-left flex items-center gap-4"
-				onclick={() => goto('/onboarding/walker/create')}
+				onclick={() => goto(fromSettings ? '/onboarding/walker/create?from=settings' : '/onboarding/walker/create')}
 			>
 				<div class="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
 					<svg class="w-7 h-7 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
@@ -45,7 +51,7 @@
 			<button
 				type="button"
 				class="w-full p-4 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all text-left flex items-center gap-4"
-				onclick={() => goto('/onboarding/walker/join')}
+				onclick={() => goto(fromSettings ? '/onboarding/walker/join?from=settings' : '/onboarding/walker/join')}
 			>
 				<div class="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
 					<svg class="w-7 h-7 text-green-600" fill="currentColor" viewBox="0 0 24 24">
@@ -64,14 +70,14 @@
 
 		<!-- Back link -->
 		<a
-			href="/onboarding"
+			href={backUrl}
 			class="mt-8 text-sm flex items-center gap-1 hover:underline"
 			style="color: var(--color-primary, #3b82f6)"
 		>
 			<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
 			</svg>
-			Back to role selection
+			{backLabel}
 		</a>
 	</div>
 

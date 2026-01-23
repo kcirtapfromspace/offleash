@@ -101,7 +101,7 @@
 	<div class="bg-white rounded-lg shadow divide-y">
 		{#if hasWalkerBusiness}
 			<!-- Already has a business -->
-			<a href="/onboarding/walker" class="block p-4 hover:bg-gray-50 transition-colors">
+			<a href="/onboarding/walker?from=settings" class="block p-4 hover:bg-gray-50 transition-colors">
 				<div class="flex items-center justify-between">
 					<div class="flex items-center gap-3">
 						<div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
@@ -121,7 +121,7 @@
 			</a>
 		{:else}
 			<!-- No business yet -->
-			<a href="/onboarding/walker" class="block p-4 hover:bg-gray-50 transition-colors">
+			<a href="/onboarding/walker?from=settings" class="block p-4 hover:bg-gray-50 transition-colors">
 				<div class="flex items-center justify-between">
 					<div class="flex items-center gap-3">
 						<div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">

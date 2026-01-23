@@ -144,6 +144,17 @@ pub fn create_app(state: AppState) -> Router {
             "/payment-methods/:id/default",
             put(routes::payment_methods::set_default_payment_method),
         )
+        // Pet routes
+        .route(
+            "/pets",
+            get(routes::pets::list_pets).post(routes::pets::create_pet),
+        )
+        .route(
+            "/pets/:id",
+            get(routes::pets::get_pet)
+                .put(routes::pets::update_pet)
+                .delete(routes::pets::delete_pet),
+        )
         // Block routes
         .route(
             "/blocks",

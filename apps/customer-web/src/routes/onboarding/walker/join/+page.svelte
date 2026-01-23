@@ -10,6 +10,10 @@
 	// Check for invite token in URL
 	const inviteToken = $derived(page.url.searchParams.get('token'));
 
+	// Check if user came from settings
+	const fromSettings = $derived(page.url.searchParams.get('from') === 'settings');
+	const backUrl = $derived(fromSettings ? '/onboarding/walker?from=settings' : '/onboarding/walker');
+
 	$effect(() => {
 		if (inviteToken) {
 			joinTenant(inviteToken);
@@ -55,7 +59,7 @@
 	<div class="max-w-md mx-auto px-4 py-8">
 		<!-- Back Button -->
 		<a
-			href="/onboarding/walker"
+			href={backUrl}
 			class="inline-flex items-center gap-1 text-sm mb-8 hover:underline"
 			style="color: var(--color-primary, #3b82f6)"
 		>
@@ -104,7 +108,7 @@
 				<h2 class="text-xl font-semibold text-gray-900">Something went wrong</h2>
 				<p class="text-gray-600 mt-2">{error}</p>
 				<a
-					href="/onboarding/walker"
+					href={backUrl}
 					class="mt-6 inline-block px-6 py-3 rounded-xl font-semibold text-white"
 					style="background-color: var(--color-primary, #3b82f6)"
 				>
