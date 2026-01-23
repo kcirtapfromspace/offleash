@@ -12,6 +12,7 @@ pub mod health;
 pub mod locations;
 pub mod oauth;
 pub mod payment_methods;
+pub mod phone_auth;
 pub mod platform_auth;
 pub mod prometheus;
 pub mod recurring_bookings;
