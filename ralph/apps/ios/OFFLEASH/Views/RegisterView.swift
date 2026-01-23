@@ -30,6 +30,7 @@ struct RegisterUser: Decodable {
     let firstName: String?
     let lastName: String?
     let role: String?
+    let organizationId: String?
 }
 
 // MARK: - Register View
@@ -47,15 +48,43 @@ struct RegisterView: View {
     @State private var errorMessage = ""
     @State private var emailError: String?
 
+    let selectedRole: SelectedRole
     var onRegisterSuccess: () -> Void
     var onNavigateToLogin: () -> Void
+    var onBack: (() -> Void)?
+
+    private var roleDisplayText: String {
+        switch selectedRole {
+        case .customer:
+            return "Create an account to book walks"
+        case .walker:
+            return "Create an account to walk dogs"
+        }
+    }
 
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(spacing: 24) {
-                    Spacer()
-                        .frame(height: geometry.size.height * 0.05)
+                    // Back Button
+                    if let onBack = onBack {
+                        HStack {
+                            Button(action: onBack) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "chevron.left")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("Back")
+                                        .font(.body)
+                                }
+                                .foregroundColor(themeManager.primaryColor)
+                            }
+                            Spacer()
+                        }
+                        .padding(.top, 16)
+                    } else {
+                        Spacer()
+                            .frame(height: geometry.size.height * 0.05)
+                    }
 
                     // Logo and Title
                     VStack(spacing: 16) {
@@ -68,7 +97,7 @@ struct RegisterView: View {
                             .fontWeight(.bold)
                             .foregroundColor(themeManager.primaryColor)
 
-                        Text("Create your account")
+                        Text(roleDisplayText)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -339,7 +368,8 @@ struct RegisterView: View {
                         email: regUser.email,
                         firstName: regUser.firstName,
                         lastName: regUser.lastName,
-                        role: role
+                        role: role,
+                        organizationId: regUser.organizationId
                     )
                     await MainActor.run {
                         UserSession.shared.setUser(user)
@@ -375,11 +405,15 @@ struct RegisterView: View {
 
 #Preview {
     RegisterView(
+        selectedRole: .customer,
         onRegisterSuccess: {
             print("Registration successful!")
         },
         onNavigateToLogin: {
             print("Navigate to login")
+        },
+        onBack: {
+            print("Back to role selection")
         }
     )
     .withThemeManager()
