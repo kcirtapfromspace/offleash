@@ -159,4 +159,18 @@ impl OrganizationRepository {
         .fetch_optional(pool)
         .await
     }
+
+    /// Find default organization (first created)
+    pub async fn find_default(pool: &PgPool) -> Result<Option<Organization>, sqlx::Error> {
+        sqlx::query_as::<_, Organization>(
+            r#"
+            SELECT id, name, slug, subdomain, custom_domain, settings, created_at, updated_at
+            FROM organizations
+            ORDER BY created_at ASC
+            LIMIT 1
+            "#,
+        )
+        .fetch_optional(pool)
+        .await
+    }
 }
