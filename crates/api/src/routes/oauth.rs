@@ -85,8 +85,9 @@ pub async fn google_auth(
     State(state): State<AppState>,
     Json(req): Json<GoogleAuthRequest>,
 ) -> ApiResult<Json<AuthResponse>> {
-    // Get Google client ID from environment
-    let google_client_id = std::env::var("GOOGLE_CLIENT_ID")
+    // Get Google client ID from environment (supports both names for flexibility)
+    let google_client_id = std::env::var("PUBLIC_GOOGLE_CLIENT_ID")
+        .or_else(|_| std::env::var("GOOGLE_CLIENT_ID"))
         .map_err(|_| ApiError::from(shared::AppError::Internal(
             "Google OAuth not configured".to_string()
         )))?;
@@ -199,8 +200,9 @@ pub async fn apple_auth(
     State(state): State<AppState>,
     Json(req): Json<AppleAuthRequest>,
 ) -> ApiResult<Json<AuthResponse>> {
-    // Get Apple client ID (Service ID) from environment
-    let apple_client_id = std::env::var("APPLE_SERVICE_ID")
+    // Get Apple client ID (Service ID) from environment (supports both names for flexibility)
+    let apple_client_id = std::env::var("PUBLIC_APPLE_CLIENT_ID")
+        .or_else(|_| std::env::var("APPLE_SERVICE_ID"))
         .map_err(|_| ApiError::from(shared::AppError::Internal(
             "Apple Sign-In not configured".to_string()
         )))?;
