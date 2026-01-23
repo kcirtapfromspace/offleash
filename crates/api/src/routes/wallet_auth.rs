@@ -230,6 +230,8 @@ pub async fn verify_signature(
                 last_name: user.last_name,
                 role: user.role.to_string(),
             },
+            membership: None,
+            memberships: None,
         }));
     }
 
@@ -275,5 +277,7 @@ pub async fn verify_signature(
             last_name: user.last_name,
             role: user.role.to_string(),
         },
+        membership: None,
+        memberships: None,
     }))
 }

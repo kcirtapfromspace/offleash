@@ -85,6 +85,25 @@ impl UserRepository {
         .await
     }
 
+    /// Find user by email globally (across all organizations)
+    /// Used for universal login when user doesn't specify an organization
+    pub async fn find_by_email_globally(
+        pool: &PgPool,
+        email: &str,
+    ) -> Result<Option<User>, sqlx::Error> {
+        sqlx::query_as::<_, User>(
+            r#"
+            SELECT id, organization_id, email, password_hash, role, first_name, last_name, phone, timezone, created_at, updated_at
+            FROM users
+            WHERE LOWER(email) = LOWER($1)
+            LIMIT 1
+            "#,
+        )
+        .bind(email)
+        .fetch_optional(pool)
+        .await
+    }
+
     pub async fn update(
         pool: &PgPool,
         org_id: OrganizationId,

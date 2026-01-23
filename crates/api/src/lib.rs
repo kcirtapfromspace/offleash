@@ -35,6 +35,7 @@ pub fn create_app(state: AppState) -> Router {
         // Auth routes
         .route("/auth/register", post(routes::auth::register))
         .route("/auth/login", post(routes::auth::login))
+        .route("/auth/login/universal", post(routes::auth::universal_login))
         .route("/auth/validate", get(routes::auth::validate_token))
         // OAuth routes
         .route("/auth/google", post(routes::oauth::google_auth))
@@ -209,6 +210,43 @@ pub fn create_app(state: AppState) -> Router {
         .route(
             "/walker/specializations",
             get(routes::walker_profiles::list_specializations),
+        )
+        // Walker/Client invitation routes
+        .route("/walker/invite", post(routes::invitations::invite_walker))
+        .route("/client/invite", post(routes::invitations::invite_client))
+        .route("/walker/join-tenant", post(routes::invitations::join_tenant))
+        .route(
+            "/walker/create-tenant",
+            post(routes::invitations::create_tenant),
+        )
+        // Invitation management routes
+        .route(
+            "/invitations",
+            get(routes::invitations::list_invitations),
+        )
+        .route(
+            "/invitations/validate",
+            post(routes::invitations::validate_invitation),
+        )
+        .route(
+            "/invitations/accept",
+            post(routes::invitations::accept_invitation),
+        )
+        .route(
+            "/invitations/:id",
+            delete(routes::invitations::revoke_invitation),
+        )
+        // Context management routes (multi-membership support)
+        .route("/contexts", get(routes::contexts::list_contexts))
+        .route("/contexts/switch", post(routes::contexts::switch_context))
+        .route("/contexts/clear", post(routes::contexts::clear_context))
+        .route(
+            "/contexts/default",
+            put(routes::contexts::set_default_context),
+        )
+        .route(
+            "/contexts/join-as-customer/:org_slug",
+            post(routes::contexts::join_as_customer),
         )
         .route(
             "/admin/walkers/:walker_id/profile",

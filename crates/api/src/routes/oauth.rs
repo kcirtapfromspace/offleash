@@ -121,6 +121,8 @@ pub async fn google_auth(
                 last_name: user.last_name,
                 role: user.role.to_string(),
             },
+            membership: None,
+            memberships: None,
         }));
     }
 
@@ -150,6 +152,8 @@ pub async fn google_auth(
                 last_name: existing_user.last_name,
                 role: existing_user.role.to_string(),
             },
+            membership: None,
+            memberships: None,
         }));
     }
 
@@ -197,6 +201,8 @@ pub async fn google_auth(
             last_name: user.last_name,
             role: user.role.to_string(),
         },
+        membership: None,
+        memberships: None,
     }))
 }
 
@@ -243,6 +249,8 @@ pub async fn apple_auth(
                 last_name: user.last_name,
                 role: user.role.to_string(),
             },
+            membership: None,
+            memberships: None,
         }));
     }
 
@@ -272,6 +280,8 @@ pub async fn apple_auth(
                 last_name: existing_user.last_name,
                 role: existing_user.role.to_string(),
             },
+            membership: None,
+            memberships: None,
         }));
     }
 
@@ -314,6 +324,8 @@ pub async fn apple_auth(
             last_name: user.last_name,
             role: user.role.to_string(),
         },
+        membership: None,
+        memberships: None,
     }))
 }
 
