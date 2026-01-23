@@ -97,12 +97,24 @@ CREATE TABLE IF NOT EXISTS payment_providers (
     UNIQUE(organization_id, provider_type)
 );
 
--- Customer Payment Methods: Stored payment methods for customers
+-- Customer Payment Methods: Handle migration from earlier schema
+-- The table may already exist from migration 20240101000020 with customer_id column
+-- We need to rename customer_id to user_id and add missing columns
+
+-- First, rename customer_id to user_id if it exists (from earlier migration)
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_name = 'customer_payment_methods' AND column_name = 'customer_id') THEN
+        ALTER TABLE customer_payment_methods RENAME COLUMN customer_id TO user_id;
+    END IF;
+END $$;
+
+-- Create table if it doesn't exist (for fresh installs)
 CREATE TABLE IF NOT EXISTS customer_payment_methods (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    provider_type payment_provider_type NOT NULL,
+    provider_type payment_provider_type,
     method_type payment_method_type NOT NULL,
     -- Provider references
     stripe_payment_method_id VARCHAR(255),
@@ -111,7 +123,7 @@ CREATE TABLE IF NOT EXISTS customer_payment_methods (
     square_customer_id VARCHAR(255),
     -- Card details (non-sensitive)
     last_four VARCHAR(4),
-    brand VARCHAR(50), -- visa, mastercard, amex, etc.
+    brand VARCHAR(50),
     exp_month INTEGER,
     exp_year INTEGER,
     cardholder_name VARCHAR(255),
@@ -119,7 +131,7 @@ CREATE TABLE IF NOT EXISTS customer_payment_methods (
     bank_name VARCHAR(255),
     account_last_four VARCHAR(4),
     -- Wallet info
-    wallet_type VARCHAR(50), -- apple_pay, google_pay, shop_pay, link
+    wallet_type VARCHAR(50),
     -- Status
     is_default BOOLEAN NOT NULL DEFAULT false,
     is_active BOOLEAN NOT NULL DEFAULT true,
@@ -129,6 +141,22 @@ CREATE TABLE IF NOT EXISTS customer_payment_methods (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Add missing columns to existing table (if table existed from earlier migration)
+ALTER TABLE customer_payment_methods ADD COLUMN IF NOT EXISTS provider_type payment_provider_type;
+ALTER TABLE customer_payment_methods ADD COLUMN IF NOT EXISTS stripe_payment_method_id VARCHAR(255);
+ALTER TABLE customer_payment_methods ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255);
+ALTER TABLE customer_payment_methods ADD COLUMN IF NOT EXISTS square_customer_id VARCHAR(255);
+ALTER TABLE customer_payment_methods ADD COLUMN IF NOT EXISTS last_four VARCHAR(4);
+ALTER TABLE customer_payment_methods ADD COLUMN IF NOT EXISTS brand VARCHAR(50);
+ALTER TABLE customer_payment_methods ADD COLUMN IF NOT EXISTS exp_month INTEGER;
+ALTER TABLE customer_payment_methods ADD COLUMN IF NOT EXISTS exp_year INTEGER;
+ALTER TABLE customer_payment_methods ADD COLUMN IF NOT EXISTS cardholder_name VARCHAR(255);
+ALTER TABLE customer_payment_methods ADD COLUMN IF NOT EXISTS bank_name VARCHAR(255);
+ALTER TABLE customer_payment_methods ADD COLUMN IF NOT EXISTS account_last_four VARCHAR(4);
+ALTER TABLE customer_payment_methods ADD COLUMN IF NOT EXISTS wallet_type VARCHAR(50);
+ALTER TABLE customer_payment_methods ADD COLUMN IF NOT EXISTS billing_address JSONB;
+ALTER TABLE customer_payment_methods ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';
 
 -- Platform Fee Tiers: Defines fee structure per plan
 CREATE TABLE IF NOT EXISTS platform_fee_tiers (
@@ -400,9 +428,9 @@ CREATE TABLE IF NOT EXISTS payment_webhook_events (
 CREATE INDEX IF NOT EXISTS idx_payment_providers_org ON payment_providers(organization_id);
 CREATE INDEX IF NOT EXISTS idx_payment_providers_active ON payment_providers(organization_id, is_active) WHERE is_active = true;
 
+-- customer_payment_methods indexes (user_id column after rename from customer_id)
 CREATE INDEX IF NOT EXISTS idx_customer_payment_methods_user ON customer_payment_methods(user_id);
 CREATE INDEX IF NOT EXISTS idx_customer_payment_methods_org_user ON customer_payment_methods(organization_id, user_id);
-CREATE INDEX IF NOT EXISTS idx_customer_payment_methods_default ON customer_payment_methods(user_id, is_default) WHERE is_default = true;
 
 CREATE INDEX IF NOT EXISTS idx_transactions_org ON transactions(organization_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id);
