@@ -17,8 +17,7 @@ impl UserIdentityRepository {
     ) -> Result<Option<UserIdentity>, sqlx::Error> {
         sqlx::query_as::<_, UserIdentity>(
             r#"
-            SELECT id, user_id, provider as "provider: AuthProvider",
-                   provider_user_id, provider_email, provider_data, created_at
+            SELECT id, user_id, provider, provider_user_id, provider_email, provider_data, created_at
             FROM user_identities
             WHERE provider = $1 AND provider_user_id = $2
             "#,
@@ -36,8 +35,7 @@ impl UserIdentityRepository {
     ) -> Result<Vec<UserIdentity>, sqlx::Error> {
         sqlx::query_as::<_, UserIdentity>(
             r#"
-            SELECT id, user_id, provider as "provider: AuthProvider",
-                   provider_user_id, provider_email, provider_data, created_at
+            SELECT id, user_id, provider, provider_user_id, provider_email, provider_data, created_at
             FROM user_identities
             WHERE user_id = $1
             ORDER BY created_at ASC
@@ -56,8 +54,7 @@ impl UserIdentityRepository {
     ) -> Result<Option<UserIdentity>, sqlx::Error> {
         sqlx::query_as::<_, UserIdentity>(
             r#"
-            SELECT id, user_id, provider as "provider: AuthProvider",
-                   provider_user_id, provider_email, provider_data, created_at
+            SELECT id, user_id, provider, provider_user_id, provider_email, provider_data, created_at
             FROM user_identities
             WHERE provider = $1 AND provider_email = $2
             "#,
@@ -77,8 +74,7 @@ impl UserIdentityRepository {
             r#"
             INSERT INTO user_identities (user_id, provider, provider_user_id, provider_email, provider_data)
             VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, user_id, provider as "provider: AuthProvider",
-                      provider_user_id, provider_email, provider_data, created_at
+            RETURNING id, user_id, provider, provider_user_id, provider_email, provider_data, created_at
             "#,
         )
         .bind(identity.user_id)
