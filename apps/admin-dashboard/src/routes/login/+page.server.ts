@@ -11,9 +11,20 @@ interface UserInfo {
   role: string;
 }
 
+interface MembershipInfo {
+  id: string;
+  organization_id: string;
+  organization_name: string;
+  organization_slug: string;
+  role: string;
+  is_default: boolean;
+}
+
 interface LoginResponse {
   token: string;
   user: UserInfo;
+  membership?: MembershipInfo;
+  memberships?: MembershipInfo[];
 }
 
 export const load: PageServerLoad = async ({ cookies }) => {
@@ -35,27 +46,59 @@ export const actions: Actions = {
     }
 
     try {
-      const response = await api.post<LoginResponse>("/auth/login", {
-        org_slug: "demo",
+      // Use universal login
+      const response = await api.post<LoginResponse>("/auth/login/universal", {
         email,
         password,
       });
+
+      // Check if user has admin/owner role in any membership
+      const adminMemberships = response.memberships?.filter(
+        (m) => m.role === "admin" || m.role === "owner"
+      ) ?? [];
+
+      if (adminMemberships.length === 0) {
+        return fail(403, {
+          error: "You do not have admin access to any organization",
+          email,
+        });
+      }
 
       cookies.set("token", response.token, {
         path: "/",
         httpOnly: true,
         secure: !dev,
         sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
+        maxAge: 60 * 60 * 24 * 7,
       });
 
-      // Store user info for role-based UI
+      // Store user info
       cookies.set("user", JSON.stringify(response.user), {
         path: "/",
-        httpOnly: true,
+        httpOnly: false,
         secure: !dev,
         sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
+        maxAge: 60 * 60 * 24 * 7,
+      });
+
+      // Store current membership
+      if (response.membership) {
+        cookies.set("membership", JSON.stringify(response.membership), {
+          path: "/",
+          httpOnly: false,
+          secure: !dev,
+          sameSite: "lax",
+          maxAge: 60 * 60 * 24 * 7,
+        });
+      }
+
+      // Store admin memberships only
+      cookies.set("memberships", JSON.stringify(adminMemberships), {
+        path: "/",
+        httpOnly: false,
+        secure: !dev,
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 7,
       });
 
       throw redirect(303, "/dashboard");
