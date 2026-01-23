@@ -14,6 +14,7 @@ pub mod invitations;
 pub mod locations;
 pub mod oauth;
 pub mod payment_methods;
+pub mod pets;
 pub mod phone_auth;
 pub mod platform_auth;
 pub mod prometheus;

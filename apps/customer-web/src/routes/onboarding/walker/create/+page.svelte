@@ -1,10 +1,15 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 
 	let businessName = $state('');
 	let isLoading = $state(false);
 	let error = $state('');
+
+	// Check if user came from settings
+	const fromSettings = $derived(page.url.searchParams.get('from') === 'settings');
+	const backUrl = $derived(fromSettings ? '/onboarding/walker?from=settings' : '/onboarding/walker');
 
 	const slug = $derived(
 		businessName
@@ -55,7 +60,7 @@
 	<div class="max-w-md mx-auto px-4 py-8">
 		<!-- Back Button -->
 		<a
-			href="/onboarding/walker"
+			href={backUrl}
 			class="inline-flex items-center gap-1 text-sm mb-8 hover:underline"
 			style="color: var(--color-primary, #3b82f6)"
 		>

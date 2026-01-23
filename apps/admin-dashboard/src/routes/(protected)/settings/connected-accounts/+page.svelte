@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { enhance, deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { env } from '$env/dynamic/public';
 	import { onMount } from 'svelte';
+	import type { ActionResult } from '@sveltejs/kit';
 
 	let { data, form } = $props();
 
@@ -123,15 +124,20 @@
 			const res = await fetch('?/linkGoogle', {
 				method: 'POST',
 				body: formData,
+				headers: {
+					'x-sveltekit-action': 'true'
+				}
 			});
 
-			const result = await res.json();
+			const result: ActionResult = deserialize(await res.text());
 
 			if (result.type === 'failure') {
-				linkError = result.data?.error || 'Failed to link Google account';
-			} else {
+				linkError = result.data?.error as string || 'Failed to link Google account';
+			} else if (result.type === 'success') {
 				linkSuccess = 'Google account linked successfully!';
 				await invalidateAll();
+			} else if (result.type === 'error') {
+				linkError = result.error?.message || 'Failed to link Google account';
 			}
 		} catch (err) {
 			linkError = err instanceof Error ? err.message : 'Google linking failed';
@@ -160,15 +166,20 @@
 			const res = await fetch('?/linkApple', {
 				method: 'POST',
 				body: formData,
+				headers: {
+					'x-sveltekit-action': 'true'
+				}
 			});
 
-			const result = await res.json();
+			const result: ActionResult = deserialize(await res.text());
 
 			if (result.type === 'failure') {
-				linkError = result.data?.error || 'Failed to link Apple account';
-			} else {
+				linkError = result.data?.error as string || 'Failed to link Apple account';
+			} else if (result.type === 'success') {
 				linkSuccess = 'Apple account linked successfully!';
 				await invalidateAll();
+			} else if (result.type === 'error') {
+				linkError = result.error?.message || 'Failed to link Apple account';
 			}
 		} catch (err: any) {
 			if (err?.error === 'popup_closed_by_user') {
