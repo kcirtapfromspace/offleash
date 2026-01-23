@@ -166,6 +166,23 @@ pub fn create_app(state: AppState) -> Router {
             "/users/me/identities/:id",
             delete(routes::user_identities::unlink_identity),
         )
+        // Link identity routes
+        .route(
+            "/users/me/identities/google",
+            post(routes::user_identities::link_google),
+        )
+        .route(
+            "/users/me/identities/apple",
+            post(routes::user_identities::link_apple),
+        )
+        .route(
+            "/users/me/identities/email",
+            post(routes::user_identities::link_email),
+        )
+        .route(
+            "/users/me/password",
+            put(routes::user_identities::change_password),
+        )
         // Admin user management routes
         .route("/admin/walkers", post(routes::admin_users::create_walker))
         // Working hours routes
