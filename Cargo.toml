@@ -60,6 +60,11 @@ dotenvy = "0.15"
 jsonwebtoken = "9"
 argon2 = "0.5"
 
+# Web3/Ethereum
+siwe = "0.6"
+ethers-core = "2.0"
+hex = "0.4"
+
 # Testing
 mockall = "0.12"
 

@@ -42,6 +42,9 @@ pub fn create_app(state: AppState) -> Router {
         // Phone auth routes
         .route("/auth/phone/send-code", post(routes::phone_auth::send_code))
         .route("/auth/phone/verify", post(routes::phone_auth::verify_code_endpoint))
+        // Wallet auth routes
+        .route("/auth/wallet/challenge", post(routes::wallet_auth::get_challenge))
+        .route("/auth/wallet/verify", post(routes::wallet_auth::verify_signature))
         // Platform admin auth routes
         .route(
             "/platform/auth/login",
@@ -149,6 +152,15 @@ pub fn create_app(state: AppState) -> Router {
         .route("/users", get(routes::users::list_users))
         .route("/users/me", get(routes::users::get_me).put(routes::users::update_me))
         .route("/users/:id", get(routes::users::get_user))
+        // User identity management routes
+        .route(
+            "/users/me/identities",
+            get(routes::user_identities::list_identities),
+        )
+        .route(
+            "/users/me/identities/:id",
+            delete(routes::user_identities::unlink_identity),
+        )
         // Admin user management routes
         .route("/admin/walkers", post(routes::admin_users::create_walker))
         // Working hours routes

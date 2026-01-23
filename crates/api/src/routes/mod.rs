@@ -19,6 +19,8 @@ pub mod recurring_bookings;
 pub mod service_areas;
 pub mod services;
 pub mod travel_time;
+pub mod user_identities;
 pub mod users;
 pub mod walker_profiles;
+pub mod wallet_auth;
 pub mod working_hours;
