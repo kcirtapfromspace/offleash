@@ -31,6 +31,9 @@ pub struct GoogleAuthRequest {
     #[serde(default)]
     pub org_slug: Option<String>,
     pub id_token: String,
+    /// Optional role for new user creation: "customer" or "walker"
+    #[serde(default)]
+    pub role: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -40,6 +43,9 @@ pub struct AppleAuthRequest {
     pub id_token: String,
     pub first_name: Option<String>,
     pub last_name: Option<String>,
+    /// Optional role for new user creation: "customer" or "walker"
+    #[serde(default)]
+    pub role: Option<String>,
 }
 
 // Google JWT claims
@@ -147,13 +153,19 @@ pub async fn google_auth(
     );
     let last_name = claims.family_name.unwrap_or_default();
 
+    // Determine role from request (default to customer)
+    let (user_role, membership_role) = match req.role.as_deref() {
+        Some("walker") | Some("provider") => (UserRole::Walker, MembershipRole::Walker),
+        _ => (UserRole::Customer, MembershipRole::Customer),
+    };
+
     let user = UserRepository::create(
         &state.pool,
         CreateUser {
             organization_id: organization.id,
             email: claims.email.clone(),
             password_hash: "".to_string(), // No password for OAuth users
-            role: UserRole::Customer,
+            role: user_role,
             first_name: first_name.clone(),
             last_name: last_name.clone(),
             phone: None,
@@ -167,7 +179,7 @@ pub async fn google_auth(
         CreateMembership {
             user_id: user.id,
             organization_id: organization.id,
-            role: MembershipRole::Customer,
+            role: membership_role,
             status: Some(MembershipStatus::Active),
             title: None,
         },
@@ -267,13 +279,19 @@ pub async fn apple_auth(
     let first_name = req.first_name.unwrap_or_else(|| "Apple".to_string());
     let last_name = req.last_name.unwrap_or_else(|| "User".to_string());
 
+    // Determine role from request (default to customer)
+    let (user_role, membership_role) = match req.role.as_deref() {
+        Some("walker") | Some("provider") => (UserRole::Walker, MembershipRole::Walker),
+        _ => (UserRole::Customer, MembershipRole::Customer),
+    };
+
     let user = UserRepository::create(
         &state.pool,
         CreateUser {
             organization_id: organization.id,
             email: email.clone(),
             password_hash: "".to_string(),
-            role: UserRole::Customer,
+            role: user_role,
             first_name: first_name.clone(),
             last_name: last_name.clone(),
             phone: None,
@@ -287,7 +305,7 @@ pub async fn apple_auth(
         CreateMembership {
             user_id: user.id,
             organization_id: organization.id,
-            role: MembershipRole::Customer,
+            role: membership_role,
             status: Some(MembershipStatus::Active),
             title: None,
         },

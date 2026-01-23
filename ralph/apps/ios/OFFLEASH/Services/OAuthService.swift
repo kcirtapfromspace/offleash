@@ -12,6 +12,7 @@ import Foundation
 struct OAuthGoogleRequest: Encodable {
     let orgSlug: String
     let idToken: String
+    let role: String?
 }
 
 struct OAuthAppleRequest: Encodable {
@@ -19,6 +20,7 @@ struct OAuthAppleRequest: Encodable {
     let idToken: String
     let firstName: String?
     let lastName: String?
+    let role: String?
 }
 
 struct OAuthResponse: Decodable {
