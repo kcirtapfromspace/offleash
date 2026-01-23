@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { signInWithOAuth } from '$lib/supabase';
+	import { signInWithOAuth, isSupabaseConfigured } from '$lib/supabase';
 	import { page } from '$app/stores';
 
 	let { form } = $props();
@@ -9,6 +9,11 @@
 	let oauthError = $state<string | null>(null);
 
 	async function handleOAuthLogin(provider: 'google' | 'apple') {
+		if (!isSupabaseConfigured) {
+			oauthError = 'OAuth is not configured yet';
+			return;
+		}
+
 		oauthLoading = provider;
 		oauthError = null;
 
@@ -34,7 +39,8 @@
 			</div>
 		{/if}
 
-		<!-- OAuth Buttons -->
+		<!-- OAuth Buttons (only shown when Supabase is configured) -->
+		{#if isSupabaseConfigured}
 		<div class="space-y-3 mb-6">
 			<button
 				type="button"
@@ -73,6 +79,7 @@
 				<span class="px-2 bg-white text-gray-500">or continue with email</span>
 			</div>
 		</div>
+		{/if}
 
 		<!-- Email/Password Form -->
 		<form
