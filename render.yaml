@@ -59,11 +59,11 @@ services:
         value: offleash.world
       - key: CORS_ORIGINS
         value: https://app.offleash.world,https://admin.offleash.world,https://platform.offleash.world,https://offleash-app.onrender.com,https://offleash-admin.onrender.com,https://offleash-platform.onrender.com
-      # OAuth Configuration
-      - key: APPLE_SERVICE_ID
-        sync: false  # Set to web Services ID in dashboard
-      - key: GOOGLE_CLIENT_ID
-        sync: false  # Set to web client ID in dashboard
+      # OAuth Configuration - Use same env vars as web apps for shared env group
+      - key: PUBLIC_GOOGLE_CLIENT_ID
+        sync: false  # Set via environment group
+      - key: PUBLIC_APPLE_CLIENT_ID
+        sync: false  # Set via environment group
     autoDeploy: true
     buildFilter:
       paths:
