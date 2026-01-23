@@ -7,7 +7,8 @@
 	export let form: ActionData;
 
 	let selectedServiceId = data.selectedServiceId || '';
-	let selectedLocationId = data.selectedLocationId || '';
+	// Auto-select the default location if no location is specified in URL
+	let selectedLocationId = data.selectedLocationId || data.locations.find(l => l.is_default)?.id || '';
 	let selectedDate = data.selectedDate || '';
 	let selectedSlot: { walkerId: string; start: string } | null = null;
 	let notes = '';

@@ -71,7 +71,7 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 	const { token } = await parent();
 	const serviceId = url.searchParams.get('service');
 	const selectedDate = url.searchParams.get('date');
-	const selectedLocationId = url.searchParams.get('location');
+	let selectedLocationId = url.searchParams.get('location');
 
 	try {
 		// Fetch services and locations in parallel
@@ -79,6 +79,14 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 			api.get<Service[]>('/services', token),
 			api.get<Location[]>('/locations', token)
 		]);
+
+		// Auto-select the default location if none is specified
+		if (!selectedLocationId && locations.length > 0) {
+			const defaultLocation = locations.find(l => l.is_default);
+			if (defaultLocation) {
+				selectedLocationId = defaultLocation.id;
+			}
+		}
 
 		const activeServices = services.filter((s) => s.is_active);
 		const selectedService = serviceId ? activeServices.find((s) => s.id === serviceId) : null;

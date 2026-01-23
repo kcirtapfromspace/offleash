@@ -127,7 +127,11 @@ pub fn create_app(state: AppState) -> Router {
         // Location routes
         .route("/locations", post(routes::locations::create_location))
         .route("/locations", get(routes::locations::list_locations))
-        .route("/locations/:id", delete(routes::locations::delete_location))
+        .route(
+            "/locations/:id",
+            put(routes::locations::update_location)
+                .delete(routes::locations::delete_location),
+        )
         .route("/locations/:id/default", put(routes::locations::set_default_location))
         // Payment method routes
         .route(
@@ -309,6 +313,116 @@ pub fn create_app(state: AppState) -> Router {
         )
         // Feedback routes (for bug reports and feature requests)
         .route("/feedback", post(routes::feedback::submit_feedback))
+        // Payment provider routes (Stripe/Square OAuth connections)
+        .route(
+            "/payment-providers",
+            get(routes::payment_providers::list_payment_providers),
+        )
+        .route(
+            "/payment-providers/primary",
+            get(routes::payment_providers::get_primary_provider),
+        )
+        .route(
+            "/payment-providers/stripe/connect",
+            get(routes::payment_providers::get_stripe_connect_url),
+        )
+        .route(
+            "/payment-providers/stripe/callback",
+            post(routes::payment_providers::stripe_connect_callback),
+        )
+        .route(
+            "/payment-providers/square/connect",
+            get(routes::payment_providers::get_square_oauth_url),
+        )
+        .route(
+            "/payment-providers/square/callback",
+            post(routes::payment_providers::square_oauth_callback),
+        )
+        .route(
+            "/payment-providers/:id",
+            put(routes::payment_providers::update_payment_provider)
+                .delete(routes::payment_providers::disconnect_payment_provider),
+        )
+        // Checkout and transaction routes
+        .route(
+            "/checkout",
+            post(routes::checkout::create_checkout),
+        )
+        .route(
+            "/checkout/preview-fees",
+            post(routes::checkout::preview_fees),
+        )
+        .route(
+            "/checkout/:id",
+            get(routes::checkout::get_checkout),
+        )
+        .route(
+            "/checkout/:id/confirm",
+            post(routes::checkout::confirm_payment),
+        )
+        .route(
+            "/checkout/:id/refund",
+            post(routes::checkout::request_refund),
+        )
+        .route(
+            "/transactions",
+            get(routes::checkout::list_transactions),
+        )
+        // Subscription routes
+        .route(
+            "/subscriptions/tenant",
+            get(routes::subscriptions::get_tenant_subscription)
+                .post(routes::subscriptions::create_tenant_subscription),
+        )
+        .route(
+            "/subscriptions/tenant/cancel",
+            post(routes::subscriptions::cancel_tenant_subscription),
+        )
+        .route(
+            "/subscriptions/tiers",
+            get(routes::subscriptions::list_fee_tiers),
+        )
+        .route(
+            "/subscriptions/customer",
+            get(routes::subscriptions::list_customer_subscriptions)
+                .post(routes::subscriptions::create_customer_subscription),
+        )
+        .route(
+            "/subscriptions/customer/:id",
+            get(routes::subscriptions::get_customer_subscription)
+                .delete(routes::subscriptions::cancel_customer_subscription),
+        )
+        // Payout routes
+        .route(
+            "/payouts/settings",
+            get(routes::payouts::get_payout_settings)
+                .put(routes::payouts::update_payout_settings),
+        )
+        .route(
+            "/payouts/summary",
+            get(routes::payouts::get_payout_summary),
+        )
+        .route(
+            "/payouts",
+            get(routes::payouts::list_payouts),
+        )
+        .route(
+            "/payouts/instant",
+            post(routes::payouts::request_instant_payout),
+        )
+        .route(
+            "/payouts/:id",
+            get(routes::payouts::get_payout),
+        )
+        // Webhook routes (no auth - verified by signature)
+        .route(
+            "/webhooks/stripe/:org_id",
+            post(routes::webhooks::stripe_webhook),
+        )
+        .route(
+            "/webhooks/square/:org_id",
+            post(routes::webhooks::square_webhook),
+        )
         // Add middleware
         .layer(TraceLayer::new_for_http())
         .layer(cors)
