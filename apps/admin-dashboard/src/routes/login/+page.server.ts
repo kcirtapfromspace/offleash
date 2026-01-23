@@ -3,8 +3,17 @@ import { dev } from "$app/environment";
 import type { Actions, PageServerLoad } from "./$types";
 import { api, ApiError } from "$lib/api";
 
+interface UserInfo {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+}
+
 interface LoginResponse {
   token: string;
+  user: UserInfo;
 }
 
 export const load: PageServerLoad = async ({ cookies }) => {
@@ -33,6 +42,15 @@ export const actions: Actions = {
       });
 
       cookies.set("token", response.token, {
+        path: "/",
+        httpOnly: true,
+        secure: !dev,
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+      });
+
+      // Store user info for role-based UI
+      cookies.set("user", JSON.stringify(response.user), {
         path: "/",
         httpOnly: true,
         secure: !dev,

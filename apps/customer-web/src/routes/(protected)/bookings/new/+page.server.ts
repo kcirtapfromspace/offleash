@@ -37,7 +37,11 @@ interface Walker {
 interface TimeSlot {
 	start: string;
 	end: string;
-	confidence: string;
+	confidence?: string;
+	travel_minutes?: number | null;
+	travel_from?: string | null;
+	is_tight?: boolean;
+	warning?: string | null;
 }
 
 interface AvailabilityResponse {
@@ -45,6 +49,22 @@ interface AvailabilityResponse {
 	date: string;
 	service_id: string;
 	slots: TimeSlot[];
+}
+
+// Enhanced availability response from /availability/slots endpoint
+interface EnhancedAvailabilityResponse {
+	date: string;
+	walker_id: string;
+	walker_name: string;
+	slots: {
+		start_time: string;
+		end_time: string;
+		travel_minutes: number | null;
+		travel_from: string | null;
+		is_tight: boolean;
+		warning: string | null;
+	}[];
+	travel_buffer_minutes: number;
 }
 
 export const load: PageServerLoad = async ({ parent, url }) => {
@@ -65,25 +85,60 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 
 		// Fetch walkers (users with role=walker) - we'll need to add this endpoint or use a workaround
 		// For now, we'll fetch availability which implicitly tells us which walkers are available
-		let availability: { walkerId: string; walkerName: string; slots: TimeSlot[] }[] = [];
+		let availability: {
+			walkerId: string;
+			walkerName: string;
+			slots: TimeSlot[];
+			travelBufferMinutes?: number;
+		}[] = [];
 
 		if (selectedService && selectedDate && selectedLocationId) {
-			// We need to get available walkers - let's try to fetch from a walkers endpoint
-			// For demo purposes, we'll use the walker we created
-			try {
-				const availResponse = await api.get<AvailabilityResponse>(
-					`/availability/b376c762-b772-4fde-963e-5dcaedd52626?date=${selectedDate}&service_id=${serviceId}&location_id=${selectedLocationId}`,
-					token
-				);
-				if (availResponse.slots.length > 0) {
-					availability.push({
-						walkerId: availResponse.walker_id,
-						walkerName: 'Alex Walker',
-						slots: availResponse.slots
-					});
+			// Try the enhanced availability/slots endpoint first (with travel time info)
+			// We need to fetch for each walker - for now, use a known walker ID
+			const walkerIds = ['b376c762-b772-4fde-963e-5dcaedd52626'];
+
+			for (const walkerId of walkerIds) {
+				try {
+					// Try enhanced endpoint with travel time
+					const enhancedResponse = await api.get<EnhancedAvailabilityResponse>(
+						`/availability/slots?walker_id=${walkerId}&date=${selectedDate}&service_id=${serviceId}&location_id=${selectedLocationId}`,
+						token
+					);
+
+					if (enhancedResponse.slots.length > 0) {
+						availability.push({
+							walkerId: enhancedResponse.walker_id,
+							walkerName: enhancedResponse.walker_name,
+							travelBufferMinutes: enhancedResponse.travel_buffer_minutes,
+							slots: enhancedResponse.slots.map(slot => ({
+								start: slot.start_time,
+								end: slot.end_time,
+								travel_minutes: slot.travel_minutes,
+								travel_from: slot.travel_from,
+								is_tight: slot.is_tight,
+								warning: slot.warning
+							}))
+						});
+					}
+				} catch (enhancedError) {
+					// Fallback to basic availability endpoint
+					console.warn('Enhanced availability not available, falling back:', enhancedError);
+					try {
+						const availResponse = await api.get<AvailabilityResponse>(
+							`/availability/${walkerId}?date=${selectedDate}&service_id=${serviceId}&location_id=${selectedLocationId}`,
+							token
+						);
+						if (availResponse.slots.length > 0) {
+							availability.push({
+								walkerId: availResponse.walker_id,
+								walkerName: 'Alex Walker',
+								slots: availResponse.slots
+							});
+						}
+					} catch (e) {
+						console.error('Failed to fetch availability:', e);
+					}
 				}
-			} catch (e) {
-				console.error('Failed to fetch availability:', e);
 			}
 		}
 

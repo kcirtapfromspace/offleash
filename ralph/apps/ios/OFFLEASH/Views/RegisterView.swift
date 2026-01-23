@@ -11,6 +11,7 @@ import FirebaseCrashlytics
 // MARK: - Registration Request/Response Models
 
 struct RegisterRequest: Encodable {
+    let orgSlug: String
     let firstName: String
     let lastName: String
     let email: String
@@ -28,6 +29,7 @@ struct RegisterUser: Decodable {
     let email: String
     let firstName: String?
     let lastName: String?
+    let role: String?
 }
 
 // MARK: - Register View
@@ -140,7 +142,7 @@ struct RegisterView: View {
                                 RoundedRectangle(cornerRadius: 12)
                                     .stroke(emailError != nil ? Color.red : Color(.systemGray4), lineWidth: 1)
                             )
-                            .onChange(of: email) { _, _ in
+                            .onChange(of: email) { _ in
                                 validateEmailWithDebounce()
                             }
 
@@ -315,7 +317,10 @@ struct RegisterView: View {
 
         Task {
             do {
+                // TODO: Make org_slug configurable or derive from app configuration
+                let orgSlug = ProcessInfo.processInfo.environment["ORG_SLUG"] ?? "demo"
                 let request = RegisterRequest(
+                    orgSlug: orgSlug,
                     firstName: firstName.trimmingCharacters(in: .whitespaces),
                     lastName: lastName.trimmingCharacters(in: .whitespaces),
                     email: email.trimmingCharacters(in: .whitespaces),
@@ -326,8 +331,23 @@ struct RegisterView: View {
 
                 await APIClient.shared.setAuthToken(response.token)
 
-                if let userId = response.user?.id {
-                    Crashlytics.crashlytics().setUserID(userId)
+                // Save user to session
+                if let regUser = response.user {
+                    let role = UserRole(rawValue: regUser.role ?? "customer") ?? .customer
+                    let user = User(
+                        id: regUser.id,
+                        email: regUser.email,
+                        firstName: regUser.firstName,
+                        lastName: regUser.lastName,
+                        role: role
+                    )
+                    await MainActor.run {
+                        UserSession.shared.setUser(user)
+                    }
+
+                    if FirebaseState.isConfigured {
+                        Crashlytics.crashlytics().setUserID(regUser.id)
+                    }
                 }
 
                 await MainActor.run {

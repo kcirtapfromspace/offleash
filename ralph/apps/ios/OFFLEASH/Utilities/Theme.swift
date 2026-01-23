@@ -70,14 +70,14 @@ struct Branding: Codable, Equatable {
         primaryColor: "#3B82F6",
         secondaryColor: "#1E40AF",
         accentColor: "#10B981",
-        supportEmail: "support@offleash.com"
+        supportEmail: "support@offleash.pro"
     )
 }
 
 // MARK: - Theme Manager
 
 @MainActor
-final class ThemeManager: ObservableObject {
+final class ThemeManager: ObservableObject, Sendable {
     static let shared = ThemeManager()
 
     @Published private(set) var branding: Branding
@@ -124,8 +124,8 @@ final class ThemeManager: ObservableObject {
 
 // MARK: - Environment Key
 
-private struct ThemeManagerKey: EnvironmentKey {
-    static let defaultValue = ThemeManager.shared
+private struct ThemeManagerKey: @preconcurrency EnvironmentKey {
+    @MainActor static let defaultValue = ThemeManager.shared
 }
 
 extension EnvironmentValues {

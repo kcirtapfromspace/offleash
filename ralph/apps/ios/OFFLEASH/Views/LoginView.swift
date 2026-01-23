@@ -11,6 +11,7 @@ import FirebaseCrashlytics
 // MARK: - Login Request/Response Models
 
 struct LoginRequest: Encodable {
+    let orgSlug: String
     let email: String
     let password: String
 }
@@ -25,6 +26,7 @@ struct LoginUser: Decodable {
     let email: String
     let firstName: String?
     let lastName: String?
+    let role: String?
 }
 
 // MARK: - Login View
@@ -88,7 +90,7 @@ struct LoginView: View {
                                 RoundedRectangle(cornerRadius: 12)
                                     .stroke(emailError != nil ? Color.red : Color(.systemGray4), lineWidth: 1)
                             )
-                            .onChange(of: email) { _, _ in
+                            .onChange(of: email) { _ in
                                 validateEmailWithDebounce()
                             }
 
@@ -231,13 +233,30 @@ struct LoginView: View {
 
         Task {
             do {
-                let request = LoginRequest(email: email.trimmingCharacters(in: .whitespaces), password: password)
+                // TODO: Make org_slug configurable or derive from app configuration
+                let orgSlug = ProcessInfo.processInfo.environment["ORG_SLUG"] ?? "demo"
+                let request = LoginRequest(orgSlug: orgSlug, email: email.trimmingCharacters(in: .whitespaces), password: password)
                 let response: LoginResponse = try await APIClient.shared.post("/auth/login", body: request)
 
                 await APIClient.shared.setAuthToken(response.token)
 
-                if let userId = response.user?.id {
-                    Crashlytics.crashlytics().setUserID(userId)
+                // Save user to session
+                if let loginUser = response.user {
+                    let role = UserRole(rawValue: loginUser.role ?? "customer") ?? .customer
+                    let user = User(
+                        id: loginUser.id,
+                        email: loginUser.email,
+                        firstName: loginUser.firstName,
+                        lastName: loginUser.lastName,
+                        role: role
+                    )
+                    await MainActor.run {
+                        UserSession.shared.setUser(user)
+                    }
+
+                    if FirebaseState.isConfigured {
+                        Crashlytics.crashlytics().setUserID(loginUser.id)
+                    }
                 }
 
                 await MainActor.run {
