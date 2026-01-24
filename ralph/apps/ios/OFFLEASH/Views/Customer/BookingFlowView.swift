@@ -45,6 +45,13 @@ struct BookingFlowView: View {
     @State private var createdBooking: Booking?
     @State private var showCheckout = false
 
+    // Recurring booking options
+    @State private var makeRecurring = false
+    @State private var recurrenceFrequency: RecurrenceFrequency = .weekly
+    @State private var recurrenceEndType: RecurrenceEndType = .occurrences
+    @State private var recurrenceOccurrences: Int = 8
+    @State private var recurrenceEndDate: Date = Calendar.current.date(byAdding: .month, value: 2, to: Date()) ?? Date()
+
     // Available time slots (in production, these would come from API)
     @State private var availableTimeSlots: [TimeSlot] = []
     @State private var isLoadingSlots = false
@@ -431,6 +438,85 @@ struct BookingFlowView: View {
                     }
                 }
 
+                // Make Recurring Section
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "repeat")
+                            .foregroundColor(themeManager.primaryColor)
+                        Text("Make it Recurring")
+                            .font(.headline)
+                        Spacer()
+                        Toggle("", isOn: $makeRecurring)
+                            .tint(themeManager.primaryColor)
+                    }
+
+                    if makeRecurring {
+                        VStack(spacing: 16) {
+                            // Frequency Picker
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Frequency")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+
+                                Picker("Frequency", selection: $recurrenceFrequency) {
+                                    ForEach(RecurrenceFrequency.allCases, id: \.self) { freq in
+                                        Text(freq.displayName).tag(freq)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                            }
+
+                            // End Type Picker
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("End After")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+
+                                Picker("End Type", selection: $recurrenceEndType) {
+                                    ForEach(RecurrenceEndType.allCases, id: \.self) { type in
+                                        Text(type.displayName).tag(type)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                            }
+
+                            // Occurrences or Date selector
+                            if recurrenceEndType == .occurrences {
+                                Stepper(value: $recurrenceOccurrences, in: 2...52) {
+                                    HStack {
+                                        Text("Number of walks:")
+                                        Spacer()
+                                        Text("\(recurrenceOccurrences)")
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(themeManager.primaryColor)
+                                    }
+                                }
+                            } else {
+                                DatePicker(
+                                    "End Date",
+                                    selection: $recurrenceEndDate,
+                                    in: Date()...,
+                                    displayedComponents: .date
+                                )
+                                .datePickerStyle(.compact)
+                            }
+
+                            // Recurring summary
+                            HStack {
+                                Image(systemName: "info.circle")
+                                    .foregroundColor(.secondary)
+                                Text(recurringSummary)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.top, 8)
+                    }
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+
                 Spacer()
 
                 // Confirm Button
@@ -470,14 +556,23 @@ struct BookingFlowView: View {
                 .foregroundColor(.green)
 
             VStack(spacing: 8) {
-                Text("Booking Confirmed!")
+                Text(makeRecurring ? "Recurring Walk Scheduled!" : "Booking Confirmed!")
                     .font(.title2)
                     .fontWeight(.bold)
 
-                Text("Your booking has been submitted successfully.")
+                Text(makeRecurring
+                     ? "Your recurring walk series has been created."
+                     : "Your booking has been submitted successfully.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
+
+                if makeRecurring {
+                    Text(recurringSummary)
+                        .font(.caption)
+                        .foregroundColor(themeManager.primaryColor)
+                        .padding(.top, 4)
+                }
             }
 
             // Booking Summary
@@ -559,25 +654,14 @@ struct BookingFlowView: View {
 
         isSubmitting = true
 
-        let formatter = ISO8601DateFormatter()
-        let request = CreateBookingRequest(
-            walkerId: nil, // Will be assigned by backend based on availability
-            serviceId: service.id,
-            locationId: location.id,
-            startTime: formatter.string(from: timeSlot.startTime),
-            notes: notes.isEmpty ? nil : notes
-        )
-
         Task {
             do {
-                let booking: Booking = try await APIClient.shared.post("/bookings", body: request)
-                await MainActor.run {
-                    createdBooking = booking
-                    isSubmitting = false
-                    analyticsService.trackFunnelStep(step: "booking_confirmed", serviceId: service.id, locationId: location.id)
-                    withAnimation {
-                        currentStep = .confirmation
-                    }
+                if makeRecurring {
+                    // Submit as recurring booking
+                    try await submitRecurringBooking(location: location, timeSlot: timeSlot)
+                } else {
+                    // Submit as single booking
+                    try await submitSingleBooking(location: location, timeSlot: timeSlot)
                 }
             } catch let error as APIError {
                 await MainActor.run {
@@ -593,6 +677,105 @@ struct BookingFlowView: View {
                 }
             }
         }
+    }
+
+    private func submitSingleBooking(location: Location, timeSlot: TimeSlot) async throws {
+        let formatter = ISO8601DateFormatter()
+        let request = CreateBookingRequest(
+            walkerId: nil,
+            serviceId: service.id,
+            locationId: location.id,
+            startTime: formatter.string(from: timeSlot.startTime),
+            notes: notes.isEmpty ? nil : notes
+        )
+
+        let booking: Booking = try await APIClient.shared.post("/bookings", body: request)
+        await MainActor.run {
+            createdBooking = booking
+            isSubmitting = false
+            analyticsService.trackFunnelStep(step: "booking_confirmed", serviceId: service.id, locationId: location.id)
+            withAnimation {
+                currentStep = .confirmation
+            }
+        }
+    }
+
+    private func submitRecurringBooking(location: Location, timeSlot: TimeSlot) async throws {
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withFullDate]
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "h:mm a"
+        let timeString = dateFormatter.string(from: timeSlot.startTime)
+
+        let dayOfWeek = Calendar.current.component(.weekday, from: selectedDate) - 1 // 0-indexed
+
+        let request = CreateRecurringBookingRequest(
+            serviceId: service.id,
+            locationId: location.id,
+            walkerId: nil,
+            frequency: recurrenceFrequency.rawValue,
+            dayOfWeek: dayOfWeek,
+            startTime: timeString,
+            startDate: isoFormatter.string(from: selectedDate),
+            endDate: recurrenceEndType == .date ? isoFormatter.string(from: recurrenceEndDate) : nil,
+            occurrences: recurrenceEndType == .occurrences ? recurrenceOccurrences : nil,
+            notes: notes.isEmpty ? nil : notes
+        )
+
+        let _: RecurringBooking = try await APIClient.shared.post("/bookings/recurring", body: request)
+
+        // Create a placeholder booking for confirmation display
+        let booking = Booking(
+            id: "recurring",
+            customerId: "",
+            customerName: nil,
+            walkerId: "",
+            walkerName: nil,
+            serviceId: service.id,
+            serviceName: service.name,
+            locationId: location.id,
+            locationAddress: location.fullAddress,
+            latitude: nil,
+            longitude: nil,
+            status: .confirmed,
+            scheduledStart: timeSlot.startTime,
+            scheduledEnd: timeSlot.endTime,
+            priceCents: service.priceCents,
+            priceDisplay: service.priceDisplay,
+            notes: notes.isEmpty ? nil : notes,
+            customerPhone: nil,
+            petName: nil,
+            petBreed: nil
+        )
+
+        await MainActor.run {
+            createdBooking = booking
+            isSubmitting = false
+            analyticsService.trackFunnelStep(step: "recurring_booking_confirmed", serviceId: service.id, locationId: location.id)
+            analyticsService.trackEvent(name: "recurring_booking_created", params: [
+                "frequency": recurrenceFrequency.rawValue,
+                "occurrences": recurrenceEndType == .occurrences ? String(recurrenceOccurrences) : "date_based"
+            ])
+            withAnimation {
+                currentStep = .confirmation
+            }
+        }
+    }
+
+    // MARK: - Recurring Summary
+
+    private var recurringSummary: String {
+        let frequencyText = recurrenceFrequency.description
+        let endText: String
+        if recurrenceEndType == .occurrences {
+            endText = "\(recurrenceOccurrences) walks total"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            endText = "until \(formatter.string(from: recurrenceEndDate))"
+        }
+        return "\(frequencyText), \(endText)"
     }
 
     // MARK: - Helpers
