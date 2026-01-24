@@ -8,9 +8,9 @@
 		if (role === 'customer') {
 			goto('/login?role=customer&redirect=/services');
 		} else {
-			// Walker/staff should use the admin app
+			// Staff auth happens on this domain (OAuth registered here), then redirects to admin app
 			const adminUrl = env.PUBLIC_ADMIN_URL || 'https://paperwork.offleash.world';
-			window.location.href = adminUrl;
+			goto(`/login?app=admin&redirect=${encodeURIComponent(adminUrl + '/dashboard')}`);
 		}
 	}
 </script>

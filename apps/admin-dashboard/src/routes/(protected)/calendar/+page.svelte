@@ -17,6 +17,7 @@
 	let blockStartTime = '';
 	let blockEndTime = '';
 	let blockIsBlocking = true;
+	let blockSubmitting = false;
 
 	// Recurring block form state
 	let recurringTitle = '';
@@ -288,6 +289,7 @@
 		blockTitle = '';
 		blockStartTime = '';
 		blockEndTime = '';
+		blockSubmitting = false;
 	}
 
 	function openRecurringModal() {
@@ -770,15 +772,26 @@
 				<h3 class="text-lg font-semibold text-gray-900">Block Time</h3>
 			</div>
 			<form method="POST" action="?/createBlock" use:enhance={() => {
-				return async ({ result }) => {
+				blockSubmitting = true;
+				return async ({ result, update }) => {
+					blockSubmitting = false;
 					if (result.type === 'success') {
 						closeCreateModal();
 						// Reload page to show new event
 						window.location.reload();
+					} else {
+						// Update form state to show errors
+						await update();
 					}
 				};
 			}}>
 				<div class="p-4 space-y-4">
+					{#if form?.error}
+						<div class="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
+							{form.error}
+						</div>
+					{/if}
+
 					<div>
 						<label for="title" class="block text-sm font-medium text-gray-700 mb-1">
 							Title (optional)
@@ -842,15 +855,17 @@
 					<button
 						type="button"
 						on:click={closeCreateModal}
-						class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+						disabled={blockSubmitting}
+						class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50"
 					>
 						Cancel
 					</button>
 					<button
 						type="submit"
-						class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800"
+						disabled={blockSubmitting}
+						class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
-						Create Block
+						{blockSubmitting ? 'Creating...' : 'Create Block'}
 					</button>
 				</div>
 			</form>
@@ -936,10 +951,12 @@
 			{#if selectedEvent.event_type !== 'booking' && selectedEvent.event_type !== 'synced'}
 				<div class="p-4 border-t border-gray-200 flex justify-end gap-3">
 					<form method="POST" action="?/deleteEvent" use:enhance={() => {
-						return async ({ result }) => {
+						return async ({ result, update }) => {
 							if (result.type === 'success') {
 								closeEventDetail();
 								window.location.reload();
+							} else {
+								await update();
 							}
 						};
 					}}>
@@ -983,14 +1000,22 @@
 				<p class="text-sm text-gray-500 mt-1">Set up a recurring break like lunch or gym time</p>
 			</div>
 			<form method="POST" action="?/createRecurringBlock" use:enhance={() => {
-				return async ({ result }) => {
+				return async ({ result, update }) => {
 					if (result.type === 'success') {
 						closeRecurringModal();
 						window.location.reload();
+					} else {
+						await update();
 					}
 				};
 			}}>
 				<div class="p-4 space-y-4">
+					{#if form?.error}
+						<div class="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
+							{form.error}
+						</div>
+					{/if}
+
 					<div>
 						<label for="recurring_title" class="block text-sm font-medium text-gray-700 mb-1">
 							Title
