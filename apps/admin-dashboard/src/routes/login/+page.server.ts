@@ -52,14 +52,14 @@ export const actions: Actions = {
         password,
       });
 
-      // Check if user has admin/owner role in any membership
-      const adminMemberships = response.memberships?.filter(
-        (m) => m.role === "admin" || m.role === "owner"
+      // Check if user has staff role (admin/owner/walker) in any membership
+      const staffMemberships = response.memberships?.filter(
+        (m) => m.role === "admin" || m.role === "owner" || m.role === "walker"
       ) ?? [];
 
-      if (adminMemberships.length === 0) {
+      if (staffMemberships.length === 0) {
         return fail(403, {
-          error: "You do not have admin access to any organization",
+          error: "You do not have staff access to any organization",
           email,
         });
       }
@@ -77,8 +77,8 @@ export const actions: Actions = {
         setAuthCookie(cookies, "membership", JSON.stringify(response.membership), host, false);
       }
 
-      // Store admin memberships only (shared across subdomains)
-      setAuthCookie(cookies, "memberships", JSON.stringify(adminMemberships), host, false);
+      // Store staff memberships only (shared across subdomains)
+      setAuthCookie(cookies, "memberships", JSON.stringify(staffMemberships), host, false);
 
       throw redirect(303, "/dashboard");
     } catch (err) {

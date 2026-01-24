@@ -1,6 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { api, ApiError } from '$lib/api';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 
 interface Service {
 	id: string;
@@ -13,7 +13,12 @@ interface Service {
 }
 
 export const load: PageServerLoad = async ({ parent }) => {
-	const { token } = await parent();
+	const { token, membership } = await parent();
+
+	// Only admin/owner can access service management
+	if (membership?.role !== 'admin' && membership?.role !== 'owner') {
+		throw redirect(303, '/dashboard');
+	}
 
 	try {
 		const services = await api.get<Service[]>('/services', token);
