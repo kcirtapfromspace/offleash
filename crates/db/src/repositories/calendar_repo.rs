@@ -6,8 +6,8 @@ use uuid::Uuid;
 
 use crate::models::{
     CalendarConnection, CalendarEvent, CalendarEventType, CalendarEventWithDetails,
-    CalendarSyncLog, CompleteSyncLog, CreateCalendarConnection, CreateCalendarEvent,
-    CreateSyncLog, UpdateCalendarEvent,
+    CalendarSyncLog, CompleteSyncLog, CreateCalendarConnection, CreateCalendarEvent, CreateSyncLog,
+    UpdateCalendarEvent,
 };
 use shared::types::{OrganizationId, UserId};
 
