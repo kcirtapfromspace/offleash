@@ -35,7 +35,19 @@
 			});
 
 			if (response.ok) {
-				// Refresh the page to load new context
+				const result = await response.json();
+				const role = result.membership?.role;
+
+				// If switching to a walker/owner/admin role, redirect to admin dashboard
+				if (role === 'walker' || role === 'owner' || role === 'admin') {
+					const adminUrl = window.location.hostname.includes('localhost')
+						? '/services' // Local dev fallback
+						: 'https://admin.offleash.world';
+					window.location.href = adminUrl;
+					return;
+				}
+
+				// For customer role, refresh and stay in customer app
 				await invalidateAll();
 				goto('/services');
 			}
@@ -81,6 +93,7 @@
 									<div class="py-2">
 										<div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Switch Organization</div>
 										{#each data.memberships ?? [] as membership}
+											{@const isAdminRole = membership.role === 'walker' || membership.role === 'owner' || membership.role === 'admin'}
 											<button
 												type="button"
 												class="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between {membership.id === data.membership?.id ? 'bg-gray-50' : ''}"
@@ -89,7 +102,12 @@
 											>
 												<div>
 													<div class="font-medium text-gray-900">{membership.organization_name}</div>
-													<div class="text-sm text-gray-500 capitalize">{membership.role}</div>
+													<div class="text-sm text-gray-500 flex items-center gap-1">
+														<span class="capitalize">{membership.role}</span>
+														{#if isAdminRole}
+															<span class="text-xs text-blue-600">→ Dashboard</span>
+														{/if}
+													</div>
 												</div>
 												{#if membership.id === data.membership?.id}
 													<svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
