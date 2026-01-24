@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { enhance } from '$app/forms';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { env } from '$env/dynamic/public';
 
@@ -146,25 +145,12 @@
 							{data.user.first_name}
 						</span>
 					{/if}
-					<form
-						method="POST"
-						action="/logout"
-						use:enhance={() => {
-							return async ({ result }) => {
-								if (result.type === 'redirect') {
-									// Force navigation to login page
-									window.location.href = '/login';
-								}
-							};
-						}}
+					<a
+						href="/logout"
+						class="text-sm text-gray-600 hover:text-gray-900"
 					>
-						<button
-							type="submit"
-							class="text-sm text-gray-600 hover:text-gray-900"
-						>
-							Logout
-						</button>
-					</form>
+						Logout
+					</a>
 				</div>
 			</div>
 		</div>
