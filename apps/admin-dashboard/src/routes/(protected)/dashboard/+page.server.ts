@@ -117,6 +117,13 @@ export const load: PageServerLoad = async ({ parent }) => {
 		};
 	} catch (error) {
 		console.error('Failed to fetch dashboard data:', error);
+		// Include more error detail for debugging
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		const apiError = error as { status?: number; statusText?: string };
+		const errorDetail = apiError.status
+			? `API Error ${apiError.status}: ${errorMessage}`
+			: `Error: ${errorMessage}`;
+
 		return {
 			isAdmin,
 			metrics: {
@@ -136,7 +143,7 @@ export const load: PageServerLoad = async ({ parent }) => {
 			},
 			recentBookings: [],
 			upcomingBookings: [],
-			error: 'Failed to load dashboard data'
+			error: errorDetail
 		};
 	}
 };
