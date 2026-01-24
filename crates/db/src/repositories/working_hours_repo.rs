@@ -7,7 +7,10 @@ use crate::models::{CreateWorkingHours, UpdateWorkingHours, WorkingHours};
 pub struct WorkingHoursRepository;
 
 impl WorkingHoursRepository {
-    pub async fn create(pool: &PgPool, input: CreateWorkingHours) -> Result<WorkingHours, sqlx::Error> {
+    pub async fn create(
+        pool: &PgPool,
+        input: CreateWorkingHours,
+    ) -> Result<WorkingHours, sqlx::Error> {
         let id = WorkingHoursId::new();
 
         sqlx::query_as::<_, WorkingHours>(

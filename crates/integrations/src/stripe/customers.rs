@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use super::{client::{Address, StripeClient, StripeList}, error::StripeResult};
+use super::{
+    client::{Address, StripeClient, StripeList},
+    error::StripeResult,
+};
 
 /// Stripe Customer
 #[derive(Debug, Clone, Deserialize)]
@@ -131,7 +134,10 @@ impl StripeClient {
         }
 
         if let Some(pm) = default_payment_method {
-            params.insert("invoice_settings[default_payment_method]".to_string(), pm.to_string());
+            params.insert(
+                "invoice_settings[default_payment_method]".to_string(),
+                pm.to_string(),
+            );
         }
 
         self.post(&format!("/customers/{}", id), &params).await
@@ -167,13 +173,24 @@ impl StripeClient {
         let mut params = HashMap::new();
         params.insert("customer".to_string(), customer_id.to_string());
 
-        self.post(&format!("/payment_methods/{}/attach", payment_method_id), &params).await
+        self.post(
+            &format!("/payment_methods/{}/attach", payment_method_id),
+            &params,
+        )
+        .await
     }
 
     /// Detach payment method from customer
-    pub async fn detach_payment_method(&self, payment_method_id: &str) -> StripeResult<PaymentMethod> {
+    pub async fn detach_payment_method(
+        &self,
+        payment_method_id: &str,
+    ) -> StripeResult<PaymentMethod> {
         let params = HashMap::new();
-        self.post(&format!("/payment_methods/{}/detach", payment_method_id), &params).await
+        self.post(
+            &format!("/payment_methods/{}/detach", payment_method_id),
+            &params,
+        )
+        .await
     }
 
     // ============ Setup Intents ============
@@ -220,6 +237,7 @@ impl StripeClient {
             params.insert("return_url".to_string(), url.to_string());
         }
 
-        self.post(&format!("/setup_intents/{}/confirm", id), &params).await
+        self.post(&format!("/setup_intents/{}/confirm", id), &params)
+            .await
     }
 }

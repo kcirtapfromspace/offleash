@@ -64,10 +64,9 @@ pub async fn create_checkout(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid booking ID".to_string())))?;
 
-    let provider_user_id: Uuid = req
-        .provider_user_id
-        .parse()
-        .map_err(|_| ApiError::from(AppError::Validation("Invalid provider user ID".to_string())))?;
+    let provider_user_id: Uuid = req.provider_user_id.parse().map_err(|_| {
+        ApiError::from(AppError::Validation("Invalid provider user ID".to_string()))
+    })?;
 
     // Get the primary payment provider for this tenant
     let provider = PaymentProviderRepository::get_primary(&tenant.pool, tenant.org_id)
@@ -79,24 +78,24 @@ pub async fn create_checkout(
         })?;
 
     // Get the platform fee tier for this tenant
-    let fee_tier = SubscriptionRepository::get_org_fee_tier(&tenant.pool, tenant.org_id)
-        .await?;
+    let fee_tier = SubscriptionRepository::get_org_fee_tier(&tenant.pool, tenant.org_id).await?;
 
     // Calculate tax (simplified - in production use TaxJar/Avalara)
-    let tax_rate_percent = if let (Some(state), Some(_zip)) = (&req.customer_state, &req.customer_zip) {
-        // Use simple state-based tax rate as fallback
-        match state.to_uppercase().as_str() {
-            "CA" => 7.25,
-            "TX" => 6.25,
-            "FL" => 6.00,
-            "NY" => 8.00,
-            "WA" => 6.50,
-            "OR" | "MT" | "NH" | "DE" => 0.0, // No sales tax
-            _ => 6.0,
-        }
-    } else {
-        0.0 // No tax if address not provided
-    };
+    let tax_rate_percent =
+        if let (Some(state), Some(_zip)) = (&req.customer_state, &req.customer_zip) {
+            // Use simple state-based tax rate as fallback
+            match state.to_uppercase().as_str() {
+                "CA" => 7.25,
+                "TX" => 6.25,
+                "FL" => 6.00,
+                "NY" => 8.00,
+                "WA" => 6.50,
+                "OR" | "MT" | "NH" | "DE" => 0.0, // No sales tax
+                _ => 6.0,
+            }
+        } else {
+            0.0 // No tax if address not provided
+        };
 
     // Calculate fee breakdown
     let fee_breakdown = TransactionFeeBreakdown::calculate(
@@ -109,11 +108,11 @@ pub async fn create_checkout(
 
     // Get payment method details if provided
     let payment_method_id = if let Some(pm_id) = &req.payment_method_id {
-        Some(
-            pm_id
-                .parse::<Uuid>()
-                .map_err(|_| ApiError::from(AppError::Validation("Invalid payment method ID".to_string())))?,
-        )
+        Some(pm_id.parse::<Uuid>().map_err(|_| {
+            ApiError::from(AppError::Validation(
+                "Invalid payment method ID".to_string(),
+            ))
+        })?)
     } else {
         None
     };
@@ -141,12 +140,14 @@ pub async fn create_checkout(
         metadata: None,
     };
 
-    let transaction = TransactionRepository::create(&tenant.pool, tenant.org_id, transaction_input).await?;
+    let transaction =
+        TransactionRepository::create(&tenant.pool, tenant.org_id, transaction_input).await?;
 
     // Create payment with the provider
     let (client_secret, payment_id) = match provider.provider_type {
         PaymentProviderType::Stripe => {
-            let secret = create_stripe_payment_intent(&provider, &transaction, &fee_breakdown).await?;
+            let secret =
+                create_stripe_payment_intent(&provider, &transaction, &fee_breakdown).await?;
             (Some(secret), None)
         }
         PaymentProviderType::Square => {
@@ -155,7 +156,8 @@ pub async fn create_checkout(
         }
         PaymentProviderType::Platform => {
             // Platform default - use Stripe
-            let secret = create_stripe_payment_intent(&provider, &transaction, &fee_breakdown).await?;
+            let secret =
+                create_stripe_payment_intent(&provider, &transaction, &fee_breakdown).await?;
             (Some(secret), None)
         }
     };
@@ -203,8 +205,9 @@ pub async fn get_checkout(
         )));
     }
 
-    let provider = PaymentProviderRepository::get_by_id(&tenant.pool, tenant.org_id, transaction.provider_id)
-        .await?;
+    let provider =
+        PaymentProviderRepository::get_by_id(&tenant.pool, tenant.org_id, transaction.provider_id)
+            .await?;
 
     Ok(Json(CheckoutResponse {
         transaction_id: transaction.id.to_string(),
@@ -239,7 +242,8 @@ pub async fn list_transactions(
     tenant: TenantContext,
 ) -> ApiResult<Json<Vec<TransactionListItem>>> {
     let transactions =
-        TransactionRepository::list_for_user(&tenant.pool, tenant.org_id, auth_user.user_id).await?;
+        TransactionRepository::list_for_user(&tenant.pool, tenant.org_id, auth_user.user_id)
+            .await?;
 
     let response: Vec<TransactionListItem> = transactions
         .into_iter()
@@ -294,8 +298,9 @@ pub async fn confirm_payment(
     )
     .await?;
 
-    let provider = PaymentProviderRepository::get_by_id(&tenant.pool, tenant.org_id, transaction.provider_id)
-        .await?;
+    let provider =
+        PaymentProviderRepository::get_by_id(&tenant.pool, tenant.org_id, transaction.provider_id)
+            .await?;
 
     Ok(Json(CheckoutResponse {
         transaction_id: transaction.id.to_string(),
@@ -353,9 +358,12 @@ pub async fn request_refund(
     let refund_amount = req.amount_cents.unwrap_or(transaction.total_cents);
 
     // Get the payment provider
-    let provider = PaymentProviderRepository::get_by_id(&tenant.pool, tenant.org_id, transaction.provider_id)
-        .await?
-        .ok_or_else(|| ApiError::from(AppError::Internal("Payment provider not found".to_string())))?;
+    let provider =
+        PaymentProviderRepository::get_by_id(&tenant.pool, tenant.org_id, transaction.provider_id)
+            .await?
+            .ok_or_else(|| {
+                ApiError::from(AppError::Internal("Payment provider not found".to_string()))
+            })?;
 
     // Process refund through payment provider
     let refund_id = match provider.provider_type {
@@ -363,7 +371,13 @@ pub async fn request_refund(
             process_stripe_refund(&transaction, refund_amount, req.reason.as_deref()).await?
         }
         PaymentProviderType::Square => {
-            process_square_refund(&provider, &transaction, refund_amount, req.reason.as_deref()).await?
+            process_square_refund(
+                &provider,
+                &transaction,
+                refund_amount,
+                req.reason.as_deref(),
+            )
+            .await?
         }
     };
 
@@ -404,7 +418,10 @@ async fn create_stripe_payment_intent(
 
     // Add application fee for platform revenue
     if transaction.platform_fee_cents > 0 {
-        params.push(("application_fee_amount", transaction.platform_fee_cents.to_string()));
+        params.push((
+            "application_fee_amount",
+            transaction.platform_fee_cents.to_string(),
+        ));
     }
 
     // Add transfer data for connected account
@@ -556,8 +573,7 @@ pub async fn preview_fees(
     Json(req): Json<FeePreviewRequest>,
 ) -> ApiResult<Json<FeePreviewResponse>> {
     // Get the fee tier for this tenant
-    let fee_tier = SubscriptionRepository::get_org_fee_tier(&tenant.pool, tenant.org_id)
-        .await?;
+    let fee_tier = SubscriptionRepository::get_org_fee_tier(&tenant.pool, tenant.org_id).await?;
 
     // Calculate tax rate
     let tax_rate_percent = if let Some(state) = &req.customer_state {
@@ -616,7 +632,10 @@ async fn process_stripe_refund(
 
     // Extract the payment intent ID from client secret if needed
     let pi_id = if payment_intent_id.contains("_secret_") {
-        payment_intent_id.split("_secret_").next().unwrap_or(payment_intent_id)
+        payment_intent_id
+            .split("_secret_")
+            .next()
+            .unwrap_or(payment_intent_id)
     } else {
         payment_intent_id.as_str()
     };

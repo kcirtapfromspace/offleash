@@ -203,7 +203,10 @@ impl CalendarConnection {
 
     /// Check if connection is CalDAV-based
     pub fn is_caldav(&self) -> bool {
-        matches!(self.provider, CalendarProvider::Apple | CalendarProvider::Caldav)
+        matches!(
+            self.provider,
+            CalendarProvider::Apple | CalendarProvider::Caldav
+        )
     }
 }
 

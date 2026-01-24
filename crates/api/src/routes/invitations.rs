@@ -8,7 +8,7 @@ use axum::{
 };
 use chrono::{Duration, Utc};
 use db::models::{
-    CreateInvitation, CreateMembership, CreateOrganization, CreateUser, CreateTenantDatabase,
+    CreateInvitation, CreateMembership, CreateOrganization, CreateTenantDatabase, CreateUser,
     InvitationStatus, InvitationType, MembershipRole, MembershipStatus, OrganizationSettings,
     UserRole,
 };
@@ -129,7 +129,11 @@ fn hash_token(token: &str) -> Result<String, ApiError> {
     Argon2::default()
         .hash_password(token.as_bytes(), &salt)
         .map(|h| h.to_string())
-        .map_err(|_| ApiError::from(shared::AppError::Internal("Failed to hash token".to_string())))
+        .map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Failed to hash token".to_string(),
+            ))
+        })
 }
 
 /// Generate a URL-safe slug from business name
@@ -269,19 +273,15 @@ async fn send_invitation(
     }
 
     // Rate limit check
-    let recent_count = InvitationRepository::count_recent_by_inviter(&state.pool, inviter_id).await?;
+    let recent_count =
+        InvitationRepository::count_recent_by_inviter(&state.pool, inviter_id).await?;
     if recent_count >= MAX_INVITATIONS_PER_HOUR {
         return Err(ApiError::from(DomainError::RateLimitExceeded));
     }
 
     // Check for existing pending invitation
-    let existing = InvitationRepository::find_existing_pending(
-        &state.pool,
-        org_id,
-        email,
-        phone,
-    )
-    .await?;
+    let existing =
+        InvitationRepository::find_existing_pending(&state.pool, org_id, email, phone).await?;
 
     if existing.is_some() {
         return Err(ApiError::from(DomainError::InvitationAlreadyExists));
@@ -508,14 +508,19 @@ pub async fn accept_invitation(
     // Get organization info for the response
     let org = OrganizationRepository::find_by_id(&state.pool, invitation.organization_id)
         .await?
-        .ok_or_else(|| ApiError::from(DomainError::OrganizationNotFound(invitation.organization_id.to_string())))?;
+        .ok_or_else(|| {
+            ApiError::from(DomainError::OrganizationNotFound(
+                invitation.organization_id.to_string(),
+            ))
+        })?;
 
     // Create token with membership context
-    let token = create_token(user.id, Some(invitation.organization_id), &state.jwt_secret).map_err(|_| {
-        ApiError::from(shared::AppError::Internal(
-            "Token creation failed".to_string(),
-        ))
-    })?;
+    let token = create_token(user.id, Some(invitation.organization_id), &state.jwt_secret)
+        .map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Token creation failed".to_string(),
+            ))
+        })?;
 
     Ok(Json(AuthResponse {
         token,
@@ -593,16 +598,23 @@ pub async fn join_tenant(
     // Get organization info for the response
     let org = OrganizationRepository::find_by_id(&state.pool, invitation.organization_id)
         .await?
-        .ok_or_else(|| ApiError::from(DomainError::OrganizationNotFound(invitation.organization_id.to_string())))?;
+        .ok_or_else(|| {
+            ApiError::from(DomainError::OrganizationNotFound(
+                invitation.organization_id.to_string(),
+            ))
+        })?;
 
     // Create new token with the new membership context
-    let token =
-        create_token(auth_user.user_id, Some(invitation.organization_id), &state.jwt_secret)
-            .map_err(|_| {
-                ApiError::from(shared::AppError::Internal(
-                    "Token creation failed".to_string(),
-                ))
-            })?;
+    let token = create_token(
+        auth_user.user_id,
+        Some(invitation.organization_id),
+        &state.jwt_secret,
+    )
+    .map_err(|_| {
+        ApiError::from(shared::AppError::Internal(
+            "Token creation failed".to_string(),
+        ))
+    })?;
 
     Ok(Json(AuthResponse {
         token,
@@ -633,7 +645,9 @@ pub async fn create_tenant(
     Json(req): Json<CreateTenantRequest>,
 ) -> ApiResult<Json<CreateTenantResponse>> {
     // Generate slug from business name
-    let base_slug = req.slug.unwrap_or_else(|| generate_slug(&req.business_name));
+    let base_slug = req
+        .slug
+        .unwrap_or_else(|| generate_slug(&req.business_name));
 
     // Make slug unique by adding random suffix if needed
     let mut slug = base_slug.clone();
@@ -704,12 +718,13 @@ pub async fn create_tenant(
         .await?;
 
     // Create new token with the new organization context
-    let token = create_token(auth_user.user_id, Some(organization.id), &state.jwt_secret)
-        .map_err(|_| {
+    let token = create_token(auth_user.user_id, Some(organization.id), &state.jwt_secret).map_err(
+        |_| {
             ApiError::from(shared::AppError::Internal(
                 "Token creation failed".to_string(),
             ))
-        })?;
+        },
+    )?;
 
     Ok(Json(CreateTenantResponse {
         success: true,

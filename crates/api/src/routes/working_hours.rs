@@ -51,10 +51,12 @@ fn day_name(day: i16) -> String {
 }
 
 fn parse_time(time_str: &str) -> Result<NaiveTime, ApiError> {
-    NaiveTime::parse_from_str(time_str, "%H:%M")
-        .map_err(|_| ApiError::from(AppError::Validation(
-            format!("Invalid time format '{}'. Use HH:MM format.", time_str)
+    NaiveTime::parse_from_str(time_str, "%H:%M").map_err(|_| {
+        ApiError::from(AppError::Validation(format!(
+            "Invalid time format '{}'. Use HH:MM format.",
+            time_str
         )))
+    })
 }
 
 pub async fn get_walker_hours(
@@ -119,9 +121,10 @@ pub async fn update_walker_hours(
     // Validate day_of_week values
     for day in &req.schedule {
         if day.day_of_week < 0 || day.day_of_week > 6 {
-            return Err(ApiError::from(AppError::Validation(
-                format!("Invalid day_of_week {}. Must be 0-6 (Sunday-Saturday).", day.day_of_week)
-            )));
+            return Err(ApiError::from(AppError::Validation(format!(
+                "Invalid day_of_week {}. Must be 0-6 (Sunday-Saturday).",
+                day.day_of_week
+            ))));
         }
     }
 
@@ -132,9 +135,10 @@ pub async fn update_walker_hours(
         let end_time = parse_time(&day.end_time)?;
 
         if start_time >= end_time {
-            return Err(ApiError::from(AppError::Validation(
-                format!("Start time must be before end time for {}", day_name(day.day_of_week))
-            )));
+            return Err(ApiError::from(AppError::Validation(format!(
+                "Start time must be before end time for {}",
+                day_name(day.day_of_week)
+            ))));
         }
 
         let hours = WorkingHoursRepository::upsert(

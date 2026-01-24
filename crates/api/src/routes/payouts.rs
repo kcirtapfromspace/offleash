@@ -3,13 +3,15 @@ use axum::{
     Json,
 };
 use db::{
-    models::{CreatePayout, Payout, PaymentProviderType, PayoutStatus, UpdatePayout, UpdatePayoutSettings},
+    models::{
+        CreatePayout, PaymentProviderType, Payout, PayoutStatus, UpdatePayout, UpdatePayoutSettings,
+    },
     PaymentProviderRepository, PayoutRepository,
 };
-use shared::types::OrganizationId;
-use sqlx::PgPool;
 use serde::{Deserialize, Serialize};
+use shared::types::OrganizationId;
 use shared::AppError;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
@@ -132,9 +134,7 @@ pub async fn update_payout_settings(
     let settings = PayoutRepository::update_settings(&tenant.pool, tenant.org_id, input)
         .await?
         .ok_or_else(|| {
-            ApiError::from(AppError::NotFound(
-                "Payout settings not found".to_string(),
-            ))
+            ApiError::from(AppError::NotFound("Payout settings not found".to_string()))
         })?;
 
     Ok(Json(PayoutSettingsResponse {
@@ -301,7 +301,7 @@ pub async fn request_instant_payout(
         net_amount_cents: net_amount,
         currency: "USD".to_string(),
         period_start: now - chrono::Duration::days(30), // Period start (last 30 days)
-        period_end: now,                                 // Period end
+        period_end: now,                                // Period end
         transaction_count: 0, // Would be calculated from actual transactions
         transaction_ids: vec![],
     };
@@ -309,7 +309,9 @@ pub async fn request_instant_payout(
     let payout = PayoutRepository::create(&tenant.pool, tenant.org_id, input).await?;
 
     // Initiate payout through payment provider
-    if let Ok((stripe_id, square_id)) = initiate_provider_payout(&tenant.pool, tenant.org_id, &payout).await {
+    if let Ok((stripe_id, square_id)) =
+        initiate_provider_payout(&tenant.pool, tenant.org_id, &payout).await
+    {
         // Update payout with external ID
         let update = UpdatePayout {
             stripe_payout_id: stripe_id,
@@ -345,7 +347,11 @@ async fn initiate_provider_payout(
     // Get the primary payment provider
     let provider = PaymentProviderRepository::get_primary(pool, org_id)
         .await?
-        .ok_or_else(|| ApiError::from(AppError::Internal("No payment provider configured".to_string())))?;
+        .ok_or_else(|| {
+            ApiError::from(AppError::Internal(
+                "No payment provider configured".to_string(),
+            ))
+        })?;
 
     match provider.provider_type {
         PaymentProviderType::Stripe | PaymentProviderType::Platform => {
@@ -368,10 +374,11 @@ async fn initiate_stripe_payout(
     let stripe_secret = std::env::var("STRIPE_SECRET_KEY")
         .map_err(|_| ApiError::from(AppError::Internal("Stripe not configured".to_string())))?;
 
-    let connected_account = provider
-        .stripe_account_id
-        .as_ref()
-        .ok_or_else(|| ApiError::from(AppError::Internal("Stripe account not connected".to_string())))?;
+    let connected_account = provider.stripe_account_id.as_ref().ok_or_else(|| {
+        ApiError::from(AppError::Internal(
+            "Stripe account not connected".to_string(),
+        ))
+    })?;
 
     let client = reqwest::Client::new();
 

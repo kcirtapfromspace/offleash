@@ -77,7 +77,8 @@ pub async fn list_pets(
     auth_user: AuthUser,
     tenant: TenantContext,
 ) -> ApiResult<Json<Vec<PetResponse>>> {
-    let pets = PetRepository::list_for_owner(&tenant.pool, tenant.org_id, auth_user.user_id).await?;
+    let pets =
+        PetRepository::list_for_owner(&tenant.pool, tenant.org_id, auth_user.user_id).await?;
 
     let response: Vec<PetResponse> = pets.into_iter().map(PetResponse::from).collect();
 
@@ -138,15 +139,18 @@ pub async fn create_pet(
     }
 
     let date_of_birth = if let Some(dob_str) = &req.date_of_birth {
-        Some(
-            NaiveDate::parse_from_str(dob_str, "%Y-%m-%d")
-                .map_err(|_| ApiError::from(AppError::Validation("Invalid date format. Use YYYY-MM-DD".to_string())))?,
-        )
+        Some(NaiveDate::parse_from_str(dob_str, "%Y-%m-%d").map_err(|_| {
+            ApiError::from(AppError::Validation(
+                "Invalid date format. Use YYYY-MM-DD".to_string(),
+            ))
+        })?)
     } else {
         None
     };
 
-    let weight_lbs = req.weight_lbs.map(|w| Decimal::try_from(w).unwrap_or_default());
+    let weight_lbs = req
+        .weight_lbs
+        .map(|w| Decimal::try_from(w).unwrap_or_default());
 
     let input = CreatePet {
         name: req.name.trim().to_string(),
@@ -209,15 +213,18 @@ pub async fn update_pet(
         .map_err(|_| ApiError::from(AppError::Validation("Invalid pet ID".to_string())))?;
 
     let date_of_birth = if let Some(dob_str) = &req.date_of_birth {
-        Some(
-            NaiveDate::parse_from_str(dob_str, "%Y-%m-%d")
-                .map_err(|_| ApiError::from(AppError::Validation("Invalid date format. Use YYYY-MM-DD".to_string())))?,
-        )
+        Some(NaiveDate::parse_from_str(dob_str, "%Y-%m-%d").map_err(|_| {
+            ApiError::from(AppError::Validation(
+                "Invalid date format. Use YYYY-MM-DD".to_string(),
+            ))
+        })?)
     } else {
         None
     };
 
-    let weight_lbs = req.weight_lbs.map(|w| Decimal::try_from(w).unwrap_or_default());
+    let weight_lbs = req
+        .weight_lbs
+        .map(|w| Decimal::try_from(w).unwrap_or_default());
 
     let input = UpdatePet {
         name: req.name.map(|n| n.trim().to_string()),
@@ -241,9 +248,15 @@ pub async fn update_pet(
         is_active: None,
     };
 
-    let pet = PetRepository::update(&tenant.pool, tenant.org_id, auth_user.user_id, pet_id, input)
-        .await?
-        .ok_or_else(|| ApiError::from(AppError::NotFound("Pet not found".to_string())))?;
+    let pet = PetRepository::update(
+        &tenant.pool,
+        tenant.org_id,
+        auth_user.user_id,
+        pet_id,
+        input,
+    )
+    .await?
+    .ok_or_else(|| ApiError::from(AppError::NotFound("Pet not found".to_string())))?;
 
     Ok(Json(PetResponse::from(pet)))
 }
@@ -263,7 +276,9 @@ pub async fn delete_pet(
         PetRepository::delete(&tenant.pool, tenant.org_id, auth_user.user_id, pet_id).await?;
 
     if !deleted {
-        return Err(ApiError::from(AppError::NotFound("Pet not found".to_string())));
+        return Err(ApiError::from(AppError::NotFound(
+            "Pet not found".to_string(),
+        )));
     }
 
     Ok(Json(serde_json::json!({ "success": true })))

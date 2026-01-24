@@ -105,17 +105,22 @@ pub async fn create_booking(
             .map_err(|_| ApiError::from(AppError::Validation("Invalid walker ID".to_string())))?
     } else {
         // Find first available walker in the organization
-        let walkers = UserRepository::list_by_role(&tenant.pool, tenant.org_id, db::models::UserRole::Walker).await?;
-        walkers
-            .first()
-            .map(|w| w.id)
-            .ok_or_else(|| ApiError::from(AppError::Validation("No walkers available".to_string())))?
+        let walkers =
+            UserRepository::list_by_role(&tenant.pool, tenant.org_id, db::models::UserRole::Walker)
+                .await?;
+        walkers.first().map(|w| w.id).ok_or_else(|| {
+            ApiError::from(AppError::Validation("No walkers available".to_string()))
+        })?
     };
 
     // Verify walker exists within this organization
     let walker = UserRepository::find_by_id(&tenant.pool, tenant.org_id, walker_id)
         .await?
-        .ok_or_else(|| ApiError::from(DomainError::WalkerNotFound(req.walker_id.clone().unwrap_or_default())))?;
+        .ok_or_else(|| {
+            ApiError::from(DomainError::WalkerNotFound(
+                req.walker_id.clone().unwrap_or_default(),
+            ))
+        })?;
 
     if !walker.is_walker() {
         return Err(ApiError::from(DomainError::WalkerNotFound(
@@ -341,15 +346,10 @@ pub async fn reschedule_booking(
     let new_end = new_start + duration;
 
     // Update the booking
-    let updated = BookingRepository::reschedule(
-        &tenant.pool,
-        tenant.org_id,
-        booking_id,
-        new_start,
-        new_end,
-    )
-    .await?
-    .ok_or_else(|| ApiError::from(DomainError::BookingNotFound(id)))?;
+    let updated =
+        BookingRepository::reschedule(&tenant.pool, tenant.org_id, booking_id, new_start, new_end)
+            .await?
+            .ok_or_else(|| ApiError::from(DomainError::BookingNotFound(id)))?;
 
     Ok(Json(BookingResponse {
         id: updated.id.to_string(),
@@ -413,8 +413,8 @@ pub async fn list_bookings(
             .map(|s| s.name)
             .unwrap_or_else(|| "Unknown".to_string());
 
-        let location = LocationRepository::find_by_id(&tenant.pool, tenant.org_id, b.location_id)
-            .await?;
+        let location =
+            LocationRepository::find_by_id(&tenant.pool, tenant.org_id, b.location_id).await?;
 
         let location_address = location
             .as_ref()
@@ -456,7 +456,8 @@ pub async fn list_customer_bookings(
     tenant: TenantContext,
     auth: AuthUser,
 ) -> ApiResult<Json<Vec<BookingListItem>>> {
-    let bookings = BookingRepository::find_by_customer(&tenant.pool, tenant.org_id, auth.user_id).await?;
+    let bookings =
+        BookingRepository::find_by_customer(&tenant.pool, tenant.org_id, auth.user_id).await?;
 
     // Enrich bookings with related data
     let mut responses = Vec::with_capacity(bookings.len());
@@ -471,8 +472,8 @@ pub async fn list_customer_bookings(
             .map(|s| s.name)
             .unwrap_or_else(|| "Unknown".to_string());
 
-        let location = LocationRepository::find_by_id(&tenant.pool, tenant.org_id, b.location_id)
-            .await?;
+        let location =
+            LocationRepository::find_by_id(&tenant.pool, tenant.org_id, b.location_id).await?;
 
         let location_address = location
             .as_ref()
@@ -514,13 +515,14 @@ pub async fn list_walker_bookings(
     tenant: TenantContext,
     auth: AuthUser,
 ) -> ApiResult<Json<Vec<BookingListItem>>> {
-    let bookings = BookingRepository::find_by_walker(&tenant.pool, tenant.org_id, auth.user_id).await?;
+    let bookings =
+        BookingRepository::find_by_walker(&tenant.pool, tenant.org_id, auth.user_id).await?;
 
     // Enrich bookings with related data
     let mut responses = Vec::with_capacity(bookings.len());
     for b in bookings {
-        let customer = UserRepository::find_by_id(&tenant.pool, tenant.org_id, b.customer_id)
-            .await?;
+        let customer =
+            UserRepository::find_by_id(&tenant.pool, tenant.org_id, b.customer_id).await?;
 
         let customer_name = customer
             .as_ref()
@@ -534,8 +536,8 @@ pub async fn list_walker_bookings(
             .map(|s| s.name)
             .unwrap_or_else(|| "Unknown".to_string());
 
-        let location = LocationRepository::find_by_id(&tenant.pool, tenant.org_id, b.location_id)
-            .await?;
+        let location =
+            LocationRepository::find_by_id(&tenant.pool, tenant.org_id, b.location_id).await?;
 
         let location_address = location
             .as_ref()

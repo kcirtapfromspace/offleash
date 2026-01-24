@@ -218,10 +218,7 @@ impl DisputeRepository {
     }
 
     /// Count open disputes for organization
-    pub async fn count_open(
-        pool: &PgPool,
-        org_id: OrganizationId,
-    ) -> Result<i64, sqlx::Error> {
+    pub async fn count_open(pool: &PgPool, org_id: OrganizationId) -> Result<i64, sqlx::Error> {
         sqlx::query_scalar(
             r#"
             SELECT COUNT(*) FROM disputes

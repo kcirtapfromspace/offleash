@@ -86,8 +86,8 @@ pub async fn list_contexts(
         .ok_or_else(|| ApiError::from(DomainError::UserNotFound(auth_user.user_id.to_string())))?;
 
     // Get all active memberships with org details
-    let memberships = MembershipRepository::find_with_org_by_user(&state.pool, auth_user.user_id)
-        .await?;
+    let memberships =
+        MembershipRepository::find_with_org_by_user(&state.pool, auth_user.user_id).await?;
 
     let membership_responses: Vec<MembershipResponse> = memberships
         .into_iter()
@@ -103,13 +103,12 @@ pub async fn list_contexts(
         .collect();
 
     // Get default membership ID from user record
-    let default_membership_id: Option<String> = sqlx::query_scalar(
-        "SELECT default_membership_id::text FROM users WHERE id = $1",
-    )
-    .bind(auth_user.user_id)
-    .fetch_optional(&state.pool)
-    .await?
-    .flatten();
+    let default_membership_id: Option<String> =
+        sqlx::query_scalar("SELECT default_membership_id::text FROM users WHERE id = $1")
+            .bind(auth_user.user_id)
+            .fetch_optional(&state.pool)
+            .await?
+            .flatten();
 
     Ok(Json(UserContextsResponse {
         user_id: user.id.to_string(),
@@ -130,15 +129,20 @@ pub async fn switch_context(
     auth_user: AuthUser,
     Json(req): Json<SwitchContextRequest>,
 ) -> ApiResult<Json<SwitchContextResponse>> {
-    let membership_id: Uuid = req
-        .membership_id
-        .parse()
-        .map_err(|_| ApiError::from(DomainError::ValidationError("Invalid membership ID".to_string())))?;
+    let membership_id: Uuid = req.membership_id.parse().map_err(|_| {
+        ApiError::from(DomainError::ValidationError(
+            "Invalid membership ID".to_string(),
+        ))
+    })?;
 
     // Find the membership
     let membership = MembershipRepository::find_by_id(&state.pool, membership_id)
         .await?
-        .ok_or_else(|| ApiError::from(DomainError::ValidationError("Membership not found".to_string())))?;
+        .ok_or_else(|| {
+            ApiError::from(DomainError::ValidationError(
+                "Membership not found".to_string(),
+            ))
+        })?;
 
     // Verify it belongs to the current user
     if membership.user_id != auth_user.user_id {
@@ -217,14 +221,20 @@ pub async fn set_default_context(
     Json(req): Json<SetDefaultContextRequest>,
 ) -> ApiResult<Json<serde_json::Value>> {
     if let Some(membership_id_str) = req.membership_id {
-        let membership_id: Uuid = membership_id_str
-            .parse()
-            .map_err(|_| ApiError::from(DomainError::ValidationError("Invalid membership ID".to_string())))?;
+        let membership_id: Uuid = membership_id_str.parse().map_err(|_| {
+            ApiError::from(DomainError::ValidationError(
+                "Invalid membership ID".to_string(),
+            ))
+        })?;
 
         // Verify membership exists and belongs to user
         let membership = MembershipRepository::find_by_id(&state.pool, membership_id)
             .await?
-            .ok_or_else(|| ApiError::from(DomainError::ValidationError("Membership not found".to_string())))?;
+            .ok_or_else(|| {
+                ApiError::from(DomainError::ValidationError(
+                    "Membership not found".to_string(),
+                ))
+            })?;
 
         if membership.user_id != auth_user.user_id {
             return Err(ApiError::from(DomainError::Unauthorized(
@@ -328,8 +338,8 @@ fn create_token_with_membership(
 
     #[derive(Debug, Serialize, Deserialize)]
     struct MembershipClaims {
-        sub: String,                 // User ID
-        org_id: Option<String>,      // Organization ID
+        sub: String,                   // User ID
+        org_id: Option<String>,        // Organization ID
         membership_id: Option<String>, // Membership ID
         platform_admin: Option<bool>,
         exp: usize,
@@ -351,5 +361,9 @@ fn create_token_with_membership(
         &claims,
         &EncodingKey::from_secret(secret.as_bytes()),
     )
-    .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))
+    .map_err(|_| {
+        ApiError::from(shared::AppError::Internal(
+            "Token creation failed".to_string(),
+        ))
+    })
 }

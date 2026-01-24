@@ -4,10 +4,8 @@ import { fail } from '@sveltejs/kit';
 
 const API_URL = env.API_URL || 'http://localhost:3000';
 
-export const load: PageServerLoad = async ({ locals }) => {
-	return {
-		user: locals.user
-	};
+export const load: PageServerLoad = async () => {
+	return {};
 };
 
 export const actions: Actions = {

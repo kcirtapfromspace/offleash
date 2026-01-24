@@ -5,7 +5,9 @@ use argon2::{
 use axum::{extract::State, Json};
 use chrono::{Duration, Utc};
 use db::models::{AuthProvider, CreatePhoneVerification, CreateUser, CreateUserIdentity, UserRole};
-use db::{OrganizationRepository, PhoneVerificationRepository, UserIdentityRepository, UserRepository};
+use db::{
+    OrganizationRepository, PhoneVerificationRepository, UserIdentityRepository, UserRepository,
+};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use shared::types::UserId;
@@ -43,7 +45,10 @@ pub struct VerifyCodeRequest {
 /// Validate phone number is in E.164 format
 fn validate_phone_number(phone: &str) -> Result<String, ApiError> {
     // Basic E.164 validation: starts with +, followed by 10-15 digits
-    let cleaned: String = phone.chars().filter(|c| c.is_ascii_digit() || *c == '+').collect();
+    let cleaned: String = phone
+        .chars()
+        .filter(|c| c.is_ascii_digit() || *c == '+')
+        .collect();
 
     if !cleaned.starts_with('+') {
         return Err(ApiError::from(shared::DomainError::ValidationError(
@@ -73,14 +78,22 @@ fn hash_code(code: &str) -> Result<String, ApiError> {
     Argon2::default()
         .hash_password(code.as_bytes(), &salt)
         .map(|h| h.to_string())
-        .map_err(|_| ApiError::from(shared::AppError::Internal("Failed to hash code".to_string())))
+        .map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Failed to hash code".to_string(),
+            ))
+        })
 }
 
 /// Verify the OTP code against stored hash
 fn verify_code(code: &str, hash: &str) -> bool {
     PasswordHash::new(hash)
         .ok()
-        .map(|parsed| Argon2::default().verify_password(code.as_bytes(), &parsed).is_ok())
+        .map(|parsed| {
+            Argon2::default()
+                .verify_password(code.as_bytes(), &parsed)
+                .is_ok()
+        })
         .unwrap_or(false)
 }
 
@@ -95,10 +108,15 @@ pub async fn send_code(
     // Verify organization exists
     let _organization = OrganizationRepository::find_by_slug(&state.pool, &req.org_slug)
         .await?
-        .ok_or_else(|| ApiError::from(shared::DomainError::OrganizationNotFound(req.org_slug.clone())))?;
+        .ok_or_else(|| {
+            ApiError::from(shared::DomainError::OrganizationNotFound(
+                req.org_slug.clone(),
+            ))
+        })?;
 
     // Rate limit: check how many codes sent in last hour
-    let recent_count = PhoneVerificationRepository::count_recent(&state.pool, &phone_number).await?;
+    let recent_count =
+        PhoneVerificationRepository::count_recent(&state.pool, &phone_number).await?;
     if recent_count >= MAX_CODES_PER_HOUR {
         // Don't reveal rate limit to prevent enumeration
         return Ok(Json(SendCodeResponse {
@@ -120,7 +138,8 @@ pub async fn send_code(
             code_hash,
             expires_at,
         },
-    ).await?;
+    )
+    .await?;
 
     // Send SMS via Twilio (if configured)
     if let Err(e) = send_sms(&phone_number, &code).await {
@@ -147,7 +166,11 @@ pub async fn verify_code_endpoint(
     // Look up organization
     let organization = OrganizationRepository::find_by_slug(&state.pool, &req.org_slug)
         .await?
-        .ok_or_else(|| ApiError::from(shared::DomainError::OrganizationNotFound(req.org_slug.clone())))?;
+        .ok_or_else(|| {
+            ApiError::from(shared::DomainError::OrganizationNotFound(
+                req.org_slug.clone(),
+            ))
+        })?;
 
     // Find active verification
     let verification = PhoneVerificationRepository::find_active(&state.pool, &phone_number)
@@ -172,19 +195,24 @@ pub async fn verify_code_endpoint(
     PhoneVerificationRepository::delete(&state.pool, verification.id).await?;
 
     // Try to find existing identity
-    if let Some(identity) = UserIdentityRepository::find_by_provider(
-        &state.pool,
-        AuthProvider::Phone,
-        &phone_number,
-    ).await? {
+    if let Some(identity) =
+        UserIdentityRepository::find_by_provider(&state.pool, AuthProvider::Phone, &phone_number)
+            .await?
+    {
         // Existing user
         let user_id = UserId::from_uuid(identity.user_id);
         let user = UserRepository::find_by_id_unchecked(&state.pool, user_id)
             .await?
-            .ok_or_else(|| ApiError::from(shared::AppError::Internal("User not found".to_string())))?;
+            .ok_or_else(|| {
+                ApiError::from(shared::AppError::Internal("User not found".to_string()))
+            })?;
 
-        let token = create_token(user.id, Some(user.organization_id), &state.jwt_secret)
-            .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
+        let token =
+            create_token(user.id, Some(user.organization_id), &state.jwt_secret).map_err(|_| {
+                ApiError::from(shared::AppError::Internal(
+                    "Token creation failed".to_string(),
+                ))
+            })?;
 
         return Ok(Json(AuthResponse {
             token,
@@ -216,19 +244,28 @@ pub async fn verify_code_endpoint(
             phone: Some(phone_number.clone()),
             timezone: None,
         },
-    ).await?;
+    )
+    .await?;
 
     // Create identity
-    UserIdentityRepository::create(&state.pool, CreateUserIdentity {
-        user_id: user.id.into_uuid(),
-        provider: AuthProvider::Phone,
-        provider_user_id: phone_number,
-        provider_email: None,
-        provider_data: None,
-    }).await?;
+    UserIdentityRepository::create(
+        &state.pool,
+        CreateUserIdentity {
+            user_id: user.id.into_uuid(),
+            provider: AuthProvider::Phone,
+            provider_user_id: phone_number,
+            provider_email: None,
+            provider_data: None,
+        },
+    )
+    .await?;
 
-    let token = create_token(user.id, Some(user.organization_id), &state.jwt_secret)
-        .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
+    let token =
+        create_token(user.id, Some(user.organization_id), &state.jwt_secret).map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Token creation failed".to_string(),
+            ))
+        })?;
 
     Ok(Json(AuthResponse {
         token,
@@ -245,7 +282,10 @@ pub async fn verify_code_endpoint(
 }
 
 /// Send SMS via Twilio
-async fn send_sms(phone_number: &str, code: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn send_sms(
+    phone_number: &str,
+    code: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let account_sid = std::env::var("TWILIO_ACCOUNT_SID")?;
     let auth_token = std::env::var("TWILIO_AUTH_TOKEN")?;
     let from_number = std::env::var("TWILIO_PHONE_NUMBER")?;

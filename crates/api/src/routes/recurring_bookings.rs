@@ -5,8 +5,7 @@ use axum::{
 };
 use chrono::{Datelike, Duration, NaiveDate, NaiveTime};
 use db::models::{
-    CreateBooking, CreateRecurringBookingSeries, OccurrenceConflict,
-    RecurrenceFrequency,
+    CreateBooking, CreateRecurringBookingSeries, OccurrenceConflict, RecurrenceFrequency,
 };
 use db::{
     check_conflicts_batch, generate_occurrence_dates, to_utc_datetime, BookingRepository,
@@ -14,7 +13,7 @@ use db::{
 };
 use serde::{Deserialize, Serialize};
 use shared::{AppError, DomainError};
-use tracing::{info, warn, instrument, Span};
+use tracing::{info, instrument, warn, Span};
 use uuid::Uuid;
 
 use crate::{
@@ -29,13 +28,13 @@ pub struct CreateRecurringBookingRequest {
     pub walker_id: String,
     pub service_id: String,
     pub location_id: String,
-    pub frequency: String,      // "weekly", "bi_weekly", "monthly"
-    pub start_date: String,     // YYYY-MM-DD
-    pub time_of_day: String,    // HH:MM
+    pub frequency: String,   // "weekly", "bi_weekly", "monthly"
+    pub start_date: String,  // YYYY-MM-DD
+    pub time_of_day: String, // HH:MM
     pub end_condition: EndConditionRequest,
     pub notes: Option<String>,
     #[serde(default)]
-    pub preview_only: bool,     // If true, just return preview without creating
+    pub preview_only: bool, // If true, just return preview without creating
 }
 
 #[derive(Debug, Deserialize)]
@@ -140,11 +139,10 @@ pub async fn create_recurring_booking(
 
     // Check for existing series with same idempotency key
     if let Some(key) = idempotency_key {
-        if let Some(existing) = RecurringBookingRepository::find_by_idempotency_key(
-            &tenant.pool,
-            tenant.org_id,
-            key,
-        ).await? {
+        if let Some(existing) =
+            RecurringBookingRepository::find_by_idempotency_key(&tenant.pool, tenant.org_id, key)
+                .await?
+        {
             // Record idempotency hit
             metrics::record_idempotency_hit(&tenant.org_id.to_string());
             info!(
@@ -154,7 +152,8 @@ pub async fn create_recurring_booking(
             );
 
             // Return the existing series (idempotent response)
-            let bookings = BookingRepository::find_by_series(&tenant.pool, tenant.org_id, existing.id).await?;
+            let bookings =
+                BookingRepository::find_by_series(&tenant.pool, tenant.org_id, existing.id).await?;
             return Ok(Json(CreateRecurringResponse {
                 series: Some(RecurringBookingSeriesResponse {
                     id: existing.id.to_string(),
@@ -350,7 +349,9 @@ pub async fn create_recurring_booking(
     let mut tx = tenant.pool.begin().await.map_err(|e| {
         warn!(error = %e, "Failed to start transaction");
         metrics::record_series_creation_failed(&tenant.org_id.to_string(), "transaction_start");
-        ApiError::from(AppError::Internal("Failed to start transaction".to_string()))
+        ApiError::from(AppError::Internal(
+            "Failed to start transaction".to_string(),
+        ))
     })?;
 
     // Create the series within transaction
@@ -377,7 +378,9 @@ pub async fn create_recurring_booking(
     .map_err(|e| {
         warn!(error = %e, "Failed to create recurring series");
         metrics::record_series_creation_failed(&tenant.org_id.to_string(), "series_create");
-        ApiError::from(AppError::Internal("Failed to create recurring series".to_string()))
+        ApiError::from(AppError::Internal(
+            "Failed to create recurring series".to_string(),
+        ))
     })?;
 
     Span::current().record("series_id", series.id.to_string());
@@ -413,7 +416,8 @@ pub async fn create_recurring_booking(
                 occurrence_number: Some((idx + 1) as i32),
             },
         )
-        .await {
+        .await
+        {
             Ok(_) => bookings_created += 1,
             Err(e) => {
                 // Check if it's a uniqueness constraint violation (duplicate)
@@ -546,17 +550,13 @@ pub async fn get_recurring_booking(
     auth: AuthUser,
     Path(id): Path<String>,
 ) -> ApiResult<Json<RecurringSeriesDetailResponse>> {
-    let series_id = id.parse().map_err(|_| {
-        ApiError::from(AppError::Validation(
-            "Invalid series ID".to_string(),
-        ))
-    })?;
+    let series_id = id
+        .parse()
+        .map_err(|_| ApiError::from(AppError::Validation("Invalid series ID".to_string())))?;
 
     let series = RecurringBookingRepository::find_by_id(&tenant.pool, tenant.org_id, series_id)
         .await?
-        .ok_or_else(|| {
-            ApiError::from(DomainError::BookingNotFound(id.clone()))
-        })?;
+        .ok_or_else(|| ApiError::from(DomainError::BookingNotFound(id.clone())))?;
 
     // Check authorization
     if series.customer_id != auth.user_id {
@@ -578,7 +578,8 @@ pub async fn get_recurring_booking(
         .map(|l| format!("{}, {}", l.address, l.city))
         .unwrap_or_else(|| "Unknown".to_string());
 
-    let bookings = BookingRepository::find_by_series(&tenant.pool, tenant.org_id, series_id).await?;
+    let bookings =
+        BookingRepository::find_by_series(&tenant.pool, tenant.org_id, series_id).await?;
 
     let booking_items: Vec<SeriesBookingItem> = bookings
         .iter()
@@ -627,17 +628,13 @@ pub async fn cancel_recurring_series(
     Path(id): Path<String>,
     Json(req): Json<CancelSeriesRequest>,
 ) -> ApiResult<Json<CancelSeriesResponse>> {
-    let series_id = id.parse().map_err(|_| {
-        ApiError::from(AppError::Validation(
-            "Invalid series ID".to_string(),
-        ))
-    })?;
+    let series_id = id
+        .parse()
+        .map_err(|_| ApiError::from(AppError::Validation("Invalid series ID".to_string())))?;
 
     let series = RecurringBookingRepository::find_by_id(&tenant.pool, tenant.org_id, series_id)
         .await?
-        .ok_or_else(|| {
-            ApiError::from(DomainError::BookingNotFound(id.clone()))
-        })?;
+        .ok_or_else(|| ApiError::from(DomainError::BookingNotFound(id.clone())))?;
 
     // Check authorization
     if series.customer_id != auth.user_id {

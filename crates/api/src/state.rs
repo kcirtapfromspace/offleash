@@ -31,7 +31,13 @@ impl AppState {
         google_maps_key: Option<String>,
         metrics_handle: PrometheusHandle,
     ) -> Self {
-        Self::with_config(pool, jwt_secret, google_maps_key, metrics_handle, AppConfig::default())
+        Self::with_config(
+            pool,
+            jwt_secret,
+            google_maps_key,
+            metrics_handle,
+            AppConfig::default(),
+        )
     }
 
     pub fn with_config(

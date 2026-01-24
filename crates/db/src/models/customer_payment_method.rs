@@ -142,13 +142,15 @@ impl CustomerPaymentMethod {
             PaymentMethodType::ShopPay => "shop-pay",
             PaymentMethodType::Link => "link",
             PaymentMethodType::BankAccount => "bank",
-            PaymentMethodType::Card => match self.brand.as_deref().unwrap_or("").to_lowercase().as_str() {
-                "visa" => "visa",
-                "mastercard" => "mastercard",
-                "amex" | "american_express" => "amex",
-                "discover" => "discover",
-                _ => "card",
-            },
+            PaymentMethodType::Card => {
+                match self.brand.as_deref().unwrap_or("").to_lowercase().as_str() {
+                    "visa" => "visa",
+                    "mastercard" => "mastercard",
+                    "amex" | "american_express" => "amex",
+                    "discover" => "discover",
+                    _ => "card",
+                }
+            }
         }
     }
 }

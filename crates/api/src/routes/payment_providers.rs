@@ -38,7 +38,10 @@ fn provider_to_response(p: PaymentProvider) -> PaymentProviderResponse {
         is_active: p.is_active,
         is_primary: p.is_primary,
         is_verified: p.is_verified,
-        merchant_id: p.merchant_id.or(p.stripe_account_id).or(p.square_merchant_id),
+        merchant_id: p
+            .merchant_id
+            .or(p.stripe_account_id)
+            .or(p.square_merchant_id),
         connected_at: p.created_at.map(|dt| dt.to_rfc3339()),
         account_name: p.account_name,
         charges_enabled: p.charges_enabled.unwrap_or(false),
@@ -54,10 +57,8 @@ pub async fn list_payment_providers(
 ) -> ApiResult<Json<Vec<PaymentProviderResponse>>> {
     let providers = PaymentProviderRepository::list_for_org(&tenant.pool, tenant.org_id).await?;
 
-    let response: Vec<PaymentProviderResponse> = providers
-        .into_iter()
-        .map(provider_to_response)
-        .collect();
+    let response: Vec<PaymentProviderResponse> =
+        providers.into_iter().map(provider_to_response).collect();
 
     Ok(Json(response))
 }
@@ -187,8 +188,7 @@ pub async fn stripe_connect_callback(
         token_expires_at: None,
     };
 
-    let provider =
-        PaymentProviderRepository::create(&tenant.pool, tenant.org_id, input).await?;
+    let provider = PaymentProviderRepository::create(&tenant.pool, tenant.org_id, input).await?;
 
     Ok(Json(provider_to_response(provider)))
 }
@@ -347,8 +347,7 @@ pub async fn square_oauth_callback(
         token_expires_at,
     };
 
-    let provider =
-        PaymentProviderRepository::create(&tenant.pool, tenant.org_id, input).await?;
+    let provider = PaymentProviderRepository::create(&tenant.pool, tenant.org_id, input).await?;
 
     Ok(Json(provider_to_response(provider)))
 }
@@ -396,8 +395,7 @@ pub async fn disconnect_payment_provider(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid provider ID".to_string())))?;
 
-    PaymentProviderRepository::deactivate(&tenant.pool, tenant.org_id, provider_id)
-        .await?;
+    PaymentProviderRepository::deactivate(&tenant.pool, tenant.org_id, provider_id).await?;
 
     Ok(Json(serde_json::json!({ "success": true })))
 }

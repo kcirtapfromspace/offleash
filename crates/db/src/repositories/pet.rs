@@ -1,4 +1,7 @@
-use shared::{types::{OrganizationId, UserId}, AppError};
+use shared::{
+    types::{OrganizationId, UserId},
+    AppError,
+};
 use sqlx::PgPool;
 use uuid::Uuid;
 

@@ -136,10 +136,7 @@ impl LocationRepository {
     }
 
     /// Set a location as default
-    pub async fn set_default(
-        pool: &PgPool,
-        id: LocationId,
-    ) -> Result<Location, sqlx::Error> {
+    pub async fn set_default(pool: &PgPool, id: LocationId) -> Result<Location, sqlx::Error> {
         sqlx::query_as::<_, Location>(
             r#"
             UPDATE locations

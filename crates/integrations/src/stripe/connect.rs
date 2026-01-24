@@ -95,7 +95,10 @@ impl StripeClient {
     }
 
     /// Refresh OAuth token
-    pub async fn refresh_oauth_token(&self, refresh_token: &str) -> StripeResult<OAuthTokenResponse> {
+    pub async fn refresh_oauth_token(
+        &self,
+        refresh_token: &str,
+    ) -> StripeResult<OAuthTokenResponse> {
         let mut params = HashMap::new();
         params.insert("grant_type".to_string(), "refresh_token".to_string());
         params.insert("refresh_token".to_string(), refresh_token.to_string());
@@ -104,9 +107,13 @@ impl StripeClient {
     }
 
     /// Deauthorize connected account
-    pub async fn deauthorize_account(&self, stripe_user_id: &str) -> StripeResult<DeauthorizeResponse> {
-        let client_id = self.connect_client_id.as_ref()
-            .ok_or_else(|| super::error::StripeError::MissingField("connect_client_id".to_string()))?;
+    pub async fn deauthorize_account(
+        &self,
+        stripe_user_id: &str,
+    ) -> StripeResult<DeauthorizeResponse> {
+        let client_id = self.connect_client_id.as_ref().ok_or_else(|| {
+            super::error::StripeError::MissingField("connect_client_id".to_string())
+        })?;
 
         let mut params = HashMap::new();
         params.insert("client_id".to_string(), client_id.clone());
@@ -129,8 +136,14 @@ impl StripeClient {
         params.insert("email".to_string(), email.to_string());
         params.insert("country".to_string(), country.to_string());
         params.insert("business_type".to_string(), business_type.to_string());
-        params.insert("capabilities[card_payments][requested]".to_string(), "true".to_string());
-        params.insert("capabilities[transfers][requested]".to_string(), "true".to_string());
+        params.insert(
+            "capabilities[card_payments][requested]".to_string(),
+            "true".to_string(),
+        );
+        params.insert(
+            "capabilities[transfers][requested]".to_string(),
+            "true".to_string(),
+        );
 
         self.post("/accounts", &params).await
     }
@@ -160,7 +173,8 @@ impl StripeClient {
     /// Create login link for Express dashboard
     pub async fn create_login_link(&self, account_id: &str) -> StripeResult<LoginLink> {
         let params = HashMap::new();
-        self.post(&format!("/accounts/{}/login_links", account_id), &params).await
+        self.post(&format!("/accounts/{}/login_links", account_id), &params)
+            .await
     }
 
     /// Delete (disconnect) a connected account

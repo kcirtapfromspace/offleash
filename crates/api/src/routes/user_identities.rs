@@ -14,7 +14,7 @@ use uuid::Uuid;
 use crate::{
     auth::AuthUser,
     error::{ApiError, ApiResult},
-    routes::oauth::{verify_google_token_public, verify_apple_token_public},
+    routes::oauth::{verify_apple_token_public, verify_google_token_public},
     state::AppState,
 };
 
@@ -55,7 +55,9 @@ pub async fn list_identities(
         })
         .collect();
 
-    Ok(Json(ListIdentitiesResponse { identities: response }))
+    Ok(Json(ListIdentitiesResponse {
+        identities: response,
+    }))
 }
 
 /// Mask sensitive parts of provider IDs for display
@@ -64,19 +66,19 @@ fn mask_provider_id(provider: &AuthProvider, id: &str) -> String {
         AuthProvider::Phone => {
             // Show last 4 digits of phone number
             if id.len() > 4 {
-                format!("***{}", &id[id.len()-4..])
+                format!("***{}", &id[id.len() - 4..])
             } else {
                 "****".to_string()
             }
-        },
+        }
         AuthProvider::Wallet => {
             // Show first 6 and last 4 of wallet address
             if id.len() > 10 {
-                format!("{}...{}", &id[..6], &id[id.len()-4..])
+                format!("{}...{}", &id[..6], &id[id.len() - 4..])
             } else {
                 id.to_string()
             }
-        },
+        }
         AuthProvider::Google | AuthProvider::Apple | AuthProvider::Email => {
             // For email-based providers, show partial email
             if let Some(at_pos) = id.find('@') {
@@ -117,7 +119,8 @@ pub async fn unlink_identity(
 
     if count <= 1 {
         return Err(ApiError::from(shared::DomainError::ValidationError(
-            "Cannot unlink your last authentication method. Please link another method first.".to_string(),
+            "Cannot unlink your last authentication method. Please link another method first."
+                .to_string(),
         )));
     }
 
@@ -183,7 +186,9 @@ pub async fn link_google(
         &state.pool,
         AuthProvider::Google,
         &verified.provider_user_id,
-    ).await? {
+    )
+    .await?
+    {
         if existing_identity.user_id != user_id {
             return Err(ApiError::from(shared::DomainError::ValidationError(
                 "This Google account is already linked to another user.".to_string(),
@@ -199,23 +204,31 @@ pub async fn link_google(
 
     // Check if user already has a Google identity
     let existing_identities = UserIdentityRepository::find_by_user(&state.pool, user_id).await?;
-    if existing_identities.iter().any(|i| i.provider == AuthProvider::Google) {
+    if existing_identities
+        .iter()
+        .any(|i| i.provider == AuthProvider::Google)
+    {
         return Err(ApiError::from(shared::DomainError::ValidationError(
-            "You already have a Google account linked. Unlink it first to link a different one.".to_string(),
+            "You already have a Google account linked. Unlink it first to link a different one."
+                .to_string(),
         )));
     }
 
     // Create the identity link
-    let identity = UserIdentityRepository::create(&state.pool, CreateUserIdentity {
-        user_id,
-        provider: AuthProvider::Google,
-        provider_user_id: verified.provider_user_id,
-        provider_email: Some(verified.email.clone()),
-        provider_data: Some(serde_json::json!({
-            "name": verified.name,
-            "picture": verified.picture,
-        })),
-    }).await?;
+    let identity = UserIdentityRepository::create(
+        &state.pool,
+        CreateUserIdentity {
+            user_id,
+            provider: AuthProvider::Google,
+            provider_user_id: verified.provider_user_id,
+            provider_email: Some(verified.email.clone()),
+            provider_data: Some(serde_json::json!({
+                "name": verified.name,
+                "picture": verified.picture,
+            })),
+        },
+    )
+    .await?;
 
     let count = UserIdentityRepository::count_for_user(&state.pool, user_id).await?;
 
@@ -250,7 +263,9 @@ pub async fn link_apple(
         &state.pool,
         AuthProvider::Apple,
         &verified.provider_user_id,
-    ).await? {
+    )
+    .await?
+    {
         if existing_identity.user_id != user_id {
             return Err(ApiError::from(shared::DomainError::ValidationError(
                 "This Apple account is already linked to another user.".to_string(),
@@ -266,24 +281,33 @@ pub async fn link_apple(
 
     // Check if user already has an Apple identity
     let existing_identities = UserIdentityRepository::find_by_user(&state.pool, user_id).await?;
-    if existing_identities.iter().any(|i| i.provider == AuthProvider::Apple) {
+    if existing_identities
+        .iter()
+        .any(|i| i.provider == AuthProvider::Apple)
+    {
         return Err(ApiError::from(shared::DomainError::ValidationError(
-            "You already have an Apple account linked. Unlink it first to link a different one.".to_string(),
+            "You already have an Apple account linked. Unlink it first to link a different one."
+                .to_string(),
         )));
     }
 
     // Create the identity link
-    let email = verified.email.clone().unwrap_or_else(||
-        format!("{}@privaterelay.appleid.com", &verified.provider_user_id)
-    );
+    let email = verified
+        .email
+        .clone()
+        .unwrap_or_else(|| format!("{}@privaterelay.appleid.com", &verified.provider_user_id));
 
-    let identity = UserIdentityRepository::create(&state.pool, CreateUserIdentity {
-        user_id,
-        provider: AuthProvider::Apple,
-        provider_user_id: verified.provider_user_id,
-        provider_email: Some(email.clone()),
-        provider_data: None,
-    }).await?;
+    let identity = UserIdentityRepository::create(
+        &state.pool,
+        CreateUserIdentity {
+            user_id,
+            provider: AuthProvider::Apple,
+            provider_user_id: verified.provider_user_id,
+            provider_email: Some(email.clone()),
+            provider_data: None,
+        },
+    )
+    .await?;
 
     let count = UserIdentityRepository::count_for_user(&state.pool, user_id).await?;
 
@@ -317,7 +341,10 @@ pub async fn link_email(
 
     // Check if user already has an email identity (has password set)
     let existing_identities = UserIdentityRepository::find_by_user(&state.pool, user_id).await?;
-    if existing_identities.iter().any(|i| i.provider == AuthProvider::Email) {
+    if existing_identities
+        .iter()
+        .any(|i| i.provider == AuthProvider::Email)
+    {
         return Err(ApiError::from(shared::DomainError::ValidationError(
             "You already have email/password authentication set up.".to_string(),
         )));
@@ -334,7 +361,11 @@ pub async fn link_email(
     let salt = SaltString::generate(&mut OsRng);
     let password_hash = Argon2::default()
         .hash_password(req.password.as_bytes(), &salt)
-        .map_err(|_| ApiError::from(shared::AppError::Internal("Password hashing failed".to_string())))?
+        .map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Password hashing failed".to_string(),
+            ))
+        })?
         .to_string();
 
     // Update user's password hash
@@ -345,13 +376,17 @@ pub async fn link_email(
         .await?;
 
     // Create email identity
-    let identity = UserIdentityRepository::create(&state.pool, CreateUserIdentity {
-        user_id,
-        provider: AuthProvider::Email,
-        provider_user_id: user.email.clone(),
-        provider_email: Some(user.email.clone()),
-        provider_data: None,
-    }).await?;
+    let identity = UserIdentityRepository::create(
+        &state.pool,
+        CreateUserIdentity {
+            user_id,
+            provider: AuthProvider::Email,
+            provider_user_id: user.email.clone(),
+            provider_email: Some(user.email.clone()),
+            provider_data: None,
+        },
+    )
+    .await?;
 
     let count = UserIdentityRepository::count_for_user(&state.pool, user_id).await?;
 
@@ -390,7 +425,10 @@ pub async fn change_password(
 
     // Check if user has email identity
     let existing_identities = UserIdentityRepository::find_by_user(&state.pool, user_id).await?;
-    if !existing_identities.iter().any(|i| i.provider == AuthProvider::Email) {
+    if !existing_identities
+        .iter()
+        .any(|i| i.provider == AuthProvider::Email)
+    {
         return Err(ApiError::from(shared::DomainError::ValidationError(
             "You don't have email/password authentication set up. Use the link email endpoint first.".to_string(),
         )));
@@ -415,7 +453,11 @@ pub async fn change_password(
     let salt = SaltString::generate(&mut OsRng);
     let new_hash = Argon2::default()
         .hash_password(req.new_password.as_bytes(), &salt)
-        .map_err(|_| ApiError::from(shared::AppError::Internal("Password hashing failed".to_string())))?
+        .map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Password hashing failed".to_string(),
+            ))
+        })?
         .to_string();
 
     // Update password

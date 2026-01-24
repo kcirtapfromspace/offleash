@@ -203,7 +203,7 @@ export const actions: Actions = {
 		const isRecurring = formData.get('is_recurring') === 'on';
 
 		if (!serviceId || !locationId || !walkerId || !startTime) {
-			return fail(400, { error: 'Please complete all required fields' });
+			return fail(400, { error: 'Please complete all required fields', errorType: 'validation' });
 		}
 
 		// Handle recurring bookings
@@ -258,7 +258,7 @@ export const actions: Actions = {
 					}
 					throw redirect(303, `/bookings/recurring/${result.series.id}`);
 				} else {
-					return fail(400, { error: 'Failed to create recurring series' });
+					return fail(400, { error: 'Failed to create recurring series', errorType: 'api_error' });
 				}
 			} catch (err) {
 				if (err instanceof ApiError) {
@@ -288,7 +288,10 @@ export const actions: Actions = {
 			throw redirect(303, `/bookings/${booking.id}`);
 		} catch (err) {
 			if (err instanceof ApiError) {
-				return fail(err.status, { error: err.message || 'Failed to create booking' });
+				return fail(err.status, {
+					error: err.message || 'Failed to create booking',
+					errorType: 'api_error'
+				});
 			}
 			throw err;
 		}

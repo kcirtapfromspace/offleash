@@ -290,13 +290,12 @@ impl CalendarRepository {
         org_id: OrganizationId,
         id: Uuid,
     ) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query(
-            "DELETE FROM calendar_events WHERE id = $1 AND organization_id = $2",
-        )
-        .bind(id)
-        .bind(org_id.as_uuid())
-        .execute(pool)
-        .await?;
+        let result =
+            sqlx::query("DELETE FROM calendar_events WHERE id = $1 AND organization_id = $2")
+                .bind(id)
+                .bind(org_id.as_uuid())
+                .execute(pool)
+                .await?;
 
         Ok(result.rows_affected() > 0)
     }
@@ -306,12 +305,10 @@ impl CalendarRepository {
         pool: &PgPool,
         connection_id: Uuid,
     ) -> Result<u64, sqlx::Error> {
-        let result = sqlx::query(
-            "DELETE FROM calendar_events WHERE calendar_connection_id = $1",
-        )
-        .bind(connection_id)
-        .execute(pool)
-        .await?;
+        let result = sqlx::query("DELETE FROM calendar_events WHERE calendar_connection_id = $1")
+            .bind(connection_id)
+            .execute(pool)
+            .await?;
 
         Ok(result.rows_affected())
     }
@@ -357,12 +354,10 @@ impl CalendarRepository {
         pool: &PgPool,
         id: Uuid,
     ) -> Result<Option<CalendarConnection>, sqlx::Error> {
-        sqlx::query_as::<_, CalendarConnection>(
-            "SELECT * FROM calendar_connections WHERE id = $1",
-        )
-        .bind(id)
-        .fetch_optional(pool)
-        .await
+        sqlx::query_as::<_, CalendarConnection>("SELECT * FROM calendar_connections WHERE id = $1")
+            .bind(id)
+            .fetch_optional(pool)
+            .await
     }
 
     /// Find all connections for a user
@@ -492,13 +487,11 @@ impl CalendarRepository {
         id: Uuid,
         user_id: UserId,
     ) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query(
-            "DELETE FROM calendar_connections WHERE id = $1 AND user_id = $2",
-        )
-        .bind(id)
-        .bind(user_id.as_uuid())
-        .execute(pool)
-        .await?;
+        let result = sqlx::query("DELETE FROM calendar_connections WHERE id = $1 AND user_id = $2")
+            .bind(id)
+            .bind(user_id.as_uuid())
+            .execute(pool)
+            .await?;
 
         Ok(result.rows_affected() > 0)
     }

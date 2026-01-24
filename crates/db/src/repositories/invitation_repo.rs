@@ -8,7 +8,10 @@ pub struct InvitationRepository;
 
 impl InvitationRepository {
     /// Create a new invitation
-    pub async fn create(pool: &PgPool, invitation: CreateInvitation) -> Result<Invitation, sqlx::Error> {
+    pub async fn create(
+        pool: &PgPool,
+        invitation: CreateInvitation,
+    ) -> Result<Invitation, sqlx::Error> {
         sqlx::query_as::<_, Invitation>(
             r#"
             INSERT INTO invitations (
@@ -32,7 +35,10 @@ impl InvitationRepository {
     }
 
     /// Find an invitation by token (for accepting)
-    pub async fn find_by_token(pool: &PgPool, token: &str) -> Result<Option<Invitation>, sqlx::Error> {
+    pub async fn find_by_token(
+        pool: &PgPool,
+        token: &str,
+    ) -> Result<Option<Invitation>, sqlx::Error> {
         sqlx::query_as::<_, Invitation>(
             r#"
             SELECT *
@@ -46,7 +52,10 @@ impl InvitationRepository {
     }
 
     /// Find a valid (pending and not expired) invitation by token
-    pub async fn find_valid_by_token(pool: &PgPool, token: &str) -> Result<Option<Invitation>, sqlx::Error> {
+    pub async fn find_valid_by_token(
+        pool: &PgPool,
+        token: &str,
+    ) -> Result<Option<Invitation>, sqlx::Error> {
         sqlx::query_as::<_, Invitation>(
             r#"
             SELECT *

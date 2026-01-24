@@ -1,8 +1,6 @@
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use serde::{Deserialize, Serialize};
-use shared::types::{
-    LocationId, OrganizationId, RecurringBookingSeriesId, ServiceId, UserId,
-};
+use shared::types::{LocationId, OrganizationId, RecurringBookingSeriesId, ServiceId, UserId};
 use sqlx::FromRow;
 use uuid::Uuid;
 

@@ -147,10 +147,7 @@ impl UserRepository {
         Ok(result.rows_affected() > 0)
     }
 
-    pub async fn list_all(
-        pool: &PgPool,
-        org_id: OrganizationId,
-    ) -> Result<Vec<User>, sqlx::Error> {
+    pub async fn list_all(pool: &PgPool, org_id: OrganizationId) -> Result<Vec<User>, sqlx::Error> {
         sqlx::query_as::<_, User>(
             r#"
             SELECT id, organization_id, email, password_hash, role, first_name, last_name, phone, timezone, created_at, updated_at

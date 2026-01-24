@@ -70,10 +70,10 @@ impl TaxCategory {
     /// Get TaxJar product tax code
     pub fn tax_code(&self) -> &str {
         match self {
-            TaxCategory::Services => "19000",      // General services
-            TaxCategory::PetServices => "19000",   // Pet services (general services)
-            TaxCategory::Digital => "31000",       // Digital goods
-            TaxCategory::Goods => "00000",         // General goods
+            TaxCategory::Services => "19000",    // General services
+            TaxCategory::PetServices => "19000", // Pet services (general services)
+            TaxCategory::Digital => "31000",     // Digital goods
+            TaxCategory::Goods => "00000",       // General goods
         }
     }
 }
@@ -333,10 +333,11 @@ impl TaxJarClient {
         let from = Address::us(provider_state, provider_zip);
         let to = Address::us(customer_state, customer_zip);
 
-        let line_item = TaxLineItem::new("service", 1, amount_cents)
-            .with_tax_code(TaxCategory::PetServices);
+        let line_item =
+            TaxLineItem::new("service", 1, amount_cents).with_tax_code(TaxCategory::PetServices);
 
-        self.calculate_tax(&from, &to, amount_cents, 0, Some(vec![line_item])).await
+        self.calculate_tax(&from, &to, amount_cents, 0, Some(vec![line_item]))
+            .await
     }
 
     async fn handle_response<T: serde::de::DeserializeOwned>(
@@ -383,10 +384,10 @@ impl SimpleTaxCalculator {
             "CA" => 7.25,
             "TX" => 6.25,
             "FL" => 6.00,
-            "NY" => 4.00,  // State only, cities add more
+            "NY" => 4.00, // State only, cities add more
             "WA" => 6.50,
             "OR" | "MT" | "NH" | "DE" => 0.0, // No sales tax
-            _ => 6.0, // Default fallback
+            _ => 6.0,                         // Default fallback
         }
     }
 }

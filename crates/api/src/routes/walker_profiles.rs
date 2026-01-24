@@ -68,26 +68,29 @@ pub async fn get_my_profile(
     }
 
     // Get or create profile
-    let profile = match WalkerProfileRepository::find_by_user(&tenant.pool, tenant.org_id, auth.user_id).await? {
-        Some(p) => p,
-        None => {
-            // Create empty profile
-            WalkerProfileRepository::create(
-                &tenant.pool,
-                CreateWalkerProfile {
-                    user_id: auth.user_id,
-                    organization_id: tenant.org_id,
-                    bio: None,
-                    profile_photo_url: None,
-                    emergency_contact_name: None,
-                    emergency_contact_phone: None,
-                    emergency_contact_relationship: None,
-                    years_experience: None,
-                },
-            )
+    let profile =
+        match WalkerProfileRepository::find_by_user(&tenant.pool, tenant.org_id, auth.user_id)
             .await?
-        }
-    };
+        {
+            Some(p) => p,
+            None => {
+                // Create empty profile
+                WalkerProfileRepository::create(
+                    &tenant.pool,
+                    CreateWalkerProfile {
+                        user_id: auth.user_id,
+                        organization_id: tenant.org_id,
+                        bio: None,
+                        profile_photo_url: None,
+                        emergency_contact_name: None,
+                        emergency_contact_phone: None,
+                        emergency_contact_relationship: None,
+                        years_experience: None,
+                    },
+                )
+                .await?
+            }
+        };
 
     // Get specializations
     let specs = WalkerProfileRepository::get_specializations(&tenant.pool, profile.id).await?;
@@ -208,25 +211,28 @@ pub async fn get_walker_profile(
     let walker_user_id = shared::types::UserId::from(walker_uuid);
 
     // Get or create profile
-    let profile = match WalkerProfileRepository::find_by_user(&tenant.pool, tenant.org_id, walker_user_id).await? {
-        Some(p) => p,
-        None => {
-            WalkerProfileRepository::create(
-                &tenant.pool,
-                CreateWalkerProfile {
-                    user_id: walker_user_id,
-                    organization_id: tenant.org_id,
-                    bio: None,
-                    profile_photo_url: None,
-                    emergency_contact_name: None,
-                    emergency_contact_phone: None,
-                    emergency_contact_relationship: None,
-                    years_experience: None,
-                },
-            )
+    let profile =
+        match WalkerProfileRepository::find_by_user(&tenant.pool, tenant.org_id, walker_user_id)
             .await?
-        }
-    };
+        {
+            Some(p) => p,
+            None => {
+                WalkerProfileRepository::create(
+                    &tenant.pool,
+                    CreateWalkerProfile {
+                        user_id: walker_user_id,
+                        organization_id: tenant.org_id,
+                        bio: None,
+                        profile_photo_url: None,
+                        emergency_contact_name: None,
+                        emergency_contact_phone: None,
+                        emergency_contact_relationship: None,
+                        years_experience: None,
+                    },
+                )
+                .await?
+            }
+        };
 
     let specs = WalkerProfileRepository::get_specializations(&tenant.pool, profile.id).await?;
 

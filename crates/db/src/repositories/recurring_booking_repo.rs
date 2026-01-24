@@ -17,7 +17,9 @@ impl RecurringBookingRepository {
         input: CreateRecurringBookingSeries,
     ) -> Result<RecurringBookingSeries, sqlx::Error> {
         let id = RecurringBookingSeriesId::new();
-        let idempotency_expires_at = input.idempotency_key.map(|_| Utc::now() + Duration::hours(24));
+        let idempotency_expires_at = input
+            .idempotency_key
+            .map(|_| Utc::now() + Duration::hours(24));
 
         sqlx::query_as::<_, RecurringBookingSeries>(
             r#"
@@ -59,7 +61,9 @@ impl RecurringBookingRepository {
         input: CreateRecurringBookingSeries,
     ) -> Result<RecurringBookingSeries, sqlx::Error> {
         let id = RecurringBookingSeriesId::new();
-        let idempotency_expires_at = input.idempotency_key.map(|_| Utc::now() + Duration::hours(24));
+        let idempotency_expires_at = input
+            .idempotency_key
+            .map(|_| Utc::now() + Duration::hours(24));
 
         sqlx::query_as::<_, RecurringBookingSeries>(
             r#"
@@ -255,10 +259,7 @@ impl RecurringBookingRepository {
     }
 
     /// Count active recurring series for an organization
-    pub async fn count_active(
-        pool: &PgPool,
-        org_id: OrganizationId,
-    ) -> Result<i64, sqlx::Error> {
+    pub async fn count_active(pool: &PgPool, org_id: OrganizationId) -> Result<i64, sqlx::Error> {
         let result: (i64,) = sqlx::query_as(
             r#"
             SELECT COUNT(*) as count
@@ -342,11 +343,7 @@ pub fn generate_occurrence_dates(
 }
 
 /// Convert a date and time to UTC datetime
-pub fn to_utc_datetime(
-    date: NaiveDate,
-    time: NaiveTime,
-    timezone: &str,
-) -> Option<DateTime<Utc>> {
+pub fn to_utc_datetime(date: NaiveDate, time: NaiveTime, timezone: &str) -> Option<DateTime<Utc>> {
     let tz: Tz = timezone.parse().ok()?;
     let naive_dt = date.and_time(time);
     tz.from_local_datetime(&naive_dt)
@@ -366,7 +363,16 @@ pub async fn check_conflicts(
     timezone: &str,
 ) -> Result<Vec<OccurrenceConflict>, sqlx::Error> {
     // Delegate to batch implementation
-    check_conflicts_batch(pool, org_id, walker_id, dates, time_of_day, duration_minutes, timezone).await
+    check_conflicts_batch(
+        pool,
+        org_id,
+        walker_id,
+        dates,
+        time_of_day,
+        duration_minutes,
+        timezone,
+    )
+    .await
 }
 
 /// Batch conflict detection - checks all dates in 2 queries (bookings + blocks)
@@ -384,7 +390,8 @@ pub async fn check_conflicts_batch(
     }
 
     // Pre-compute all UTC start/end times
-    let mut time_windows: Vec<(NaiveDate, DateTime<Utc>, DateTime<Utc>)> = Vec::with_capacity(dates.len());
+    let mut time_windows: Vec<(NaiveDate, DateTime<Utc>, DateTime<Utc>)> =
+        Vec::with_capacity(dates.len());
     let mut conflicts = Vec::new();
 
     for date in dates {
@@ -464,9 +471,9 @@ pub async fn check_conflicts_batch(
     // Check each occurrence against fetched conflicts (in-memory filtering)
     for (date, start, end) in time_windows {
         // Check booking conflicts
-        let has_booking_conflict = existing_bookings.iter().any(|b| {
-            b.scheduled_start < end && b.scheduled_end > start
-        });
+        let has_booking_conflict = existing_bookings
+            .iter()
+            .any(|b| b.scheduled_start < end && b.scheduled_end > start);
 
         if has_booking_conflict {
             conflicts.push(OccurrenceConflict {
@@ -477,9 +484,9 @@ pub async fn check_conflicts_batch(
         }
 
         // Check block conflicts
-        let has_block_conflict = existing_blocks.iter().any(|b| {
-            b.start_time < end && b.end_time > start
-        });
+        let has_block_conflict = existing_blocks
+            .iter()
+            .any(|b| b.start_time < end && b.end_time > start);
 
         if has_block_conflict {
             conflicts.push(OccurrenceConflict {

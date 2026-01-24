@@ -3,7 +3,9 @@ use axum::{
     Json,
 };
 use db::{
-    models::{CreateCustomerSubscription, CreateTenantSubscription, PlanTier, UpdateTenantSubscription},
+    models::{
+        CreateCustomerSubscription, CreateTenantSubscription, PlanTier, UpdateTenantSubscription,
+    },
     SubscriptionRepository,
 };
 use rust_decimal::prelude::ToPrimitive;
@@ -342,14 +344,14 @@ pub async fn create_customer_subscription(
     tenant: TenantContext,
     Json(req): Json<CreateCustomerSubscriptionRequest>,
 ) -> ApiResult<Json<CustomerSubscriptionResponse>> {
-    let service_id = if let Some(sid) = &req.service_id {
-        Some(
-            sid.parse::<Uuid>()
-                .map_err(|_| ApiError::from(AppError::Validation("Invalid service ID".to_string())))?,
-        )
-    } else {
-        None
-    };
+    let service_id =
+        if let Some(sid) = &req.service_id {
+            Some(sid.parse::<Uuid>().map_err(|_| {
+                ApiError::from(AppError::Validation("Invalid service ID".to_string()))
+            })?)
+        } else {
+            None
+        };
 
     // Validate interval
     if !["week", "month", "year"].contains(&req.interval.as_str()) {
@@ -446,10 +448,13 @@ pub async fn get_customer_subscription(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid subscription ID".to_string())))?;
 
-    let subscription =
-        SubscriptionRepository::get_customer_subscription(&tenant.pool, tenant.org_id, subscription_id)
-            .await?
-            .ok_or_else(|| ApiError::from(AppError::NotFound("Subscription not found".to_string())))?;
+    let subscription = SubscriptionRepository::get_customer_subscription(
+        &tenant.pool,
+        tenant.org_id,
+        subscription_id,
+    )
+    .await?
+    .ok_or_else(|| ApiError::from(AppError::NotFound("Subscription not found".to_string())))?;
 
     Ok(Json(CustomerSubscriptionResponse {
         id: subscription.id.to_string(),
