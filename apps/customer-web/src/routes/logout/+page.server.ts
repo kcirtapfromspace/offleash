@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ cookies, request }) => {
 	deleteAuthCookie(cookies, 'memberships', host);
 	deleteAuthCookie(cookies, 'token_has_org_id', host);
 
-	throw redirect(303, '/login');
+	throw redirect(303, '/onboarding');
 };
 
 // Handle logout via form POST
@@ -28,6 +28,6 @@ export const actions: Actions = {
 		deleteAuthCookie(cookies, 'memberships', host);
 		deleteAuthCookie(cookies, 'token_has_org_id', host);
 
-		throw redirect(303, '/login');
+		throw redirect(303, '/onboarding');
 	}
 };
