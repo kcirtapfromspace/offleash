@@ -100,16 +100,14 @@ jobs:
           API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           mkdir -p fastlane
-          echo -n "$API_KEY_BASE64" | base64 --decode -o fastlane/AuthKey_${API_KEY_ID}.p8
-          cat > fastlane/api_key.json << EOF
-          {
-            "key_id": "${API_KEY_ID}",
-            "issuer_id": "${API_ISSUER_ID}",
-            "key_filepath": "fastlane/AuthKey_${API_KEY_ID}.p8"
-          }
-          EOF
+          echo -n "$API_KEY_BASE64" | base64 --decode > fastlane/AuthKey.p8
+          chmod 600 fastlane/AuthKey.p8
+          echo "API key created at fastlane/AuthKey.p8"
 
       - name: Deploy to TestFlight
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           bundle exec fastlane beta_manual \
             changelog:"${{ github.event.head_commit.message }}"
@@ -117,5 +115,4 @@ jobs:
       - name: Clean up
         if: always()
         run: |
-          rm -f fastlane/AuthKey_*.p8 || true
-          rm -f fastlane/api_key.json || true
+          rm -f fastlane/AuthKey.p8 || true
