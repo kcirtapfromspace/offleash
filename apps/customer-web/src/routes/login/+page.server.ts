@@ -102,12 +102,6 @@ export const actions: Actions = {
 
 			const host = request.headers.get('host') || '';
 
-			// Store token (shared across subdomains)
-			setAuthCookie(cookies, 'token', response.token, host, true);
-
-			// Store user info (shared across subdomains)
-			setAuthCookie(cookies, 'user', JSON.stringify(response.user), host, false);
-
 			// Detect subdomain for auto-context selection
 			const subdomainSlug = getOrgSlugFromHost(host);
 
@@ -121,6 +115,35 @@ export const actions: Actions = {
 					activeMembership = subdomainMembership;
 				}
 			}
+
+			// If no active membership from subdomain, use default or first available
+			if (!activeMembership && response.memberships && response.memberships.length > 0) {
+				activeMembership = response.memberships.find(m => m.is_default) || response.memberships[0];
+			}
+
+			// Switch context to get a token with org_id
+			let finalToken = response.token;
+			if (activeMembership) {
+				try {
+					const switchResponse = await api.post<{ token: string; membership: MembershipInfo }>(
+						'/contexts/switch',
+						{ membership_id: activeMembership.id },
+						response.token
+					);
+					finalToken = switchResponse.token;
+					// Mark that token has org_id
+					setAuthCookie(cookies, 'token_has_org_id', 'true', host, false);
+				} catch (switchErr) {
+					// If context switch fails, continue with original token
+					console.warn('Failed to switch context after login:', switchErr);
+				}
+			}
+
+			// Store token (shared across subdomains)
+			setAuthCookie(cookies, 'token', finalToken, host, true);
+
+			// Store user info (shared across subdomains)
+			setAuthCookie(cookies, 'user', JSON.stringify(response.user), host, false);
 
 			// Store current membership (shared across subdomains)
 			if (activeMembership) {
