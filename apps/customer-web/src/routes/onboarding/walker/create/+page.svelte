@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
+	import { env } from '$env/dynamic/public';
 
 	let businessName = $state('');
 	let isLoading = $state(false);
@@ -41,11 +42,7 @@
 
 			if (response.ok && data.success) {
 				// Redirect to the admin dashboard for the new business
-				// Use the appropriate domain based on environment
-				const adminUrl = window.location.hostname.includes('localhost')
-					? '/services' // Local dev - stay on same domain for now
-					: `https://paperwork.offleash.world`;
-
+				const adminUrl = env.PUBLIC_ADMIN_URL || '/services';
 				window.location.href = adminUrl;
 			} else {
 				error = data.error || 'Failed to create business';
