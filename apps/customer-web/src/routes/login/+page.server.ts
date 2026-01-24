@@ -1,7 +1,7 @@
 import { redirect, fail } from '@sveltejs/kit';
-import { dev } from '$app/environment';
 import type { Actions, PageServerLoad } from './$types';
 import { api, ApiError } from '$lib/api';
+import { setAuthCookie } from '$lib/cookies';
 
 interface MembershipInfo {
 	id: string;
@@ -100,26 +100,15 @@ export const actions: Actions = {
 				password
 			});
 
-			// Store token
-			cookies.set('token', response.token, {
-				path: '/',
-				httpOnly: true,
-				secure: !dev,
-				sameSite: 'lax',
-				maxAge: 60 * 60 * 24 * 7 // 7 days
-			});
+			const host = request.headers.get('host') || '';
 
-			// Store user info
-			cookies.set('user', JSON.stringify(response.user), {
-				path: '/',
-				httpOnly: false, // Allow client access for display
-				secure: !dev,
-				sameSite: 'lax',
-				maxAge: 60 * 60 * 24 * 7
-			});
+			// Store token (shared across subdomains)
+			setAuthCookie(cookies, 'token', response.token, host, true);
+
+			// Store user info (shared across subdomains)
+			setAuthCookie(cookies, 'user', JSON.stringify(response.user), host, false);
 
 			// Detect subdomain for auto-context selection
-			const host = request.headers.get('host') || '';
 			const subdomainSlug = getOrgSlugFromHost(host);
 
 			// Find membership matching subdomain (if on a business subdomain)
@@ -133,26 +122,14 @@ export const actions: Actions = {
 				}
 			}
 
-			// Store current membership
+			// Store current membership (shared across subdomains)
 			if (activeMembership) {
-				cookies.set('membership', JSON.stringify(activeMembership), {
-					path: '/',
-					httpOnly: false,
-					secure: !dev,
-					sameSite: 'lax',
-					maxAge: 60 * 60 * 24 * 7
-				});
+				setAuthCookie(cookies, 'membership', JSON.stringify(activeMembership), host, false);
 			}
 
-			// Store all memberships for context switching
+			// Store all memberships for context switching (shared across subdomains)
 			if (response.memberships && response.memberships.length > 0) {
-				cookies.set('memberships', JSON.stringify(response.memberships), {
-					path: '/',
-					httpOnly: false,
-					secure: !dev,
-					sameSite: 'lax',
-					maxAge: 60 * 60 * 24 * 7
-				});
+				setAuthCookie(cookies, 'memberships', JSON.stringify(response.memberships), host, false);
 			}
 
 			// Determine redirect destination
