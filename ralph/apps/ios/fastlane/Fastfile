@@ -86,30 +86,32 @@ platform :ios do
       derived_data_path: "./build/DerivedData"
     }
 
-    # If provisioning profile name is set in environment, use manual signing for CI
-    if ENV["APPLE_PROVISIONING_PROFILE_NAME"]
+    # If provisioning profile is set in environment, use manual signing for CI
+    if ENV["APPLE_PROVISIONING_PROFILE_NAME"] || ENV["APPLE_PROVISIONING_PROFILE_UUID"]
       team_id = ENV["APPLE_TEAM_ID"] || "67C7724279"
       profile_name = ENV["APPLE_PROVISIONING_PROFILE_NAME"]
+      profile_uuid = ENV["APPLE_PROVISIONING_PROFILE_UUID"]
+      profile_specifier = profile_uuid || profile_name
 
-      # Update project to use manual signing for CI
+      # Update project to use manual signing for CI (only OFFLEASH target)
       update_code_signing_settings(
         use_automatic_signing: false,
         path: "OFFLEASH.xcodeproj",
         team_id: team_id,
-        profile_name: profile_name,
+        profile_specifier: profile_specifier,
         code_sign_identity: "Apple Distribution",
-        targets: ["OFFLEASH"]
+        targets: ["OFFLEASH"],
+        build_configurations: ["Release"]
       )
 
-      # Build with manual signing settings for the app target only
-      # SPM packages will use their default (no signing)
+      # Build - SPM packages use their defaults (no signing needed)
       build_options[:xcargs] = "DEVELOPMENT_TEAM=#{team_id}"
       build_options[:export_options] = {
         teamID: team_id,
         signingStyle: "manual",
         signingCertificate: "Apple Distribution",
         provisioningProfiles: {
-          "com.offleash.ios" => profile_name
+          "com.offleash.ios" => profile_specifier
         }
       }
     else
