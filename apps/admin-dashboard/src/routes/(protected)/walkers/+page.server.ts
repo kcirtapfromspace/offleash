@@ -1,6 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { api, ApiError } from '$lib/api';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 
 interface User {
 	id: string;
@@ -32,7 +32,12 @@ interface WalkerWithStats extends User {
 }
 
 export const load: PageServerLoad = async ({ parent }) => {
-	const { token } = await parent();
+	const { token, membership } = await parent();
+
+	// Only admin/owner can access staff management
+	if (membership?.role !== 'admin' && membership?.role !== 'owner') {
+		throw redirect(303, '/dashboard');
+	}
 
 	try {
 		// Fetch users filtered by role=walker

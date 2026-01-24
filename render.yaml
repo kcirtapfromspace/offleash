@@ -136,6 +136,8 @@ services:
         value: 3000
       - key: PUBLIC_API_URL
         value: https://api.offleash.world
+      - key: PUBLIC_CUSTOMER_URL
+        value: https://offleash.world
       - key: ORIGIN
         value: https://paperwork.offleash.world
       # OAuth Configuration - Set these in Render Dashboard
