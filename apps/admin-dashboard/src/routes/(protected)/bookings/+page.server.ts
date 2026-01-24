@@ -21,12 +21,16 @@ interface Booking {
 }
 
 export const load: PageServerLoad = async ({ parent, url }) => {
-	const { token } = await parent();
+	const { token, membership } = await parent();
 	const statusFilter = url.searchParams.get('status') || 'all';
 	const searchQuery = url.searchParams.get('q') || '';
 
+	// Check if user is admin/owner or walker
+	const isAdmin = membership?.role === 'admin' || membership?.role === 'owner';
+
 	try {
-		const bookings = await api.get<Booking[]>('/bookings', token);
+		// Walkers use the walker-specific endpoint, admins use the full bookings endpoint
+		const bookings = await api.get<Booking[]>(isAdmin ? '/bookings' : '/bookings/walker', token);
 
 		// Apply filters
 		let filteredBookings = bookings;
