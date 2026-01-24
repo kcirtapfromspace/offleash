@@ -90,10 +90,20 @@ platform :ios do
     if ENV["APPLE_PROVISIONING_PROFILE_NAME"]
       team_id = ENV["APPLE_TEAM_ID"] || "67C7724279"
       profile_name = ENV["APPLE_PROVISIONING_PROFILE_NAME"]
-      # For CI: Use automatic signing with -allowProvisioningUpdates
-      # This lets xcodebuild find the installed profile automatically
-      # SPM packages don't get signed (no profile needed), main app uses installed profile
-      build_options[:xcargs] = "CODE_SIGN_IDENTITY='Apple Distribution' DEVELOPMENT_TEAM=#{team_id} -allowProvisioningUpdates"
+
+      # Update project to use manual signing for CI
+      update_code_signing_settings(
+        use_automatic_signing: false,
+        path: "OFFLEASH.xcodeproj",
+        team_id: team_id,
+        profile_name: profile_name,
+        code_sign_identity: "Apple Distribution",
+        targets: ["OFFLEASH"]
+      )
+
+      # Build with manual signing settings for the app target only
+      # SPM packages will use their default (no signing)
+      build_options[:xcargs] = "DEVELOPMENT_TEAM=#{team_id}"
       build_options[:export_options] = {
         teamID: team_id,
         signingStyle: "manual",
