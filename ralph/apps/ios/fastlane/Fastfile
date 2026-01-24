@@ -78,14 +78,28 @@ platform :ios do
       build_number: options[:build_number] || Time.now.strftime("%Y%m%d%H%M")
     )
 
-    # Build the app with automatic signing
-    build_app(
+    # Build configuration - support both manual and automatic signing
+    build_options = {
       scheme: "OFFLEASH",
       configuration: "Release",
       export_method: "app-store",
-      xcargs: "-allowProvisioningUpdates",
       derived_data_path: "./build/DerivedData"
-    )
+    }
+
+    # If provisioning profile name is set in environment, use manual signing
+    if ENV["APPLE_PROVISIONING_PROFILE_NAME"]
+      build_options[:export_options] = {
+        provisioningProfiles: {
+          "com.offleash.ios" => ENV["APPLE_PROVISIONING_PROFILE_NAME"]
+        }
+      }
+    else
+      # Use automatic signing for local builds
+      build_options[:xcargs] = "-allowProvisioningUpdates"
+    end
+
+    # Build the app
+    build_app(build_options)
 
     # Parse groups if provided
     groups = options[:groups] ? options[:groups].split(",").map(&:strip) : nil
