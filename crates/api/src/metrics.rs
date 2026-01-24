@@ -31,14 +31,12 @@ pub fn record_series_creation_failed(org_id: &str, reason: &str) {
 
 /// Record conflicts detected during booking creation
 pub fn record_conflicts(org_id: &str, count: i64) {
-    counter!(names::BOOKING_CONFLICTS, "org_id" => org_id.to_string())
-        .increment(count as u64);
+    counter!(names::BOOKING_CONFLICTS, "org_id" => org_id.to_string()).increment(count as u64);
 }
 
 /// Record an idempotency cache hit (duplicate request)
 pub fn record_idempotency_hit(org_id: &str) {
-    counter!(names::IDEMPOTENCY_HITS, "org_id" => org_id.to_string())
-        .increment(1);
+    counter!(names::IDEMPOTENCY_HITS, "org_id" => org_id.to_string()).increment(1);
 }
 
 /// Record the duration of a recurring booking creation operation
@@ -49,8 +47,7 @@ pub fn record_creation_duration(org_id: &str, duration_secs: f64) {
 
 /// Update the active series count gauge for an organization
 pub fn set_active_series_count(org_id: &str, count: f64) {
-    gauge!(names::ACTIVE_SERIES_COUNT, "org_id" => org_id.to_string())
-        .set(count);
+    gauge!(names::ACTIVE_SERIES_COUNT, "org_id" => org_id.to_string()).set(count);
 }
 
 /// Helper struct for timing operations

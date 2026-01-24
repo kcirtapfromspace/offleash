@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use super::{client::SquareClient, error::{SquareError, SquareResult}};
+use super::{
+    client::SquareClient,
+    error::{SquareError, SquareResult},
+};
 
 const SQUARE_OAUTH_BASE: &str = "https://connect.squareup.com/oauth2";
 const SQUARE_SANDBOX_OAUTH_BASE: &str = "https://connect.squareupsandbox.com/oauth2";
@@ -75,9 +78,13 @@ impl SquareClient {
         code: &str,
         redirect_uri: &str,
     ) -> SquareResult<OAuthTokenResponse> {
-        let app_id = self.application_id.as_ref()
+        let app_id = self
+            .application_id
+            .as_ref()
             .ok_or_else(|| SquareError::MissingField("application_id".to_string()))?;
-        let app_secret = self.application_secret.as_ref()
+        let app_secret = self
+            .application_secret
+            .as_ref()
             .ok_or_else(|| SquareError::MissingField("application_secret".to_string()))?;
 
         let request = ObtainTokenRequest {
@@ -97,9 +104,13 @@ impl SquareClient {
         &self,
         refresh_token: &str,
     ) -> SquareResult<OAuthTokenResponse> {
-        let app_id = self.application_id.as_ref()
+        let app_id = self
+            .application_id
+            .as_ref()
             .ok_or_else(|| SquareError::MissingField("application_id".to_string()))?;
-        let app_secret = self.application_secret.as_ref()
+        let app_secret = self
+            .application_secret
+            .as_ref()
             .ok_or_else(|| SquareError::MissingField("application_secret".to_string()))?;
 
         let request = ObtainTokenRequest {
@@ -120,7 +131,9 @@ impl SquareClient {
         access_token: &str,
         merchant_id: &str,
     ) -> SquareResult<RevokeTokenResponse> {
-        let app_id = self.application_id.as_ref()
+        let app_id = self
+            .application_id
+            .as_ref()
             .ok_or_else(|| SquareError::MissingField("application_id".to_string()))?;
 
         let request = RevokeTokenRequest {

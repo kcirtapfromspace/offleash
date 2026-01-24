@@ -42,10 +42,19 @@ pub fn create_app(state: AppState) -> Router {
         .route("/auth/apple", post(routes::oauth::apple_auth))
         // Phone auth routes
         .route("/auth/phone/send-code", post(routes::phone_auth::send_code))
-        .route("/auth/phone/verify", post(routes::phone_auth::verify_code_endpoint))
+        .route(
+            "/auth/phone/verify",
+            post(routes::phone_auth::verify_code_endpoint),
+        )
         // Wallet auth routes
-        .route("/auth/wallet/challenge", post(routes::wallet_auth::get_challenge))
-        .route("/auth/wallet/verify", post(routes::wallet_auth::verify_signature))
+        .route(
+            "/auth/wallet/challenge",
+            post(routes::wallet_auth::get_challenge),
+        )
+        .route(
+            "/auth/wallet/verify",
+            post(routes::wallet_auth::verify_signature),
+        )
         // Platform admin auth routes
         .route(
             "/platform/auth/login",
@@ -91,8 +100,14 @@ pub fn create_app(state: AppState) -> Router {
             "/bookings",
             get(routes::bookings::list_bookings).post(routes::bookings::create_booking),
         )
-        .route("/bookings/customer", get(routes::bookings::list_customer_bookings))
-        .route("/bookings/walker", get(routes::bookings::list_walker_bookings))
+        .route(
+            "/bookings/customer",
+            get(routes::bookings::list_customer_bookings),
+        )
+        .route(
+            "/bookings/walker",
+            get(routes::bookings::list_walker_bookings),
+        )
         .route("/bookings/:id", get(routes::bookings::get_booking))
         .route(
             "/bookings/:id/confirm",
@@ -129,10 +144,12 @@ pub fn create_app(state: AppState) -> Router {
         .route("/locations", get(routes::locations::list_locations))
         .route(
             "/locations/:id",
-            put(routes::locations::update_location)
-                .delete(routes::locations::delete_location),
+            put(routes::locations::update_location).delete(routes::locations::delete_location),
         )
-        .route("/locations/:id/default", put(routes::locations::set_default_location))
+        .route(
+            "/locations/:id/default",
+            put(routes::locations::set_default_location),
+        )
         // Payment method routes
         .route(
             "/payment-methods",
@@ -170,7 +187,10 @@ pub fn create_app(state: AppState) -> Router {
         )
         // User routes
         .route("/users", get(routes::users::list_users))
-        .route("/users/me", get(routes::users::get_me).put(routes::users::update_me))
+        .route(
+            "/users/me",
+            get(routes::users::get_me).put(routes::users::update_me),
+        )
         .route("/users/:id", get(routes::users::get_user))
         // User identity management routes
         .route(
@@ -246,16 +266,16 @@ pub fn create_app(state: AppState) -> Router {
         // Walker/Client invitation routes
         .route("/walker/invite", post(routes::invitations::invite_walker))
         .route("/client/invite", post(routes::invitations::invite_client))
-        .route("/walker/join-tenant", post(routes::invitations::join_tenant))
+        .route(
+            "/walker/join-tenant",
+            post(routes::invitations::join_tenant),
+        )
         .route(
             "/walker/create-tenant",
             post(routes::invitations::create_tenant),
         )
         // Invitation management routes
-        .route(
-            "/invitations",
-            get(routes::invitations::list_invitations),
-        )
+        .route("/invitations", get(routes::invitations::list_invitations))
         .route(
             "/invitations/validate",
             post(routes::invitations::validate_invitation),
@@ -344,18 +364,12 @@ pub fn create_app(state: AppState) -> Router {
                 .delete(routes::payment_providers::disconnect_payment_provider),
         )
         // Checkout and transaction routes
-        .route(
-            "/checkout",
-            post(routes::checkout::create_checkout),
-        )
+        .route("/checkout", post(routes::checkout::create_checkout))
         .route(
             "/checkout/preview-fees",
             post(routes::checkout::preview_fees),
         )
-        .route(
-            "/checkout/:id",
-            get(routes::checkout::get_checkout),
-        )
+        .route("/checkout/:id", get(routes::checkout::get_checkout))
         .route(
             "/checkout/:id/confirm",
             post(routes::checkout::confirm_payment),
@@ -364,10 +378,7 @@ pub fn create_app(state: AppState) -> Router {
             "/checkout/:id/refund",
             post(routes::checkout::request_refund),
         )
-        .route(
-            "/transactions",
-            get(routes::checkout::list_transactions),
-        )
+        .route("/transactions", get(routes::checkout::list_transactions))
         // Subscription routes
         .route(
             "/subscriptions/tenant",
@@ -395,25 +406,15 @@ pub fn create_app(state: AppState) -> Router {
         // Payout routes
         .route(
             "/payouts/settings",
-            get(routes::payouts::get_payout_settings)
-                .put(routes::payouts::update_payout_settings),
+            get(routes::payouts::get_payout_settings).put(routes::payouts::update_payout_settings),
         )
-        .route(
-            "/payouts/summary",
-            get(routes::payouts::get_payout_summary),
-        )
-        .route(
-            "/payouts",
-            get(routes::payouts::list_payouts),
-        )
+        .route("/payouts/summary", get(routes::payouts::get_payout_summary))
+        .route("/payouts", get(routes::payouts::list_payouts))
         .route(
             "/payouts/instant",
             post(routes::payouts::request_instant_payout),
         )
-        .route(
-            "/payouts/:id",
-            get(routes::payouts::get_payout),
-        )
+        .route("/payouts/:id", get(routes::payouts::get_payout))
         // Webhook routes (no auth - verified by signature)
         .route(
             "/webhooks/stripe/:org_id",

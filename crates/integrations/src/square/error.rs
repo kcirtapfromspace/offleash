@@ -41,7 +41,9 @@ impl SquareError {
 
     pub fn user_message(&self) -> &str {
         match self {
-            SquareError::CardDeclined(_) => "Your card was declined. Please try a different payment method.",
+            SquareError::CardDeclined(_) => {
+                "Your card was declined. Please try a different payment method."
+            }
             SquareError::InvalidRequest(_) => "There was an issue with your payment information.",
             SquareError::RateLimited => "Too many requests. Please try again in a moment.",
             _ => "An error occurred processing your payment. Please try again.",

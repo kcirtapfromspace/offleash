@@ -1,7 +1,9 @@
 use axum::{extract::State, Json};
 use chrono::{Duration, Utc};
 use db::models::{AuthProvider, CreateUser, CreateUserIdentity, CreateWalletChallenge, UserRole};
-use db::{OrganizationRepository, UserIdentityRepository, UserRepository, WalletChallengeRepository};
+use db::{
+    OrganizationRepository, UserIdentityRepository, UserRepository, WalletChallengeRepository,
+};
 use ethers_core::types::{RecoveryMessage, Signature};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -112,7 +114,11 @@ pub async fn get_challenge(
     // Verify organization exists
     let _organization = OrganizationRepository::find_by_slug(&state.pool, &req.org_slug)
         .await?
-        .ok_or_else(|| ApiError::from(shared::DomainError::OrganizationNotFound(req.org_slug.clone())))?;
+        .ok_or_else(|| {
+            ApiError::from(shared::DomainError::OrganizationNotFound(
+                req.org_slug.clone(),
+            ))
+        })?;
 
     // Generate nonce
     let nonce = generate_nonce();
@@ -126,12 +132,20 @@ pub async fn get_challenge(
             nonce: nonce.clone(),
             expires_at,
         },
-    ).await?;
+    )
+    .await?;
 
     // Generate SIWE message
     let domain = std::env::var("APP_DOMAIN").unwrap_or_else(|_| "offleash.app".to_string());
     let issued_at = Utc::now();
-    let message = generate_siwe_message(&wallet_address, &nonce, &req.org_slug, &domain, issued_at, expires_at);
+    let message = generate_siwe_message(
+        &wallet_address,
+        &nonce,
+        &req.org_slug,
+        &domain,
+        issued_at,
+        expires_at,
+    );
 
     Ok(Json(ChallengeResponse { message, nonce }))
 }
@@ -147,14 +161,20 @@ pub async fn verify_signature(
     // Look up organization
     let organization = OrganizationRepository::find_by_slug(&state.pool, &req.org_slug)
         .await?
-        .ok_or_else(|| ApiError::from(shared::DomainError::OrganizationNotFound(req.org_slug.clone())))?;
+        .ok_or_else(|| {
+            ApiError::from(shared::DomainError::OrganizationNotFound(
+                req.org_slug.clone(),
+            ))
+        })?;
 
     // Find active challenge
     let challenge = WalletChallengeRepository::find_active(&state.pool, &wallet_address)
         .await?
-        .ok_or_else(|| ApiError::from(shared::DomainError::ValidationError(
-            "No active challenge found. Please request a new challenge.".to_string(),
-        )))?;
+        .ok_or_else(|| {
+            ApiError::from(shared::DomainError::ValidationError(
+                "No active challenge found. Please request a new challenge.".to_string(),
+            ))
+        })?;
 
     // Parse the SIWE message to extract nonce
     let siwe_message = Message::from_str(&req.message).map_err(|e| {
@@ -186,9 +206,9 @@ pub async fn verify_signature(
 
     // Recover the signer address from the signature
     let message_hash = RecoveryMessage::Data(req.message.as_bytes().to_vec());
-    let recovered_address = signature.recover(message_hash).map_err(|_| {
-        ApiError::from(shared::DomainError::InvalidCredentials)
-    })?;
+    let recovered_address = signature
+        .recover(message_hash)
+        .map_err(|_| ApiError::from(shared::DomainError::InvalidCredentials))?;
 
     // Format the recovered address for comparison
     let recovered_address_str = format!("{:?}", recovered_address).to_lowercase();
@@ -207,19 +227,24 @@ pub async fn verify_signature(
     WalletChallengeRepository::delete(&state.pool, challenge.id).await?;
 
     // Try to find existing identity
-    if let Some(identity) = UserIdentityRepository::find_by_provider(
-        &state.pool,
-        AuthProvider::Wallet,
-        &wallet_address,
-    ).await? {
+    if let Some(identity) =
+        UserIdentityRepository::find_by_provider(&state.pool, AuthProvider::Wallet, &wallet_address)
+            .await?
+    {
         // Existing user
         let user_id = UserId::from_uuid(identity.user_id);
         let user = UserRepository::find_by_id_unchecked(&state.pool, user_id)
             .await?
-            .ok_or_else(|| ApiError::from(shared::AppError::Internal("User not found".to_string())))?;
+            .ok_or_else(|| {
+                ApiError::from(shared::AppError::Internal("User not found".to_string()))
+            })?;
 
-        let token = create_token(user.id, Some(user.organization_id), &state.jwt_secret)
-            .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
+        let token =
+            create_token(user.id, Some(user.organization_id), &state.jwt_secret).map_err(|_| {
+                ApiError::from(shared::AppError::Internal(
+                    "Token creation failed".to_string(),
+                ))
+            })?;
 
         return Ok(Json(AuthResponse {
             token,
@@ -251,22 +276,31 @@ pub async fn verify_signature(
             phone: None,
             timezone: None,
         },
-    ).await?;
+    )
+    .await?;
 
     // Create identity
-    UserIdentityRepository::create(&state.pool, CreateUserIdentity {
-        user_id: user.id.into_uuid(),
-        provider: AuthProvider::Wallet,
-        provider_user_id: wallet_address,
-        provider_email: None,
-        provider_data: Some(serde_json::json!({
-            "chain_id": 1,
-            "verified_at": Utc::now().to_rfc3339(),
-        })),
-    }).await?;
+    UserIdentityRepository::create(
+        &state.pool,
+        CreateUserIdentity {
+            user_id: user.id.into_uuid(),
+            provider: AuthProvider::Wallet,
+            provider_user_id: wallet_address,
+            provider_email: None,
+            provider_data: Some(serde_json::json!({
+                "chain_id": 1,
+                "verified_at": Utc::now().to_rfc3339(),
+            })),
+        },
+    )
+    .await?;
 
-    let token = create_token(user.id, Some(user.organization_id), &state.jwt_secret)
-        .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
+    let token =
+        create_token(user.id, Some(user.organization_id), &state.jwt_secret).map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Token creation failed".to_string(),
+            ))
+        })?;
 
     Ok(Json(AuthResponse {
         token,

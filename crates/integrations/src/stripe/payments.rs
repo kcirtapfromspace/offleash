@@ -131,7 +131,10 @@ impl StripeClient {
         }
 
         if params.automatic_payment_methods {
-            form.insert("automatic_payment_methods[enabled]".to_string(), "true".to_string());
+            form.insert(
+                "automatic_payment_methods[enabled]".to_string(),
+                "true".to_string(),
+            );
         }
 
         if let Some(return_url) = params.return_url {
@@ -182,13 +185,15 @@ impl StripeClient {
             params.insert("return_url".to_string(), url.to_string());
         }
 
-        self.post(&format!("/payment_intents/{}/confirm", id), &params).await
+        self.post(&format!("/payment_intents/{}/confirm", id), &params)
+            .await
     }
 
     /// Cancel a payment intent
     pub async fn cancel_payment_intent(&self, id: &str) -> StripeResult<PaymentIntent> {
         let params = HashMap::new();
-        self.post(&format!("/payment_intents/{}/cancel", id), &params).await
+        self.post(&format!("/payment_intents/{}/cancel", id), &params)
+            .await
     }
 
     /// Capture a payment intent (for manual capture)
@@ -203,7 +208,8 @@ impl StripeClient {
             params.insert("amount_to_capture".to_string(), amount.to_string());
         }
 
-        self.post(&format!("/payment_intents/{}/capture", id), &params).await
+        self.post(&format!("/payment_intents/{}/capture", id), &params)
+            .await
     }
 
     // ============ Charges ============

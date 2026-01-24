@@ -41,6 +41,20 @@
 	const isAppleConfigured = Boolean(appleClientId);
 	const hasOAuthProviders = isGoogleConfigured || isAppleConfigured;
 
+	// Extract org slug from subdomain (e.g., "happypaws.offleash.world" -> "happypaws")
+	// Falls back to empty string for universal login
+	function getOrgSlug(): string {
+		if (typeof window === 'undefined') return '';
+		const hostname = window.location.hostname;
+		const parts = hostname.split('.');
+		// If we have a subdomain (3+ parts like tenant.example.com), use the first part
+		if (parts.length >= 3 && !parts[0].match(/^(www|app|admin|localhost)$/i)) {
+			return parts[0];
+		}
+		return '';
+	}
+	const orgSlug = getOrgSlug();
+
 	onMount(() => {
 		// Load Google Identity Services
 		if (isGoogleConfigured && typeof window !== 'undefined') {

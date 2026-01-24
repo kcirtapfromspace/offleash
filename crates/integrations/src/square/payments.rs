@@ -168,7 +168,9 @@ impl SquareClient {
     pub async fn complete_payment(&self, payment_id: &str) -> SquareResult<Payment> {
         #[derive(Serialize)]
         struct EmptyBody {}
-        let response: PaymentResponse = self.post(&format!("/payments/{}/complete", payment_id), &EmptyBody {}).await?;
+        let response: PaymentResponse = self
+            .post(&format!("/payments/{}/complete", payment_id), &EmptyBody {})
+            .await?;
         Ok(response.payment)
     }
 
@@ -176,7 +178,9 @@ impl SquareClient {
     pub async fn cancel_payment(&self, payment_id: &str) -> SquareResult<Payment> {
         #[derive(Serialize)]
         struct EmptyBody {}
-        let response: PaymentResponse = self.post(&format!("/payments/{}/cancel", payment_id), &EmptyBody {}).await?;
+        let response: PaymentResponse = self
+            .post(&format!("/payments/{}/cancel", payment_id), &EmptyBody {})
+            .await?;
         Ok(response.payment)
     }
 

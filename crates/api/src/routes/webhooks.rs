@@ -54,10 +54,12 @@ pub async fn stripe_webhook(
         .ok_or_else(|| (StatusCode::BAD_REQUEST, "Missing signature".to_string()))?;
 
     // Verify webhook signature
-    let webhook_secret = provider
-        .webhook_secret
-        .as_ref()
-        .ok_or_else(|| (StatusCode::BAD_REQUEST, "Webhook secret not configured".to_string()))?;
+    let webhook_secret = provider.webhook_secret.as_ref().ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            "Webhook secret not configured".to_string(),
+        )
+    })?;
 
     verify_stripe_signature(&body, signature, webhook_secret)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid signature: {}", e)))?;
@@ -223,9 +225,13 @@ pub async fn stripe_webhook(
                         evidence_due_by: None, // TODO: Parse from Stripe response
                     };
 
-                    DisputeRepository::create(&pool, OrganizationId::from_uuid(org_id), dispute_input)
-                        .await
-                        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+                    DisputeRepository::create(
+                        &pool,
+                        OrganizationId::from_uuid(org_id),
+                        dispute_input,
+                    )
+                    .await
+                    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
                     // Update transaction status
                     TransactionRepository::update_status(
@@ -258,10 +264,9 @@ pub async fn stripe_webhook(
                 _ => DisputeStatus::Lost,
             };
 
-            if let Some(dispute) =
-                DisputeRepository::get_by_stripe_dispute(&pool, dispute_id)
-                    .await
-                    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+            if let Some(dispute) = DisputeRepository::get_by_stripe_dispute(&pool, dispute_id)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
             {
                 let update_input = UpdateDispute {
                     status: Some(dispute_status),
@@ -336,10 +341,12 @@ pub async fn square_webhook(
         .ok_or_else(|| (StatusCode::BAD_REQUEST, "Missing signature".to_string()))?;
 
     // Verify webhook signature
-    let webhook_secret = provider
-        .webhook_secret
-        .as_ref()
-        .ok_or_else(|| (StatusCode::BAD_REQUEST, "Webhook secret not configured".to_string()))?;
+    let webhook_secret = provider.webhook_secret.as_ref().ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            "Webhook secret not configured".to_string(),
+        )
+    })?;
 
     // Get the webhook URL for signature verification
     let webhook_url = std::env::var("SQUARE_WEBHOOK_URL").unwrap_or_default();
@@ -378,7 +385,13 @@ pub async fn square_webhook(
     // Process the event
     match event.event_type.as_str() {
         "payment.completed" => {
-            if let Some(payment_id) = event.data.object.get("payment").and_then(|p| p.get("id")).and_then(|v| v.as_str()) {
+            if let Some(payment_id) = event
+                .data
+                .object
+                .get("payment")
+                .and_then(|p| p.get("id"))
+                .and_then(|v| v.as_str())
+            {
                 if let Some(transaction) = TransactionRepository::get_by_external_id(
                     &pool,
                     OrganizationId::from_uuid(org_id),
@@ -398,7 +411,13 @@ pub async fn square_webhook(
             }
         }
         "payment.failed" => {
-            if let Some(payment_id) = event.data.object.get("payment").and_then(|p| p.get("id")).and_then(|v| v.as_str()) {
+            if let Some(payment_id) = event
+                .data
+                .object
+                .get("payment")
+                .and_then(|p| p.get("id"))
+                .and_then(|v| v.as_str())
+            {
                 if let Some(transaction) = TransactionRepository::get_by_external_id(
                     &pool,
                     OrganizationId::from_uuid(org_id),
@@ -420,7 +439,10 @@ pub async fn square_webhook(
         "refund.created" | "refund.updated" => {
             // Handle refunds
             if let Some(refund) = event.data.object.get("refund") {
-                let payment_id = refund.get("payment_id").and_then(|v| v.as_str()).unwrap_or("");
+                let payment_id = refund
+                    .get("payment_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
                 let status = refund.get("status").and_then(|v| v.as_str()).unwrap_or("");
 
                 if status == "COMPLETED" {
@@ -446,7 +468,11 @@ pub async fn square_webhook(
         "dispute.created" => {
             if let Some(dispute) = event.data.object.get("dispute") {
                 let dispute_id = dispute.get("id").and_then(|v| v.as_str()).unwrap_or("");
-                let payment_id = dispute.get("disputed_payment").and_then(|dp| dp.get("payment_id")).and_then(|v| v.as_str()).unwrap_or("");
+                let payment_id = dispute
+                    .get("disputed_payment")
+                    .and_then(|dp| dp.get("payment_id"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
 
                 let amount = dispute
                     .get("amount_money")
@@ -454,7 +480,11 @@ pub async fn square_webhook(
                     .and_then(|v| v.as_i64())
                     .unwrap_or(0) as i32;
 
-                let reason = dispute.get("reason").and_then(|v| v.as_str()).unwrap_or("general").to_string();
+                let reason = dispute
+                    .get("reason")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("general")
+                    .to_string();
 
                 if let Some(transaction) = TransactionRepository::get_by_external_id(
                     &pool,
@@ -474,9 +504,13 @@ pub async fn square_webhook(
                         evidence_due_by: None,
                     };
 
-                    DisputeRepository::create(&pool, OrganizationId::from_uuid(org_id), dispute_input)
-                        .await
-                        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+                    DisputeRepository::create(
+                        &pool,
+                        OrganizationId::from_uuid(org_id),
+                        dispute_input,
+                    )
+                    .await
+                    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
                     TransactionRepository::update_status(
                         &pool,
@@ -561,8 +595,7 @@ fn verify_stripe_signature(payload: &[u8], signature: &str, secret: &str) -> Res
     );
 
     // Compute expected signature
-    let mut mac =
-        HmacSha256::new_from_slice(secret.as_bytes()).map_err(|_| "Invalid secret")?;
+    let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).map_err(|_| "Invalid secret")?;
     mac.update(signed_payload.as_bytes());
     let expected = hex::encode(mac.finalize().into_bytes());
 
@@ -589,8 +622,7 @@ fn verify_square_signature(
         std::str::from_utf8(payload).map_err(|_| "Invalid payload encoding")?
     );
 
-    let mut mac =
-        HmacSha256::new_from_slice(secret.as_bytes()).map_err(|_| "Invalid secret")?;
+    let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).map_err(|_| "Invalid secret")?;
     mac.update(signed_payload.as_bytes());
     let expected = base64::engine::general_purpose::STANDARD.encode(mac.finalize().into_bytes());
 

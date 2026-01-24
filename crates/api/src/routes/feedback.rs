@@ -153,32 +153,30 @@ pub async fn submit_feedback(
         .await;
 
     match response {
-        Ok(res) if res.status().is_success() => {
-            match res.json::<GitHubIssueResponse>().await {
-                Ok(issue) => {
-                    tracing::info!(
-                        "Created GitHub issue #{} for user {}",
-                        issue.number,
-                        auth_user.user_id
-                    );
-                    Ok(Json(FeedbackResponse {
-                        success: true,
-                        issue_url: Some(issue.html_url),
-                        issue_number: Some(issue.number),
-                        message: "Feedback submitted successfully!".to_string(),
-                    }))
-                }
-                Err(e) => {
-                    tracing::error!("Failed to parse GitHub response: {:?}", e);
-                    Ok(Json(FeedbackResponse {
-                        success: true,
-                        issue_url: None,
-                        issue_number: None,
-                        message: "Feedback received, but could not retrieve issue details.".to_string(),
-                    }))
-                }
+        Ok(res) if res.status().is_success() => match res.json::<GitHubIssueResponse>().await {
+            Ok(issue) => {
+                tracing::info!(
+                    "Created GitHub issue #{} for user {}",
+                    issue.number,
+                    auth_user.user_id
+                );
+                Ok(Json(FeedbackResponse {
+                    success: true,
+                    issue_url: Some(issue.html_url),
+                    issue_number: Some(issue.number),
+                    message: "Feedback submitted successfully!".to_string(),
+                }))
             }
-        }
+            Err(e) => {
+                tracing::error!("Failed to parse GitHub response: {:?}", e);
+                Ok(Json(FeedbackResponse {
+                    success: true,
+                    issue_url: None,
+                    issue_number: None,
+                    message: "Feedback received, but could not retrieve issue details.".to_string(),
+                }))
+            }
+        },
         Ok(res) => {
             let status = res.status();
             let body = res.text().await.unwrap_or_default();

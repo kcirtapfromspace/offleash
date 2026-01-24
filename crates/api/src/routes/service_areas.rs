@@ -60,9 +60,11 @@ pub async fn get_my_service_areas(
         return Err(ApiError::from(AppError::Forbidden));
     }
 
-    let areas = ServiceAreaRepository::find_by_walker(&tenant.pool, tenant.org_id, auth.user_id).await?;
+    let areas =
+        ServiceAreaRepository::find_by_walker(&tenant.pool, tenant.org_id, auth.user_id).await?;
 
-    let responses: Vec<ServiceAreaResponse> = areas.into_iter().map(ServiceAreaResponse::from).collect();
+    let responses: Vec<ServiceAreaResponse> =
+        areas.into_iter().map(ServiceAreaResponse::from).collect();
 
     Ok(Json(responses))
 }
@@ -93,7 +95,10 @@ pub async fn create_my_service_area(
     let polygon: Vec<PolygonPoint> = req
         .polygon
         .into_iter()
-        .map(|p| PolygonPoint { lat: p.lat, lng: p.lng })
+        .map(|p| PolygonPoint {
+            lat: p.lat,
+            lng: p.lng,
+        })
         .collect();
 
     let area = ServiceAreaRepository::create(
@@ -156,7 +161,10 @@ pub async fn update_my_service_area(
 
     let polygon = req.polygon.map(|p| {
         p.into_iter()
-            .map(|pt| PolygonPoint { lat: pt.lat, lng: pt.lng })
+            .map(|pt| PolygonPoint {
+                lat: pt.lat,
+                lng: pt.lng,
+            })
             .collect()
     });
 
@@ -233,7 +241,8 @@ pub async fn list_all_service_areas(
 
     let areas = ServiceAreaRepository::list_all(&tenant.pool, tenant.org_id).await?;
 
-    let responses: Vec<ServiceAreaResponse> = areas.into_iter().map(ServiceAreaResponse::from).collect();
+    let responses: Vec<ServiceAreaResponse> =
+        areas.into_iter().map(ServiceAreaResponse::from).collect();
 
     Ok(Json(responses))
 }
@@ -260,9 +269,11 @@ pub async fn get_walker_service_areas(
 
     let walker_user_id = shared::types::UserId::from(walker_uuid);
 
-    let areas = ServiceAreaRepository::find_by_walker(&tenant.pool, tenant.org_id, walker_user_id).await?;
+    let areas =
+        ServiceAreaRepository::find_by_walker(&tenant.pool, tenant.org_id, walker_user_id).await?;
 
-    let responses: Vec<ServiceAreaResponse> = areas.into_iter().map(ServiceAreaResponse::from).collect();
+    let responses: Vec<ServiceAreaResponse> =
+        areas.into_iter().map(ServiceAreaResponse::from).collect();
 
     Ok(Json(responses))
 }
@@ -296,7 +307,9 @@ pub async fn create_walker_service_area(
         .ok_or_else(|| ApiError::from(AppError::NotFound("Walker not found".to_string())))?;
 
     if !walker.is_walker() {
-        return Err(ApiError::from(AppError::Validation("User is not a walker".to_string())));
+        return Err(ApiError::from(AppError::Validation(
+            "User is not a walker".to_string(),
+        )));
     }
 
     // Validate polygon
@@ -309,7 +322,10 @@ pub async fn create_walker_service_area(
     let polygon: Vec<PolygonPoint> = req
         .polygon
         .into_iter()
-        .map(|p| PolygonPoint { lat: p.lat, lng: p.lng })
+        .map(|p| PolygonPoint {
+            lat: p.lat,
+            lng: p.lng,
+        })
         .collect();
 
     let area = ServiceAreaRepository::create(
@@ -363,7 +379,10 @@ pub async fn update_service_area(
 
     let polygon = req.polygon.map(|p| {
         p.into_iter()
-            .map(|pt| PolygonPoint { lat: pt.lat, lng: pt.lng })
+            .map(|pt| PolygonPoint {
+                lat: pt.lat,
+                lng: pt.lng,
+            })
             .collect()
     });
 
@@ -410,7 +429,9 @@ pub async fn delete_service_area(
     let deleted = ServiceAreaRepository::delete(&tenant.pool, tenant.org_id, area_uuid).await?;
 
     if !deleted {
-        return Err(ApiError::from(AppError::NotFound("Service area not found".to_string())));
+        return Err(ApiError::from(AppError::NotFound(
+            "Service area not found".to_string(),
+        )));
     }
 
     Ok(Json(DeleteResponse { success: true }))

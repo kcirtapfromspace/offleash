@@ -56,7 +56,9 @@ impl StripeError {
         match self {
             StripeError::CardDeclined(code) => match code.as_str() {
                 "insufficient_funds" => "Your card has insufficient funds.",
-                "lost_card" | "stolen_card" => "Your card has been declined. Please contact your bank.",
+                "lost_card" | "stolen_card" => {
+                    "Your card has been declined. Please contact your bank."
+                }
                 "expired_card" => "Your card has expired.",
                 "incorrect_cvc" => "Your card's security code is incorrect.",
                 "processing_error" => "An error occurred processing your card. Please try again.",

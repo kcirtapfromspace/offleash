@@ -5,9 +5,7 @@ use axum::{
     Json,
 };
 use chrono::{DateTime, Utc};
-use db::models::{
-    CalendarEventType, CreateCalendarEvent, SyncStatus, UpdateCalendarEvent,
-};
+use db::models::{CalendarEventType, CreateCalendarEvent, SyncStatus, UpdateCalendarEvent};
 use db::CalendarRepository;
 use serde::{Deserialize, Serialize};
 use shared::{AppError, DomainError};
@@ -94,7 +92,11 @@ pub async fn list_events(
     Query(query): Query<ListEventsQuery>,
 ) -> ApiResult<Json<ListEventsResponse>> {
     let start = DateTime::parse_from_rfc3339(&query.start)
-        .map_err(|_| ApiError::from(AppError::Validation("Invalid start time format".to_string())))?
+        .map_err(|_| {
+            ApiError::from(AppError::Validation(
+                "Invalid start time format".to_string(),
+            ))
+        })?
         .with_timezone(&Utc);
 
     let end = DateTime::parse_from_rfc3339(&query.end)
@@ -103,35 +105,51 @@ pub async fn list_events(
 
     let events = if let Some(event_type) = query.event_type {
         let et = parse_event_type(&event_type)?;
-        CalendarRepository::find_events_by_type(&tenant.pool, tenant.org_id, auth.user_id, et, start, end)
-            .await?
+        CalendarRepository::find_events_by_type(
+            &tenant.pool,
+            tenant.org_id,
+            auth.user_id,
+            et,
+            start,
+            end,
+        )
+        .await?
     } else {
-        CalendarRepository::find_events_in_range(&tenant.pool, tenant.org_id, auth.user_id, start, end)
-            .await?
+        CalendarRepository::find_events_in_range(
+            &tenant.pool,
+            tenant.org_id,
+            auth.user_id,
+            start,
+            end,
+        )
+        .await?
     };
 
     let count = events.len();
-    let events: Vec<_> = events.into_iter().map(|e| CalendarEventResponse {
-        id: e.id.to_string(),
-        user_id: e.user_id.to_string(),
-        title: e.title,
-        description: e.description,
-        start_time: e.start_time.to_rfc3339(),
-        end_time: e.end_time.to_rfc3339(),
-        all_day: e.all_day,
-        event_type: e.event_type.to_string(),
-        calendar_connection_id: e.calendar_connection_id.map(|id| id.to_string()),
-        external_event_id: e.external_event_id,
-        sync_status: e.sync_status.to_string(),
-        recurrence_rule: e.recurrence_rule,
-        recurrence_parent_id: e.recurrence_parent_id.map(|id| id.to_string()),
-        color: e.color,
-        is_blocking: e.is_blocking,
-        created_at: e.created_at.to_rfc3339(),
-        updated_at: e.updated_at.to_rfc3339(),
-        connection_name: None,
-        provider: None,
-    }).collect();
+    let events: Vec<_> = events
+        .into_iter()
+        .map(|e| CalendarEventResponse {
+            id: e.id.to_string(),
+            user_id: e.user_id.to_string(),
+            title: e.title,
+            description: e.description,
+            start_time: e.start_time.to_rfc3339(),
+            end_time: e.end_time.to_rfc3339(),
+            all_day: e.all_day,
+            event_type: e.event_type.to_string(),
+            calendar_connection_id: e.calendar_connection_id.map(|id| id.to_string()),
+            external_event_id: e.external_event_id,
+            sync_status: e.sync_status.to_string(),
+            recurrence_rule: e.recurrence_rule,
+            recurrence_parent_id: e.recurrence_parent_id.map(|id| id.to_string()),
+            color: e.color,
+            is_blocking: e.is_blocking,
+            created_at: e.created_at.to_rfc3339(),
+            updated_at: e.updated_at.to_rfc3339(),
+            connection_name: None,
+            provider: None,
+        })
+        .collect();
 
     Ok(Json(ListEventsResponse { events, count }))
 }
@@ -187,7 +205,11 @@ pub async fn create_event(
     Json(req): Json<CreateEventRequest>,
 ) -> ApiResult<Json<CalendarEventResponse>> {
     let start_time = DateTime::parse_from_rfc3339(&req.start_time)
-        .map_err(|_| ApiError::from(AppError::Validation("Invalid start time format".to_string())))?
+        .map_err(|_| {
+            ApiError::from(AppError::Validation(
+                "Invalid start time format".to_string(),
+            ))
+        })?
         .with_timezone(&Utc);
 
     let end_time = DateTime::parse_from_rfc3339(&req.end_time)
@@ -203,7 +225,10 @@ pub async fn create_event(
     let event_type = parse_event_type(&req.event_type)?;
 
     // Only allow creating blocks and personal events through this endpoint
-    if matches!(event_type, CalendarEventType::Booking | CalendarEventType::Synced) {
+    if matches!(
+        event_type,
+        CalendarEventType::Booking | CalendarEventType::Synced
+    ) {
         return Err(ApiError::from(AppError::Validation(
             "Cannot create booking or synced events through this endpoint".to_string(),
         )));
@@ -285,7 +310,11 @@ pub async fn update_event(
     let start_time = if let Some(ref s) = req.start_time {
         Some(
             DateTime::parse_from_rfc3339(s)
-                .map_err(|_| ApiError::from(AppError::Validation("Invalid start time format".to_string())))?
+                .map_err(|_| {
+                    ApiError::from(AppError::Validation(
+                        "Invalid start time format".to_string(),
+                    ))
+                })?
                 .with_timezone(&Utc),
         )
     } else {
@@ -295,7 +324,9 @@ pub async fn update_event(
     let end_time = if let Some(ref e) = req.end_time {
         Some(
             DateTime::parse_from_rfc3339(e)
-                .map_err(|_| ApiError::from(AppError::Validation("Invalid end time format".to_string())))?
+                .map_err(|_| {
+                    ApiError::from(AppError::Validation("Invalid end time format".to_string()))
+                })?
                 .with_timezone(&Utc),
         )
     } else {

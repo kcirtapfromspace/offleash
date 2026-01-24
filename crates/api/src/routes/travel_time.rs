@@ -157,24 +157,36 @@ pub async fn get_travel_time(
     tenant: TenantContext,
     Query(query): Query<TravelTimeQuery>,
 ) -> ApiResult<Json<TravelTimeResponse>> {
-    let dest_location_id = query
-        .destination_location_id
-        .parse()
-        .map_err(|_| ApiError::from(AppError::Validation("Invalid destination location ID".to_string())))?;
+    let dest_location_id = query.destination_location_id.parse().map_err(|_| {
+        ApiError::from(AppError::Validation(
+            "Invalid destination location ID".to_string(),
+        ))
+    })?;
 
     // Get destination location coordinates
-    let dest_location = LocationRepository::find_by_id(&tenant.pool, tenant.org_id, dest_location_id)
-        .await?
-        .ok_or_else(|| ApiError::from(AppError::Validation("Destination location not found".to_string())))?;
+    let dest_location =
+        LocationRepository::find_by_id(&tenant.pool, tenant.org_id, dest_location_id)
+            .await?
+            .ok_or_else(|| {
+                ApiError::from(AppError::Validation(
+                    "Destination location not found".to_string(),
+                ))
+            })?;
 
-    let dest_coords = Coordinates::new(dest_location.latitude, dest_location.longitude)
-        .map_err(|_| ApiError::from(AppError::Validation("Invalid destination coordinates".to_string())))?;
+    let dest_coords =
+        Coordinates::new(dest_location.latitude, dest_location.longitude).map_err(|_| {
+            ApiError::from(AppError::Validation(
+                "Invalid destination coordinates".to_string(),
+            ))
+        })?;
 
     // Determine origin coordinates
     let (origin_coords, origin_location_id) = if let Some(origin_id) = &query.origin_location_id {
-        let origin_id = origin_id
-            .parse()
-            .map_err(|_| ApiError::from(AppError::Validation("Invalid origin location ID".to_string())))?;
+        let origin_id = origin_id.parse().map_err(|_| {
+            ApiError::from(AppError::Validation(
+                "Invalid origin location ID".to_string(),
+            ))
+        })?;
 
         // Check cache first
         if let Some(cached) = TravelTimeCacheRepository::get_if_fresh(
@@ -193,17 +205,29 @@ pub async fn get_travel_time(
             }));
         }
 
-        let origin_location = LocationRepository::find_by_id(&tenant.pool, tenant.org_id, origin_id)
-            .await?
-            .ok_or_else(|| ApiError::from(AppError::Validation("Origin location not found".to_string())))?;
+        let origin_location =
+            LocationRepository::find_by_id(&tenant.pool, tenant.org_id, origin_id)
+                .await?
+                .ok_or_else(|| {
+                    ApiError::from(AppError::Validation(
+                        "Origin location not found".to_string(),
+                    ))
+                })?;
 
         let coords = Coordinates::new(origin_location.latitude, origin_location.longitude)
-            .map_err(|_| ApiError::from(AppError::Validation("Invalid origin coordinates".to_string())))?;
+            .map_err(|_| {
+                ApiError::from(AppError::Validation(
+                    "Invalid origin coordinates".to_string(),
+                ))
+            })?;
 
         (coords, Some(origin_id))
     } else if let (Some(lat), Some(lng)) = (query.origin_lat, query.origin_lng) {
-        let coords = Coordinates::new(lat, lng)
-            .map_err(|_| ApiError::from(AppError::Validation("Invalid origin coordinates".to_string())))?;
+        let coords = Coordinates::new(lat, lng).map_err(|_| {
+            ApiError::from(AppError::Validation(
+                "Invalid origin coordinates".to_string(),
+            ))
+        })?;
         (coords, None)
     } else {
         return Err(ApiError::from(AppError::Validation(
@@ -213,7 +237,9 @@ pub async fn get_travel_time(
 
     // Calculate travel time via Google Maps (if available)
     let google_maps = state.google_maps.as_ref().ok_or_else(|| {
-        ApiError::from(AppError::ExternalApi("Google Maps not configured".to_string()))
+        ApiError::from(AppError::ExternalApi(
+            "Google Maps not configured".to_string(),
+        ))
     })?;
 
     let result = google_maps
@@ -295,8 +321,11 @@ pub async fn get_availability_slots(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid service ID".to_string())))?;
 
-    let date = NaiveDate::parse_from_str(&query.date, "%Y-%m-%d")
-        .map_err(|_| ApiError::from(AppError::Validation("Invalid date format, use YYYY-MM-DD".to_string())))?;
+    let date = NaiveDate::parse_from_str(&query.date, "%Y-%m-%d").map_err(|_| {
+        ApiError::from(AppError::Validation(
+            "Invalid date format, use YYYY-MM-DD".to_string(),
+        ))
+    })?;
 
     // Get walker info
     let walker = db::UserRepository::find_by_id(&tenant.pool, tenant.org_id, walker_id)
@@ -313,8 +342,12 @@ pub async fn get_availability_slots(
         .await?
         .ok_or_else(|| ApiError::from(AppError::Validation("Location not found".to_string())))?;
 
-    let dest_coords = Coordinates::new(destination.latitude, destination.longitude)
-        .map_err(|_| ApiError::from(AppError::Validation("Invalid destination coordinates".to_string())))?;
+    let dest_coords =
+        Coordinates::new(destination.latitude, destination.longitude).map_err(|_| {
+            ApiError::from(AppError::Validation(
+                "Invalid destination coordinates".to_string(),
+            ))
+        })?;
 
     // Get working hours for this day
     let day_of_week = date.weekday().num_days_from_sunday() as i16;
@@ -376,15 +409,15 @@ pub async fn get_availability_slots(
 
         // Skip if slot end is past working hours
         if slot_end.time() > work_end {
-            current_time = (chrono::NaiveDateTime::new(date, current_time) + Duration::minutes(30))
-                .time();
+            current_time =
+                (chrono::NaiveDateTime::new(date, current_time) + Duration::minutes(30)).time();
             continue;
         }
 
         // Skip if slot is in the past
         if slot_start < now {
-            current_time = (chrono::NaiveDateTime::new(date, current_time) + Duration::minutes(30))
-                .time();
+            current_time =
+                (chrono::NaiveDateTime::new(date, current_time) + Duration::minutes(30)).time();
             continue;
         }
 
@@ -397,8 +430,8 @@ pub async fn get_availability_slots(
         });
 
         if has_conflict {
-            current_time = (chrono::NaiveDateTime::new(date, current_time) + Duration::minutes(30))
-                .time();
+            current_time =
+                (chrono::NaiveDateTime::new(date, current_time) + Duration::minutes(30)).time();
             continue;
         }
 
@@ -446,8 +479,8 @@ pub async fn get_availability_slots(
             warning,
         });
 
-        current_time = (chrono::NaiveDateTime::new(date, current_time) + Duration::minutes(30))
-            .time();
+        current_time =
+            (chrono::NaiveDateTime::new(date, current_time) + Duration::minutes(30)).time();
     }
 
     Ok(Json(AvailabilityResponse {
@@ -484,7 +517,10 @@ async fn calculate_travel_info(
                 // Try Google Maps for live location (no cache for arbitrary coordinates)
                 if let Some(google_maps) = state.google_maps.as_ref() {
                     if let Ok(result) = google_maps.get_travel_time(&origin, dest_coords).await {
-                        return (Some(result.duration_minutes), Some("Current location".to_string()));
+                        return (
+                            Some(result.duration_minutes),
+                            Some("Current location".to_string()),
+                        );
                     }
                 }
             }
@@ -514,7 +550,9 @@ async fn calculate_travel_info(
 
             // Fall back to Google Maps if available and no cache
             if let Some(google_maps) = state.google_maps.as_ref() {
-                if let Ok(origin) = Coordinates::new(prev_location.latitude, prev_location.longitude) {
+                if let Ok(origin) =
+                    Coordinates::new(prev_location.latitude, prev_location.longitude)
+                {
                     if let Ok(result) = google_maps.get_travel_time(&origin, dest_coords).await {
                         // Cache the result for future use
                         let _ = TravelTimeCacheRepository::upsert(
