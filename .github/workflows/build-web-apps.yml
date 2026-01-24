@@ -1,0 +1,172 @@
+name: Build & Deploy Web Apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - '.github/workflows/build-web-apps.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      admin: ${{ steps.changes.outputs.admin }}
+      customer: ${{ steps.changes.outputs.customer }}
+      platform: ${{ steps.changes.outputs.platform }}
+      shared: ${{ steps.changes.outputs.shared }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            admin:
+              - 'apps/admin-dashboard/**'
+              - 'packages/**'
+            customer:
+              - 'apps/customer-web/**'
+              - 'packages/**'
+            platform:
+              - 'apps/platform-admin/**'
+              - 'packages/**'
+            shared:
+              - 'packages/**'
+
+  build-admin:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.admin == 'true' || needs.detect-changes.outputs.shared == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/admin-dashboard
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/admin-dashboard/package-lock.json
+
+      - name: Generate version
+        id: version
+        run: |
+          VERSION="v$(date +'%Y%m%d').${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Admin Dashboard version: ${VERSION}"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run check
+
+      - name: Build
+        run: npm run build
+        env:
+          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL || 'https://api.offleash.world' }}
+
+      - name: Trigger Render Deploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          if [ -n "${{ secrets.RENDER_ADMIN_DEPLOY_HOOK }}" ]; then
+            curl -X POST "${{ secrets.RENDER_ADMIN_DEPLOY_HOOK }}"
+            echo "Triggered admin-dashboard deploy"
+          fi
+
+  build-customer:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.customer == 'true' || needs.detect-changes.outputs.shared == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/customer-web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/customer-web/package-lock.json
+
+      - name: Generate version
+        id: version
+        run: |
+          VERSION="v$(date +'%Y%m%d').${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Customer Web version: ${VERSION}"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run check
+
+      - name: Build
+        run: npm run build
+        env:
+          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL || 'https://api.offleash.world' }}
+
+      - name: Trigger Render Deploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          if [ -n "${{ secrets.RENDER_CUSTOMER_DEPLOY_HOOK }}" ]; then
+            curl -X POST "${{ secrets.RENDER_CUSTOMER_DEPLOY_HOOK }}"
+            echo "Triggered customer-web deploy"
+          fi
+
+  build-platform:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.platform == 'true' || needs.detect-changes.outputs.shared == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/platform-admin
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/platform-admin/package-lock.json
+
+      - name: Generate version
+        id: version
+        run: |
+          VERSION="v$(date +'%Y%m%d').${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Platform Admin version: ${VERSION}"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run check
+
+      - name: Build
+        run: npm run build
+        env:
+          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL || 'https://api.offleash.world' }}
+
+      - name: Trigger Render Deploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          if [ -n "${{ secrets.RENDER_PLATFORM_DEPLOY_HOOK }}" ]; then
+            curl -X POST "${{ secrets.RENDER_PLATFORM_DEPLOY_HOOK }}"
+            echo "Triggered platform-admin deploy"
+          fi
