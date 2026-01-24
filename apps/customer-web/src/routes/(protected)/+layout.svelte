@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
 	import { goto, invalidateAll } from '$app/navigation';
+	import { env } from '$env/dynamic/public';
 
 	let { children, data } = $props();
 
@@ -40,9 +41,7 @@
 
 				// If switching to a walker/owner/admin role, redirect to admin dashboard
 				if (role === 'walker' || role === 'owner' || role === 'admin') {
-					const adminUrl = window.location.hostname.includes('localhost')
-						? '/services' // Local dev fallback
-						: 'https://paperwork.offleash.world';
+					const adminUrl = env.PUBLIC_ADMIN_URL || '/services';
 					window.location.href = adminUrl;
 					return;
 				}
