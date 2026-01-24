@@ -56,8 +56,8 @@
 	<title>Create Your Business - OFFLEASH</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50">
-	<div class="max-w-md mx-auto px-4 py-8">
+<div class="min-h-screen bg-gray-50 pb-safe">
+	<div class="max-w-md mx-auto px-4 py-8 pb-24">
 		<!-- Back Button -->
 		<a
 			href={backUrl}
@@ -143,8 +143,8 @@
 			<button
 				type="submit"
 				disabled={!isFormValid || isLoading}
-				class="w-full py-3 px-4 rounded-xl font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-				style="background-color: {isFormValid ? 'var(--color-primary, #3b82f6)' : '#9ca3af'}"
+				class="w-full py-3 px-4 rounded-xl font-semibold text-white transition-colors disabled:cursor-not-allowed border-2"
+				style="background-color: {isFormValid ? 'var(--color-primary, #3b82f6)' : '#d1d5db'}; border-color: {isFormValid ? 'var(--color-primary, #3b82f6)' : '#9ca3af'};"
 			>
 				{#if isLoading}
 					<span class="flex items-center justify-center gap-2">
