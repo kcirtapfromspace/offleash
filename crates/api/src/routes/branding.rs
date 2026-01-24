@@ -1,9 +1,8 @@
 use axum::{extract::State, http::HeaderMap, Json};
 use db::repositories::OrganizationRepository;
 use serde::Serialize;
-use shared::DomainError;
 
-use crate::{error::ApiResult, state::AppState, ApiError};
+use crate::{error::ApiResult, state::AppState};
 
 #[derive(Debug, Serialize)]
 pub struct BrandingResponse {
@@ -36,23 +35,36 @@ fn extract_tenant_from_host(host: &str) -> Option<String> {
     }
 }
 
+/// Default platform branding when no tenant is found
+fn default_branding() -> BrandingResponse {
+    BrandingResponse {
+        company_name: "OFFLEASH".to_string(),
+        logo_url: None,
+        primary_color: Some("#3b82f6".to_string()),
+        secondary_color: Some("#6b7280".to_string()),
+        accent_color: Some("#10b981".to_string()),
+        support_email: Some("support@offleash.world".to_string()),
+    }
+}
+
 /// GET /api/branding - Fetch tenant branding without authentication
+/// Returns tenant-specific branding if a valid tenant is found in the Host header,
+/// otherwise returns default platform branding.
 pub async fn get_branding(
     State(state): State<AppState>,
     headers: HeaderMap,
 ) -> ApiResult<Json<BrandingResponse>> {
-    // Get Host header
-    let host = headers
-        .get("host")
-        .and_then(|h| h.to_str().ok())
-        .ok_or_else(|| {
-            ApiError::from(DomainError::TenantNotFound(
-                "missing host header".to_string(),
-            ))
-        })?;
+    // Get Host header - if missing, return default branding
+    let host = match headers.get("host").and_then(|h| h.to_str().ok()) {
+        Some(h) => h,
+        None => return Ok(Json(default_branding())),
+    };
 
-    let tenant_identifier = extract_tenant_from_host(host)
-        .ok_or_else(|| ApiError::from(DomainError::TenantNotFound(host.to_string())))?;
+    // Extract tenant identifier from host
+    let tenant_identifier = match extract_tenant_from_host(host) {
+        Some(t) => t,
+        None => return Ok(Json(default_branding())),
+    };
 
     // Try to find organization by subdomain first
     let org = OrganizationRepository::find_by_subdomain(&state.pool, &tenant_identifier).await?;
@@ -62,9 +74,13 @@ pub async fn get_branding(
         Some(org) => org,
         None => {
             let host_without_port = host.split(':').next().unwrap_or(host);
-            OrganizationRepository::find_by_custom_domain(&state.pool, host_without_port)
+            match OrganizationRepository::find_by_custom_domain(&state.pool, host_without_port)
                 .await?
-                .ok_or_else(|| ApiError::from(DomainError::TenantNotFound(host.to_string())))?
+            {
+                Some(org) => org,
+                // No tenant found - return default platform branding
+                None => return Ok(Json(default_branding())),
+            }
         }
     };
 

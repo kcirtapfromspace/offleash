@@ -10,8 +10,13 @@ import SwiftUI
 // MARK: - Request/Response Models
 
 struct CreateTenantRequest: Encodable {
-    let name: String
-    let slug: String
+    let businessName: String
+    let slug: String?
+
+    enum CodingKeys: String, CodingKey {
+        case businessName = "business_name"
+        case slug
+    }
 }
 
 struct CreateTenantResponse: Decodable {
@@ -184,7 +189,7 @@ struct CreateTenantView: View {
         Task {
             do {
                 let request = CreateTenantRequest(
-                    name: businessName.trimmingCharacters(in: .whitespaces),
+                    businessName: businessName.trimmingCharacters(in: .whitespaces),
                     slug: slug
                 )
 
