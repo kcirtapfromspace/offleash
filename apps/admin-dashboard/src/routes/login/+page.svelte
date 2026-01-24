@@ -14,6 +14,7 @@
 	const isAppleConfigured = Boolean(appleClientId);
 
 	// Customer web URL for OAuth (OAuth only works on root domain)
+	// Default to offleash.world since that's where Apple/Google OAuth redirect URIs are registered
 	const customerWebUrl = env.PUBLIC_CUSTOMER_URL || 'https://offleash.world';
 
 	// Get the redirect path from URL params or default to /dashboard
