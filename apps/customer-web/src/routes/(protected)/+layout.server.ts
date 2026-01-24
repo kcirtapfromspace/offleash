@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 import { api, ApiError } from '$lib/api';
-import { setAuthCookie } from '$lib/cookies';
+import { setAuthCookie, deleteAuthCookie } from '$lib/cookies';
 
 interface MembershipInfo {
 	id: string;
@@ -84,6 +84,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, request }) => {
 			const host = request.headers.get('host') || '';
 			if (!session.org_id && membership) {
 				try {
+					console.log('Token missing org_id, switching context to membership:', membership.id);
 					const switchResponse = await api.post<{ token: string; membership: MembershipInfo }>(
 						'/contexts/switch',
 						{ membership_id: membership.id },
@@ -95,8 +96,17 @@ export const load: LayoutServerLoad = async ({ cookies, url, request }) => {
 					setAuthCookie(cookies, 'token', currentToken, host, true);
 					// Mark that token now has org_id
 					setAuthCookie(cookies, 'token_has_org_id', 'true', host, false);
+					console.log('Context switch successful in layout');
 				} catch (switchErr) {
-					console.warn('Failed to switch context:', switchErr);
+					console.error('Failed to switch context in layout:', switchErr);
+					// If context switch fails, clear cookies and redirect to login
+					// This forces a fresh login which should properly set up the token
+					deleteAuthCookie(cookies, 'token', host);
+					deleteAuthCookie(cookies, 'user', host);
+					deleteAuthCookie(cookies, 'membership', host);
+					deleteAuthCookie(cookies, 'memberships', host);
+					deleteAuthCookie(cookies, 'token_has_org_id', host);
+					throw redirect(303, `/login?redirect=${encodeURIComponent(url.pathname)}`);
 				}
 			} else if (session.org_id) {
 				// Token already has org_id, mark it
