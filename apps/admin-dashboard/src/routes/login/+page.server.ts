@@ -1,7 +1,7 @@
 import { redirect, fail } from "@sveltejs/kit";
-import { dev } from "$app/environment";
 import type { Actions, PageServerLoad } from "./$types";
 import { api, ApiError } from "$lib/api";
+import { setAuthCookie } from "$lib/cookies";
 
 interface UserInfo {
   id: string;
@@ -64,42 +64,21 @@ export const actions: Actions = {
         });
       }
 
-      cookies.set("token", response.token, {
-        path: "/",
-        httpOnly: true,
-        secure: !dev,
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 7,
-      });
+      const host = request.headers.get("host") || "";
 
-      // Store user info
-      cookies.set("user", JSON.stringify(response.user), {
-        path: "/",
-        httpOnly: false,
-        secure: !dev,
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 7,
-      });
+      // Store token (shared across subdomains)
+      setAuthCookie(cookies, "token", response.token, host, true);
 
-      // Store current membership
+      // Store user info (shared across subdomains)
+      setAuthCookie(cookies, "user", JSON.stringify(response.user), host, false);
+
+      // Store current membership (shared across subdomains)
       if (response.membership) {
-        cookies.set("membership", JSON.stringify(response.membership), {
-          path: "/",
-          httpOnly: false,
-          secure: !dev,
-          sameSite: "lax",
-          maxAge: 60 * 60 * 24 * 7,
-        });
+        setAuthCookie(cookies, "membership", JSON.stringify(response.membership), host, false);
       }
 
-      // Store admin memberships only
-      cookies.set("memberships", JSON.stringify(adminMemberships), {
-        path: "/",
-        httpOnly: false,
-        secure: !dev,
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 7,
-      });
+      // Store admin memberships only (shared across subdomains)
+      setAuthCookie(cookies, "memberships", JSON.stringify(adminMemberships), host, false);
 
       throw redirect(303, "/dashboard");
     } catch (err) {
