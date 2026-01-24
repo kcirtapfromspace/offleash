@@ -378,3 +378,115 @@ pub async fn validate_token(auth_user: AuthUser) -> ApiResult<Json<ValidateRespo
         user_id: Some(auth_user.user_id.to_string()),
     }))
 }
+
+/// Response for token refresh
+#[derive(Debug, Serialize)]
+pub struct RefreshResponse {
+    pub token: String,
+    pub expires_in: i64, // seconds until expiry
+}
+
+/// Refresh the current JWT token
+/// POST /auth/refresh
+///
+/// Returns a new token with extended expiry (24 hours from now).
+/// The current token must be valid but can be close to expiring.
+pub async fn refresh_token(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+) -> ApiResult<Json<RefreshResponse>> {
+    // Create a new token with the same claims but fresh expiry
+    let token = create_token(auth_user.user_id, auth_user.org_id, &state.jwt_secret).map_err(
+        |_| {
+            ApiError::from(shared::AppError::Internal(
+                "Token creation failed".to_string(),
+            ))
+        },
+    )?;
+
+    Ok(Json(RefreshResponse {
+        token,
+        expires_in: 24 * 60 * 60, // 24 hours in seconds
+    }))
+}
+
+/// Full session information response
+#[derive(Debug, Serialize)]
+pub struct SessionResponse {
+    pub user: UserResponse,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub membership: Option<MembershipInfo>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub memberships: Option<Vec<MembershipInfo>>,
+    pub org_id: Option<String>,
+}
+
+/// Get full session information from the current token
+/// GET /auth/session
+///
+/// Returns the current user, their active membership (if any),
+/// and all their memberships for context switching.
+/// This is useful for frontend apps to hydrate their state after
+/// reading a token from shared cookies.
+pub async fn session_info(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+) -> ApiResult<Json<SessionResponse>> {
+    // Fetch user info (unchecked - we already validated the token)
+    let user = db::UserRepository::find_by_id_unchecked(&state.pool, auth_user.user_id)
+        .await?
+        .ok_or_else(|| ApiError::from(DomainError::InvalidCredentials))?;
+
+    // Get all user's memberships
+    let all_memberships =
+        MembershipRepository::find_with_org_by_user(&state.pool, auth_user.user_id).await?;
+
+    // Get default membership ID
+    let default_membership_id: Option<uuid::Uuid> =
+        sqlx::query_scalar("SELECT default_membership_id FROM users WHERE id = $1")
+            .bind(auth_user.user_id)
+            .fetch_optional(&state.pool)
+            .await?
+            .flatten();
+
+    let memberships_info: Vec<MembershipInfo> = all_memberships
+        .into_iter()
+        .map(|m| MembershipInfo {
+            id: m.id.to_string(),
+            organization_id: m.organization_id.to_string(),
+            organization_name: m.organization_name,
+            organization_slug: m.organization_slug,
+            role: m.role.to_string(),
+            is_default: default_membership_id.map(|d| d == m.id).unwrap_or(false),
+        })
+        .collect();
+
+    // Find current membership based on org_id in token
+    let current_membership = if let Some(org_id) = &auth_user.org_id {
+        memberships_info
+            .iter()
+            .find(|m| m.organization_id == org_id.to_string())
+            .cloned()
+    } else {
+        // If no org_id in token, use default membership
+        memberships_info.iter().find(|m| m.is_default).cloned()
+    };
+
+    let role = current_membership
+        .as_ref()
+        .map(|m| m.role.clone())
+        .unwrap_or_else(|| user.role.to_string());
+
+    Ok(Json(SessionResponse {
+        user: UserResponse {
+            id: user.id.to_string(),
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            role,
+        },
+        membership: current_membership,
+        memberships: Some(memberships_info),
+        org_id: auth_user.org_id.map(|id| id.to_string()),
+    }))
+}
