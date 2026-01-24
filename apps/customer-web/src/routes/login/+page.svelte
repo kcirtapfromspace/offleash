@@ -10,6 +10,11 @@
 	let oauthLoading = $state<'google' | 'apple' | null>(null);
 	let oauthError = $state<string | null>(null);
 
+	// Check if this is a cross-app auth request (from admin app)
+	const isAdminAppAuth = $derived($page.url.searchParams.get('app') === 'admin');
+	const adminRedirect = $derived($page.url.searchParams.get('redirect') || '/dashboard');
+	const autoProvider = $derived($page.url.searchParams.get('provider')); // 'google' or 'apple'
+
 	// Phone auth state
 	let phoneAuthMode = $state(false);
 	let phoneNumber = $state('');
@@ -55,6 +60,40 @@
 	}
 	const orgSlug = getOrgSlug();
 
+	// Helper to set cookies with proper domain for cross-subdomain sharing
+	function setCookie(name: string, value: string, maxAge: number = 60 * 60 * 24 * 7) {
+		const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+		// Set domain for cross-subdomain sharing on offleash.world
+		let domainPart = '';
+		if (hostname.endsWith('.offleash.world') || hostname === 'offleash.world') {
+			domainPart = '; domain=.offleash.world';
+		}
+		document.cookie = `${name}=${value}; path=/; max-age=${maxAge}; SameSite=Lax${domainPart}`;
+	}
+
+	// Helper to redirect to admin app after auth
+	function redirectAfterAuth(memberships: any[]) {
+		if (isAdminAppAuth) {
+			// Check if user has staff access
+			const staffMemberships = memberships?.filter(
+				(m: any) => m.role === 'admin' || m.role === 'owner' || m.role === 'walker'
+			) ?? [];
+
+			if (staffMemberships.length === 0) {
+				oauthError = 'You do not have staff access to any organization';
+				oauthLoading = null;
+				return;
+			}
+
+			// Redirect to admin app
+			const adminUrl = env.PUBLIC_ADMIN_URL || 'https://paperwork.offleash.world';
+			window.location.href = `${adminUrl}${adminRedirect}`;
+		} else {
+			// Normal customer flow
+			goto('/services');
+		}
+	}
+
 	onMount(() => {
 		// Load Google Identity Services
 		if (isGoogleConfigured && typeof window !== 'undefined') {
@@ -62,7 +101,13 @@
 			script.src = 'https://accounts.google.com/gsi/client';
 			script.async = true;
 			script.defer = true;
-			script.onload = initializeGoogle;
+			script.onload = () => {
+				initializeGoogle();
+				// Auto-trigger Google OAuth if requested
+				if (autoProvider === 'google') {
+					setTimeout(() => handleGoogleLogin(), 500);
+				}
+			};
 			document.head.appendChild(script);
 		}
 
@@ -72,7 +117,13 @@
 			script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
 			script.async = true;
 			script.defer = true;
-			script.onload = initializeApple;
+			script.onload = () => {
+				initializeApple();
+				// Auto-trigger Apple OAuth if requested
+				if (autoProvider === 'apple') {
+					setTimeout(() => handleAppleLogin(), 500);
+				}
+			};
 			document.head.appendChild(script);
 		}
 	});
@@ -148,18 +199,19 @@
 
 			const result = await res.json();
 
-			// Store cookies (like normal login)
-			document.cookie = `token=${result.token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+			// Store cookies with proper domain for cross-subdomain sharing
+			setCookie('token', result.token);
 			if (result.user) {
-				document.cookie = `user=${JSON.stringify(result.user)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+				setCookie('user', JSON.stringify(result.user));
 			}
 			if (result.membership) {
-				document.cookie = `membership=${JSON.stringify(result.membership)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+				setCookie('membership', JSON.stringify(result.membership));
 			}
 			if (result.memberships) {
-				document.cookie = `memberships=${JSON.stringify(result.memberships)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+				setCookie('memberships', JSON.stringify(result.memberships));
 			}
-			await goto('/services');
+
+			redirectAfterAuth(result.memberships || []);
 		} catch (err) {
 			oauthError = err instanceof Error ? err.message : 'Google authentication failed';
 		} finally {
@@ -197,18 +249,19 @@
 
 			const result = await res.json();
 
-			// Store cookies (like normal login)
-			document.cookie = `token=${result.token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+			// Store cookies with proper domain for cross-subdomain sharing
+			setCookie('token', result.token);
 			if (result.user) {
-				document.cookie = `user=${JSON.stringify(result.user)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+				setCookie('user', JSON.stringify(result.user));
 			}
 			if (result.membership) {
-				document.cookie = `membership=${JSON.stringify(result.membership)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+				setCookie('membership', JSON.stringify(result.membership));
 			}
 			if (result.memberships) {
-				document.cookie = `memberships=${JSON.stringify(result.memberships)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+				setCookie('memberships', JSON.stringify(result.memberships));
 			}
-			await goto('/services');
+
+			redirectAfterAuth(result.memberships || []);
 		} catch (err) {
 			if ((err as any)?.error === 'popup_closed_by_user') {
 				// User cancelled, not an error
@@ -415,8 +468,14 @@
 <div class="min-h-screen flex items-center justify-center bg-gray-100">
 	<div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
 		<h1 class="text-2xl font-bold text-center mb-6" style="color: var(--color-primary)">
-			Login
+			{isAdminAppAuth ? 'Staff Login' : 'Login'}
 		</h1>
+
+		{#if isAdminAppAuth}
+		<p class="text-sm text-gray-600 text-center mb-4">
+			Sign in to access the staff dashboard
+		</p>
+		{/if}
 
 		{#if form?.error || oauthError || phoneError || walletError}
 			<div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
