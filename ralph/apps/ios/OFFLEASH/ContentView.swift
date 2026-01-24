@@ -14,8 +14,29 @@ struct ContentView: View {
     @State private var showWalkerOnboarding: Bool = false
     @State private var isLoadingContexts: Bool = false
 
+    /// The role selected during login/register flow - used for routing new users
+    var selectedRole: SelectedRole
+
     /// Optional invite token from deep link for walker onboarding
     var inviteToken: String?
+
+    /// Determines if the current user should see the walker/admin experience
+    private var shouldShowWalkerExperience: Bool {
+        // If user has walker/admin memberships, they're definitely a walker
+        if userSession.isWalkerOrAdmin {
+            return true
+        }
+        // If user selected walker role during login but has no memberships yet,
+        // they need to go through walker onboarding
+        if selectedRole == .walker && userSession.memberships.isEmpty {
+            return true
+        }
+        // Also check if user's base role is walker (set by backend)
+        if userSession.currentUser?.role == .walker {
+            return true
+        }
+        return false
+    }
 
     var body: some View {
         Group {
@@ -27,7 +48,7 @@ struct ContentView: View {
                     Text("Loading...")
                         .foregroundColor(.secondary)
                 }
-            } else if userSession.isWalkerOrAdmin {
+            } else if shouldShowWalkerExperience {
                 // Walker/Admin view - show onboarding if needed, else dashboard
                 if showWalkerOnboarding || userSession.needsOnboarding {
                     WalkerOnboardingView(
@@ -49,7 +70,13 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            showWalkerOnboarding = userSession.needsOnboarding
+            // Determine if walker onboarding is needed
+            // - User selected walker role but has no walker/admin memberships
+            // - Or user has walker role but no organization
+            let needsWalkerOnboarding = (selectedRole == .walker || userSession.currentUser?.role == .walker)
+                && !userSession.memberships.contains { $0.role.isWalkerOrAdmin }
+            showWalkerOnboarding = needsWalkerOnboarding
+
             // Load contexts on appear if not already loaded
             if userSession.memberships.isEmpty {
                 Task {
@@ -104,7 +131,7 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView(inviteToken: nil)
+    ContentView(selectedRole: .customer, inviteToken: nil)
         .withThemeManager()
         .environmentObject(SessionStateManager.shared)
 }

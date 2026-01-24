@@ -105,7 +105,7 @@ struct OFFLEASHApp: App {
                     .withThemeManager(themeManager)
 
                 case .authenticated:
-                    ContentView()
+                    ContentView(selectedRole: selectedRole)
                         .withThemeManager(themeManager)
                         .environmentObject(sessionStateManager)
 
@@ -196,6 +196,23 @@ struct OFFLEASHApp: App {
         do {
             let response = try await APIClient.shared.validateToken()
             if response.valid {
+                // Update user data from token validation response
+                if let userData = response.user {
+                    let role = UserRole(rawValue: userData.role ?? "customer") ?? .customer
+                    let user = User(
+                        id: userData.id,
+                        email: userData.email,
+                        firstName: userData.firstName,
+                        lastName: userData.lastName,
+                        role: role,
+                        organizationId: userData.organizationId
+                    )
+                    await MainActor.run {
+                        UserSession.shared.setUser(user)
+                        // Set selectedRole based on user's actual role for proper routing
+                        selectedRole = role == .walker ? .walker : .customer
+                    }
+                }
                 appState = .authenticated
             } else {
                 // Token is invalid, clear it and go to login

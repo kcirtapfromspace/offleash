@@ -49,10 +49,13 @@ jobs:
 
       - name: Build for testing
         run: |
+          # Find the first available iPhone simulator
+          SIMULATOR_NAME=$(xcrun simctl list devices available | grep -m 1 "iPhone" | sed -E 's/^[[:space:]]+([^(]+).*/\1/' | xargs)
+          echo "Using simulator: $SIMULATOR_NAME"
           xcodebuild build \
             -project $PROJECT \
             -scheme $SCHEME \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination "platform=iOS Simulator,name=$SIMULATOR_NAME" \
             -configuration Debug \
             -derivedDataPath ./build/DerivedData \
             CODE_SIGN_IDENTITY="" \
