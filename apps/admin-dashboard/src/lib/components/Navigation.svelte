@@ -54,7 +54,11 @@
 		return page.url.pathname === path || page.url.pathname.startsWith(path + '/');
 	}
 
-	const hasMultipleMemberships = $derived(memberships.length > 1);
+	// Filter to only show admin/walker/owner memberships (not customer)
+	const adminMemberships = $derived(
+		memberships.filter(m => ['admin', 'owner', 'walker'].includes(m.role))
+	);
+	const hasMultipleMemberships = $derived(adminMemberships.length > 1);
 	const currentOrgName = $derived(membership?.organization_name ?? 'Dashboard');
 	const customerWebUrl = env.PUBLIC_CUSTOMER_URL || 'https://offleash.world';
 
@@ -112,7 +116,7 @@
 						<div class="absolute left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border z-20">
 							<div class="py-2">
 								<div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Switch Organization</div>
-								{#each memberships as mem}
+								{#each adminMemberships as mem}
 									<button
 										type="button"
 										class="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between {mem.id === membership?.id ? 'bg-gray-50' : ''}"
