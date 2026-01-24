@@ -14,6 +14,7 @@ struct CustomerProfileView: View {
     @State private var showLogoutConfirmation = false
     @State private var isLoggingOut = false
     @State private var showPersonaSwitcher = false
+    @State private var showFeedback = false
 
     var body: some View {
         List {
@@ -90,6 +91,12 @@ struct CustomerProfileView: View {
                 }
 
                 NavigationLink {
+                    PetsListView()
+                } label: {
+                    Label("My Pets", systemImage: "pawprint.circle")
+                }
+
+                NavigationLink {
                     MyLocationsView()
                 } label: {
                     Label("My Locations", systemImage: "mappin.circle")
@@ -111,6 +118,18 @@ struct CustomerProfileView: View {
                     SubscriptionsView()
                 } label: {
                     Label("Subscriptions", systemImage: "repeat.circle")
+                }
+
+                NavigationLink {
+                    RecurringBookingsListView()
+                } label: {
+                    Label("Recurring Walks", systemImage: "calendar.badge.clock")
+                }
+
+                NavigationLink {
+                    ConnectedAccountsView()
+                } label: {
+                    Label("Connected Accounts", systemImage: "link.circle")
                 }
             }
 
@@ -138,6 +157,13 @@ struct CustomerProfileView: View {
                         .navigationTitle("Contact Us")
                 } label: {
                     Label("Contact Us", systemImage: "envelope")
+                }
+
+                Button {
+                    showFeedback = true
+                } label: {
+                    Label("Send Feedback", systemImage: "bubble.left.and.text.bubble.right")
+                        .foregroundColor(.primary)
                 }
             }
 
@@ -186,6 +212,10 @@ struct CustomerProfileView: View {
         }
         .sheet(isPresented: $showPersonaSwitcher) {
             PersonaSwitcherSheet()
+        }
+        .sheet(isPresented: $showFeedback) {
+            FeedbackView()
+                .environmentObject(themeManager)
         }
     }
 
