@@ -67,7 +67,7 @@ services:
       - key: BASE_DOMAIN
         value: offleash.world
       - key: CORS_ORIGINS
-        value: https://app.offleash.world,https://admin.offleash.world,https://platform.offleash.world,https://offleash-app.onrender.com,https://offleash-admin.onrender.com,https://offleash-platform.onrender.com
+        value: https://offleash.world,https://paperwork.offleash.world,https://platform.offleash.world,https://offleash-app.onrender.com,https://offleash-admin.onrender.com,https://offleash-platform.onrender.com
       # OAuth Configuration - Use same env vars as web apps for shared env group
       - key: PUBLIC_GOOGLE_CLIENT_ID
         sync: false  # Set via environment group
@@ -99,13 +99,13 @@ services:
       - key: PORT
         value: 3000
       - key: PUBLIC_API_URL
-        value: https://offleash-api.onrender.com
+        value: https://api.offleash.world
       - key: PUBLIC_ADMIN_URL
         value: https://paperwork.offleash.world
       # IMPORTANT: Set ORIGIN to your actual domain in Render dashboard
-      # If using custom domain (app.offleash.world), set to https://app.offleash.world
+      # Custom domain: https://offleash.world
       - key: ORIGIN
-        sync: false  # Set in Render dashboard to match your actual domain
+        value: https://offleash.world
       # OAuth Configuration - Set these in Render Dashboard
       - key: PUBLIC_GOOGLE_CLIENT_ID
         sync: false  # Set manually in dashboard
@@ -135,9 +135,9 @@ services:
       - key: PORT
         value: 3000
       - key: PUBLIC_API_URL
-        value: https://offleash-api.onrender.com
+        value: https://api.offleash.world
       - key: ORIGIN
-        value: https://offleash-admin.onrender.com
+        value: https://paperwork.offleash.world
       # OAuth Configuration - Set these in Render Dashboard
       - key: PUBLIC_GOOGLE_CLIENT_ID
         sync: false  # Set manually in dashboard
@@ -167,8 +167,8 @@ services:
       - key: PORT
         value: 3000
       - key: PUBLIC_API_URL
-        value: https://offleash-api.onrender.com
+        value: https://api.offleash.world
       - key: ORIGIN
-        value: https://offleash-platform.onrender.com
+        value: https://platform.offleash.world
     # Auto-deploy disabled - GitHub Actions triggers deploy via hook
     autoDeploy: false
