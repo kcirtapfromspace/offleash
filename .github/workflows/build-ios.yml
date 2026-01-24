@@ -126,7 +126,7 @@ jobs:
           API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
-          # Use automatic signing with App Store Connect API for cloud signing
+          # Use automatic signing with App Store Connect API
           xcodebuild archive \
             -project $PROJECT \
             -scheme $SCHEME \
@@ -139,7 +139,8 @@ jobs:
             -authenticationKeyIssuerID "$API_ISSUER_ID" \
             MARKETING_VERSION=${{ steps.version.outputs.version }} \
             CURRENT_PROJECT_VERSION=${{ steps.version.outputs.build }} \
-            DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }}
+            DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
+            CODE_SIGN_IDENTITY="Apple Distribution"
 
       - name: Create Export Options
         env:
