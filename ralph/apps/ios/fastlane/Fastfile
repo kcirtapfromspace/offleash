@@ -86,8 +86,14 @@ platform :ios do
       derived_data_path: "./build/DerivedData"
     }
 
-    # If provisioning profile name is set in environment, use manual signing
+    # If provisioning profile name is set in environment, use manual signing for CI
     if ENV["APPLE_PROVISIONING_PROFILE_NAME"]
+      # Override signing settings during archive for CI builds
+      build_options[:xcargs] = [
+        "CODE_SIGN_STYLE=Manual",
+        "CODE_SIGN_IDENTITY='Apple Distribution'",
+        "PROVISIONING_PROFILE_SPECIFIER='#{ENV["APPLE_PROVISIONING_PROFILE_NAME"]}'"
+      ].join(" ")
       build_options[:export_options] = {
         provisioningProfiles: {
           "com.offleash.ios" => ENV["APPLE_PROVISIONING_PROFILE_NAME"]
