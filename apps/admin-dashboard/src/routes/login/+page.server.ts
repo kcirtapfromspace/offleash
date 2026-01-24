@@ -72,6 +72,7 @@ export const actions: Actions = {
 
       if (defaultMembership) {
         try {
+          console.log("Switching context to membership:", defaultMembership.id);
           const switchResponse = await api.post<{ token: string; membership: MembershipInfo }>(
             "/contexts/switch",
             { membership_id: defaultMembership.id },
@@ -80,10 +81,17 @@ export const actions: Actions = {
           finalToken = switchResponse.token;
           // Mark that token has org_id
           setAuthCookie(cookies, "token_has_org_id", "true", host, false);
+          console.log("Context switch successful, got new token with org_id");
         } catch (switchErr) {
           // If context switch fails, continue with original token
-          console.warn("Failed to switch context after login:", switchErr);
+          console.error("Failed to switch context after login:", switchErr);
+          // Log more details
+          if (switchErr instanceof Error) {
+            console.error("Error details:", switchErr.message);
+          }
         }
+      } else {
+        console.warn("No default membership found, cannot switch context");
       }
 
       // Store token (shared across subdomains)
