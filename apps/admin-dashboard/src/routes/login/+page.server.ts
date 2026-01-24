@@ -66,14 +66,36 @@ export const actions: Actions = {
 
       const host = request.headers.get("host") || "";
 
+      // If we have a membership, switch context to get a token with org_id
+      let finalToken = response.token;
+      const defaultMembership = staffMemberships.find(m => m.is_default) || staffMemberships[0];
+
+      if (defaultMembership) {
+        try {
+          const switchResponse = await api.post<{ token: string; membership: MembershipInfo }>(
+            "/contexts/switch",
+            { membership_id: defaultMembership.id },
+            response.token
+          );
+          finalToken = switchResponse.token;
+          // Mark that token has org_id
+          setAuthCookie(cookies, "token_has_org_id", "true", host, false);
+        } catch (switchErr) {
+          // If context switch fails, continue with original token
+          console.warn("Failed to switch context after login:", switchErr);
+        }
+      }
+
       // Store token (shared across subdomains)
-      setAuthCookie(cookies, "token", response.token, host, true);
+      setAuthCookie(cookies, "token", finalToken, host, true);
 
       // Store user info (shared across subdomains)
       setAuthCookie(cookies, "user", JSON.stringify(response.user), host, false);
 
       // Store current membership (shared across subdomains)
-      if (response.membership) {
+      if (defaultMembership) {
+        setAuthCookie(cookies, "membership", JSON.stringify(defaultMembership), host, false);
+      } else if (response.membership) {
         setAuthCookie(cookies, "membership", JSON.stringify(response.membership), host, false);
       }
 

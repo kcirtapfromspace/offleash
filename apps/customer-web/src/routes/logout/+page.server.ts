@@ -11,6 +11,7 @@ export const actions: Actions = {
 		deleteAuthCookie(cookies, 'user', host);
 		deleteAuthCookie(cookies, 'membership', host);
 		deleteAuthCookie(cookies, 'memberships', host);
+		deleteAuthCookie(cookies, 'token_has_org_id', host);
 
 		throw redirect(303, '/login');
 	}
