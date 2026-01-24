@@ -90,11 +90,11 @@ platform :ios do
     if ENV["APPLE_PROVISIONING_PROFILE_NAME"]
       team_id = ENV["APPLE_TEAM_ID"] || "67C7724279"
       profile_name = ENV["APPLE_PROVISIONING_PROFILE_NAME"]
-      # For CI: Skip signing during archive (SPM packages don't support provisioning profiles)
-      # Then sign during export with Distribution certificate
-      build_options[:xcargs] = "CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=#{team_id}"
-      # Override signing identity for export step (later args override earlier ones)
-      build_options[:export_xcargs] = "CODE_SIGN_IDENTITY='Apple Distribution' -allowProvisioningUpdates"
+      # For CI: Sign with Distribution identity during archive (required for export to work)
+      # Don't set PROVISIONING_PROFILE_SPECIFIER globally as SPM packages don't support it
+      # The profile is specified only in export_options
+      build_options[:xcargs] = "CODE_SIGN_IDENTITY='Apple Distribution' CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=#{team_id}"
+      build_options[:export_xcargs] = "-allowProvisioningUpdates"
       build_options[:export_options] = {
         teamID: team_id,
         signingStyle: "manual",
