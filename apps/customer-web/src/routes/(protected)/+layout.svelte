@@ -42,7 +42,7 @@
 				if (role === 'walker' || role === 'owner' || role === 'admin') {
 					const adminUrl = window.location.hostname.includes('localhost')
 						? '/services' // Local dev fallback
-						: 'https://admin.offleash.world';
+						: 'https://paperwork.offleash.world';
 					window.location.href = adminUrl;
 					return;
 				}
