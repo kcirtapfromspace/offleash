@@ -25,6 +25,19 @@ interface LoginResponse {
 	memberships?: MembershipInfo[];
 }
 
+// Extract org slug from hostname (subdomain-based routing)
+function getOrgSlugFromHost(host: string): string | null {
+	const hostname = host.split(':')[0];
+	const parts = hostname.split('.');
+	if (parts.length >= 3) {
+		const subdomain = parts[0];
+		if (!['www', 'app', 'admin', 'platform', 'api'].includes(subdomain)) {
+			return subdomain;
+		}
+	}
+	return null;
+}
+
 export const load: PageServerLoad = async ({ cookies, url }) => {
 	const token = cookies.get('token');
 	if (token) {
@@ -105,9 +118,24 @@ export const actions: Actions = {
 				maxAge: 60 * 60 * 24 * 7
 			});
 
-			// Store current membership if available
-			if (response.membership) {
-				cookies.set('membership', JSON.stringify(response.membership), {
+			// Detect subdomain for auto-context selection
+			const host = request.headers.get('host') || '';
+			const subdomainSlug = getOrgSlugFromHost(host);
+
+			// Find membership matching subdomain (if on a business subdomain)
+			let activeMembership = response.membership;
+			if (subdomainSlug && response.memberships) {
+				const subdomainMembership = response.memberships.find(
+					(m) => m.organization_slug === subdomainSlug
+				);
+				if (subdomainMembership) {
+					activeMembership = subdomainMembership;
+				}
+			}
+
+			// Store current membership
+			if (activeMembership) {
+				cookies.set('membership', JSON.stringify(activeMembership), {
 					path: '/',
 					httpOnly: false,
 					secure: !dev,
