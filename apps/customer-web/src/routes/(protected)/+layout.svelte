@@ -19,7 +19,16 @@
 		return page.url.pathname === path || page.url.pathname.startsWith(path + '/');
 	}
 
-	const hasMultipleMemberships = $derived((data.memberships?.length ?? 0) > 1);
+	// Filter to only show customer memberships in customer app
+	const customerMemberships = $derived(
+		(data.memberships ?? []).filter((m: { role: string }) => m.role === 'customer')
+	);
+	// Check if user has any admin memberships (for showing dashboard link)
+	const hasAdminMemberships = $derived(
+		(data.memberships ?? []).some((m: { role: string }) => ['admin', 'owner', 'walker'].includes(m.role))
+	);
+	const adminUrl = env.PUBLIC_ADMIN_URL || 'https://paperwork.offleash.world';
+	const hasMultipleMemberships = $derived(customerMemberships.length > 1 || hasAdminMemberships);
 	const currentOrgName = $derived(data.membership?.organization_name ?? data.branding?.companyName ?? 'OFFLEASH');
 
 	async function switchContext(membershipId: string) {
@@ -89,31 +98,44 @@
 								<!-- Dropdown menu -->
 								<div class="absolute left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border z-20">
 									<div class="py-2">
-										<div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Switch Organization</div>
-										{#each data.memberships ?? [] as membership}
-											{@const isAdminRole = membership.role === 'walker' || membership.role === 'owner' || membership.role === 'admin'}
-											<button
-												type="button"
-												class="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between {membership.id === data.membership?.id ? 'bg-gray-50' : ''}"
-												onclick={() => switchContext(membership.id)}
-												disabled={switchingContext}
-											>
-												<div>
-													<div class="font-medium text-gray-900">{membership.organization_name}</div>
-													<div class="text-sm text-gray-500 flex items-center gap-1">
-														<span class="capitalize">{membership.role}</span>
-														{#if isAdminRole}
-															<span class="text-xs text-blue-600">→ Dashboard</span>
-														{/if}
+										{#if customerMemberships.length > 0}
+											<div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Switch Organization</div>
+											{#each customerMemberships as membership}
+												<button
+													type="button"
+													class="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between {membership.id === data.membership?.id ? 'bg-gray-50' : ''}"
+													onclick={() => switchContext(membership.id)}
+													disabled={switchingContext}
+												>
+													<div>
+														<div class="font-medium text-gray-900">{membership.organization_name}</div>
+														<div class="text-sm text-gray-500 capitalize">{membership.role}</div>
 													</div>
-												</div>
-												{#if membership.id === data.membership?.id}
-													<svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-														<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-													</svg>
-												{/if}
-											</button>
-										{/each}
+													{#if membership.id === data.membership?.id}
+														<svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+															<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+														</svg>
+													{/if}
+												</button>
+											{/each}
+										{/if}
+										{#if hasAdminMemberships}
+											{#if customerMemberships.length > 0}
+												<div class="border-t border-gray-200 my-2"></div>
+											{/if}
+											<a
+												href={adminUrl}
+												class="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center text-gray-700"
+											>
+												<svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+												</svg>
+												<span>Staff Dashboard</span>
+												<svg class="w-4 h-4 ml-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+												</svg>
+											</a>
+										{/if}
 									</div>
 								</div>
 							{/if}
