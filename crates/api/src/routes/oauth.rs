@@ -102,17 +102,29 @@ pub async fn google_auth(
     // Verify the ID token
     let claims = verify_google_token(&req.id_token, &google_client_id).await?;
 
+    // Determine requested role from request
+    let requested_role = match req.role.as_deref() {
+        Some("walker") | Some("provider") => Some(MembershipRole::Walker),
+        Some("customer") => Some(MembershipRole::Customer),
+        _ => None,
+    };
+
     // Try to find existing identity (existing OAuth user)
     if let Some(identity) = UserIdentityRepository::find_by_provider(
         &state.pool,
         AuthProvider::Google,
         &claims.sub,
     ).await? {
-        // Existing user - return with all memberships (universal style)
+        // Existing user - ensure they have membership with requested role
         let user_id = UserId::from_uuid(identity.user_id);
         let user = UserRepository::find_by_id_unchecked(&state.pool, user_id)
             .await?
             .ok_or_else(|| ApiError::from(shared::AppError::Internal("User not found".to_string())))?;
+
+        // Handle role-based membership
+        if let Some(role) = requested_role {
+            ensure_membership_for_role(&state, &user, role, req.org_slug.as_deref()).await?;
+        }
 
         return build_oauth_response(&state, user).await;
     }
@@ -130,6 +142,11 @@ pub async fn google_auth(
                 "picture": claims.picture,
             })),
         }).await?;
+
+        // Handle role-based membership
+        if let Some(role) = requested_role {
+            ensure_membership_for_role(&state, &existing_user, role, req.org_slug.as_deref()).await?;
+        }
 
         return build_oauth_response(&state, existing_user).await;
     }
@@ -223,17 +240,29 @@ pub async fn apple_auth(
     // Verify the ID token
     let claims = verify_apple_token(&req.id_token, &apple_client_id).await?;
 
+    // Determine requested role from request
+    let requested_role = match req.role.as_deref() {
+        Some("walker") | Some("provider") => Some(MembershipRole::Walker),
+        Some("customer") => Some(MembershipRole::Customer),
+        _ => None,
+    };
+
     // Try to find existing identity
     if let Some(identity) = UserIdentityRepository::find_by_provider(
         &state.pool,
         AuthProvider::Apple,
         &claims.sub,
     ).await? {
-        // Existing user - return with all memberships
+        // Existing user - ensure they have membership with requested role
         let user_id = UserId::from_uuid(identity.user_id);
         let user = UserRepository::find_by_id_unchecked(&state.pool, user_id)
             .await?
             .ok_or_else(|| ApiError::from(shared::AppError::Internal("User not found".to_string())))?;
+
+        // Handle role-based membership
+        if let Some(role) = requested_role {
+            ensure_membership_for_role(&state, &user, role, req.org_slug.as_deref()).await?;
+        }
 
         return build_oauth_response(&state, user).await;
     }
@@ -259,6 +288,11 @@ pub async fn apple_auth(
                 provider_email: Some(email.clone()),
                 provider_data: None,
             }).await?;
+
+            // Handle role-based membership
+            if let Some(role) = requested_role {
+                ensure_membership_for_role(&state, &existing_user, role, req.org_slug.as_deref()).await?;
+            }
 
             return build_oauth_response(&state, existing_user).await;
         }
@@ -329,6 +363,68 @@ pub async fn apple_auth(
     }).await?;
 
     build_oauth_response(&state, user).await
+}
+
+/// Helper: Ensure user has a membership with the requested role
+/// If they don't have one, create it and set it as default
+async fn ensure_membership_for_role(
+    state: &AppState,
+    user: &db::models::User,
+    requested_role: MembershipRole,
+    org_slug: Option<&str>,
+) -> ApiResult<()> {
+    // Get the organization
+    let organization = if let Some(slug) = org_slug {
+        OrganizationRepository::find_by_slug(&state.pool, slug)
+            .await?
+            .ok_or_else(|| ApiError::from(shared::DomainError::OrganizationNotFound(slug.to_string())))?
+    } else {
+        OrganizationRepository::find_default(&state.pool)
+            .await?
+            .ok_or_else(|| ApiError::from(shared::AppError::Internal(
+                "No default organization configured".to_string()
+            )))?
+    };
+
+    // Check if user already has a membership with this role in this org
+    let existing_memberships = MembershipRepository::find_by_user(&state.pool, user.id).await?;
+    let has_role = existing_memberships.iter().any(|m|
+        m.organization_id == organization.id && m.role == requested_role
+    );
+
+    if has_role {
+        // User already has this role - find the membership and set as default
+        if let Some(membership) = existing_memberships.iter().find(|m|
+            m.organization_id == organization.id && m.role == requested_role
+        ) {
+            sqlx::query("UPDATE users SET default_membership_id = $1 WHERE id = $2")
+                .bind(membership.id)
+                .bind(user.id)
+                .execute(&state.pool)
+                .await?;
+        }
+    } else {
+        // Create new membership with requested role
+        let membership = MembershipRepository::create(
+            &state.pool,
+            CreateMembership {
+                user_id: user.id,
+                organization_id: organization.id,
+                role: requested_role,
+                status: Some(MembershipStatus::Active),
+                title: None,
+            },
+        ).await?;
+
+        // Set as default membership
+        sqlx::query("UPDATE users SET default_membership_id = $1 WHERE id = $2")
+            .bind(membership.id)
+            .bind(user.id)
+            .execute(&state.pool)
+            .await?;
+    }
+
+    Ok(())
 }
 
 /// Helper: Build OAuth response with all memberships (like universal_login)
