@@ -1,6 +1,7 @@
 import { redirect } from "@sveltejs/kit";
 import type { LayoutServerLoad } from "./$types";
-import { api } from "$lib/api";
+import { api, ApiError } from "$lib/api";
+import { setAuthCookie } from "$lib/cookies";
 
 interface UserInfo {
   id: string;
@@ -19,25 +20,35 @@ interface MembershipInfo {
   is_default: boolean;
 }
 
-export const load: LayoutServerLoad = async ({ cookies, url }) => {
+interface SessionResponse {
+  user: UserInfo;
+  membership?: MembershipInfo;
+  memberships?: MembershipInfo[];
+  org_id?: string;
+}
+
+export const load: LayoutServerLoad = async ({ cookies, url, request }) => {
   const token = cookies.get("token");
 
   if (!token) {
     throw redirect(303, `/login?redirect=${encodeURIComponent(url.pathname)}`);
   }
 
-  // Parse user info from cookie
+  // Try to get session info from cookies first (faster)
   let user: UserInfo | null = null;
   let membership: MembershipInfo | null = null;
   let memberships: MembershipInfo[] = [];
+  let needsSessionFetch = false;
 
   const userCookie = cookies.get("user");
   if (userCookie) {
     try {
       user = JSON.parse(userCookie);
     } catch {
-      // Invalid user cookie
+      needsSessionFetch = true;
     }
+  } else {
+    needsSessionFetch = true;
   }
 
   const membershipCookie = cookies.get("membership");
@@ -45,7 +56,7 @@ export const load: LayoutServerLoad = async ({ cookies, url }) => {
     try {
       membership = JSON.parse(membershipCookie);
     } catch {
-      // Invalid membership cookie
+      // Invalid membership cookie - will fetch from API
     }
   }
 
@@ -54,18 +65,52 @@ export const load: LayoutServerLoad = async ({ cookies, url }) => {
     try {
       memberships = JSON.parse(membershipsCookie);
     } catch {
-      // Invalid memberships cookie
+      needsSessionFetch = true;
+    }
+  } else {
+    needsSessionFetch = true;
+  }
+
+  // If we're missing user or memberships info, fetch from API session endpoint
+  // This handles cross-subdomain SSO where we have a token but no user cookies
+  if (needsSessionFetch) {
+    try {
+      const session = await api.get<SessionResponse>("/auth/session", token);
+      user = session.user;
+      membership = session.membership || null;
+      memberships = session.memberships || [];
+
+      // Update cookies with session data for faster subsequent loads
+      const host = request.headers.get("host") || "";
+      setAuthCookie(cookies, "user", JSON.stringify(user), host, false);
+      if (membership) {
+        setAuthCookie(cookies, "membership", JSON.stringify(membership), host, false);
+      }
+      if (memberships.length > 0) {
+        // For admin dashboard, only store admin/owner memberships
+        const adminMemberships = memberships.filter(
+          (m) => m.role === "admin" || m.role === "owner"
+        );
+        setAuthCookie(cookies, "memberships", JSON.stringify(adminMemberships), host, false);
+        memberships = adminMemberships;
+      }
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        // Token is invalid or expired - redirect to login
+        throw redirect(303, `/login?redirect=${encodeURIComponent(url.pathname)}`);
+      }
+      throw err;
     }
   }
 
-  // If no user cookie, fetch from API
-  if (!user) {
-    try {
-      user = await api.get<UserInfo>("/users/me", token);
-    } catch {
-      // Failed to fetch user info, redirect to login
-      throw redirect(303, `/login?redirect=${encodeURIComponent(url.pathname)}`);
-    }
+  // Verify user has admin access to at least one organization
+  const hasAdminAccess = memberships.some(
+    (m) => m.role === "admin" || m.role === "owner"
+  );
+
+  if (!hasAdminAccess && user) {
+    // User authenticated but no admin access - redirect to customer web
+    throw redirect(303, "https://offleash.world/services");
   }
 
   return {
