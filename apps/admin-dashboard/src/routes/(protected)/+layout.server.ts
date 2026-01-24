@@ -87,12 +87,12 @@ export const load: LayoutServerLoad = async ({ cookies, url, request }) => {
         setAuthCookie(cookies, "membership", JSON.stringify(membership), host, false);
       }
       if (memberships.length > 0) {
-        // For admin dashboard, only store admin/owner memberships
-        const adminMemberships = memberships.filter(
-          (m) => m.role === "admin" || m.role === "owner"
+        // For admin dashboard, store admin/owner/walker memberships (staff roles)
+        const staffMemberships = memberships.filter(
+          (m) => m.role === "admin" || m.role === "owner" || m.role === "walker"
         );
-        setAuthCookie(cookies, "memberships", JSON.stringify(adminMemberships), host, false);
-        memberships = adminMemberships;
+        setAuthCookie(cookies, "memberships", JSON.stringify(staffMemberships), host, false);
+        memberships = staffMemberships;
       }
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -103,13 +103,13 @@ export const load: LayoutServerLoad = async ({ cookies, url, request }) => {
     }
   }
 
-  // Verify user has admin access to at least one organization
-  const hasAdminAccess = memberships.some(
-    (m) => m.role === "admin" || m.role === "owner"
+  // Verify user has staff access (admin, owner, or walker) to at least one organization
+  const hasStaffAccess = memberships.some(
+    (m) => m.role === "admin" || m.role === "owner" || m.role === "walker"
   );
 
-  if (!hasAdminAccess && user) {
-    // User authenticated but no admin access - redirect to customer web
+  if (!hasStaffAccess && user) {
+    // User authenticated but no staff access - redirect to customer web
     throw redirect(303, "https://offleash.world/services");
   }
 

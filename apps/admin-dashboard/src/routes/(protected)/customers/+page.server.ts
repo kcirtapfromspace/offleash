@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { api } from '$lib/api';
+import { redirect } from '@sveltejs/kit';
 
 interface User {
 	id: string;
@@ -27,7 +28,12 @@ interface CustomerWithStats extends User {
 }
 
 export const load: PageServerLoad = async ({ parent }) => {
-	const { token } = await parent();
+	const { token, membership } = await parent();
+
+	// Only admin/owner can access customer management
+	if (membership?.role !== 'admin' && membership?.role !== 'owner') {
+		throw redirect(303, '/dashboard');
+	}
 
 	try {
 		// Fetch customers
