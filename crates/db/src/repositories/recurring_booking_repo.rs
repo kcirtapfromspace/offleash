@@ -41,7 +41,7 @@ impl RecurringBookingRepository {
         .bind(input.walker_id.as_uuid())
         .bind(input.service_id.as_uuid())
         .bind(input.location_id.as_uuid())
-        .bind(&input.frequency)
+        .bind(input.frequency)
         .bind(input.day_of_week)
         .bind(input.time_of_day)
         .bind(&input.timezone)
@@ -85,7 +85,7 @@ impl RecurringBookingRepository {
         .bind(input.walker_id.as_uuid())
         .bind(input.service_id.as_uuid())
         .bind(input.location_id.as_uuid())
-        .bind(&input.frequency)
+        .bind(input.frequency)
         .bind(input.day_of_week)
         .bind(input.time_of_day)
         .bind(&input.timezone)
@@ -301,7 +301,7 @@ pub fn generate_occurrence_dates(
 
     let mut current = start_date;
     while current.weekday() != target_weekday {
-        current = current + Duration::days(1);
+        current += Duration::days(1);
     }
 
     while dates.len() < max_occurrences && current <= end {
@@ -323,13 +323,13 @@ pub fn generate_occurrence_dates(
                     let week_of_month = (current.day() - 1) / 7;
                     let mut candidate = nm;
                     while candidate.weekday() != target_weekday {
-                        candidate = candidate + Duration::days(1);
+                        candidate += Duration::days(1);
                     }
-                    candidate = candidate + Duration::weeks(week_of_month as i64);
+                    candidate += Duration::weeks(week_of_month as i64);
 
                     // If we went past the month, use the last occurrence
                     if candidate.month() != nm.month() {
-                        candidate = candidate - Duration::weeks(1);
+                        candidate -= Duration::weeks(1);
                     }
                     candidate
                 } else {
