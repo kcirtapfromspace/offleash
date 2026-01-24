@@ -53,7 +53,7 @@ export const actions: Actions = {
 
 		try {
 			const response = await api.post<CreateTenantResponse>(
-				'/platform/tenants',
+				'/admin/tenants',
 				{
 					name,
 					slug,
