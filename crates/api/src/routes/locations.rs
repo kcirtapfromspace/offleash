@@ -178,14 +178,14 @@ pub async fn update_location(
 
     // Validate coordinates if provided
     if let Some(lat) = req.latitude {
-        if lat < -90.0 || lat > 90.0 {
+        if !(-90.0..=90.0).contains(&lat) {
             return Err(ApiError::from(AppError::Validation(
                 "Invalid latitude".to_string(),
             )));
         }
     }
     if let Some(lng) = req.longitude {
-        if lng < -180.0 || lng > 180.0 {
+        if !(-180.0..=180.0).contains(&lng) {
             return Err(ApiError::from(AppError::Validation(
                 "Invalid longitude".to_string(),
             )));
