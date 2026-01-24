@@ -1,4 +1,7 @@
 import { browser } from '$app/environment';
+import { PUBLIC_API_URL } from '$env/static/public';
+
+const API_BASE = browser ? '' : PUBLIC_API_URL;
 
 export class ApiError extends Error {
 	status: number;
@@ -28,7 +31,8 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
 		(headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
 	}
 
-	const response = await fetch(url, {
+	const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+	const response = await fetch(fullUrl, {
 		...fetchOptions,
 		headers
 	});
