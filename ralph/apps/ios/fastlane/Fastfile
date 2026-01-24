@@ -89,9 +89,9 @@ platform :ios do
     # If provisioning profile name is set in environment, use manual signing for CI
     if ENV["APPLE_PROVISIONING_PROFILE_NAME"]
       team_id = ENV["APPLE_TEAM_ID"] || "67C7724279"
-      # For CI: Set team but don't require signing during archive (SPM packages fail otherwise)
+      # For CI: Skip all signing during archive (empty CODE_SIGN_IDENTITY prevents profile lookup)
       # Signing happens during export via export_options
-      build_options[:xcargs] = "CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=#{team_id}"
+      build_options[:xcargs] = "CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=#{team_id}"
       build_options[:export_xcargs] = "-allowProvisioningUpdates"
       build_options[:export_options] = {
         teamID: team_id,
