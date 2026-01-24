@@ -6,8 +6,8 @@
 	export let data: PageData;
 	export let form: ActionData;
 
-	// Check if current user is admin (from layout data)
-	$: isAdmin = $page.data.user?.role === 'admin';
+	// Check if current user is admin or owner (from layout data)
+	$: isAdmin = $page.data.membership?.role === 'admin' || $page.data.membership?.role === 'owner';
 
 	let showCreateModal = false;
 	let showScheduleModal = false;
@@ -268,17 +268,29 @@
 				</button>
 			</div>
 
-			<form
+		<form
 				method="POST"
 				action="?/createWalker"
 				use:enhance={() => {
 					isSubmitting = true;
-					return async ({ update }) => {
+					return async ({ result, update }) => {
 						isSubmitting = false;
-						await update();
+						if (result.type === 'success') {
+							showCreateModal = false;
+							await update();
+						} else {
+							// Show error in form
+							await update();
+						}
 					};
 				}}
 			>
+				{#if form?.error}
+					<div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+						{form.error}
+					</div>
+				{/if}
+
 				<div class="space-y-4">
 					<div class="grid grid-cols-2 gap-4">
 						<div>
@@ -385,9 +397,15 @@
 				action="?/updateWorkingHours"
 				use:enhance={() => {
 					isSubmitting = true;
-					return async ({ update }) => {
+					return async ({ result, update }) => {
 						isSubmitting = false;
-						await update();
+						if (result.type === 'success') {
+							showScheduleModal = false;
+							selectedWalker = null;
+							await update();
+						} else {
+							await update();
+						}
 					};
 				}}
 			>
