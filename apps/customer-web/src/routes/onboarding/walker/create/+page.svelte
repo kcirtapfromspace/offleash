@@ -44,7 +44,7 @@
 				// Use the appropriate domain based on environment
 				const adminUrl = window.location.hostname.includes('localhost')
 					? '/services' // Local dev - stay on same domain for now
-					: `https://admin.offleash.world`;
+					: `https://paperwork.offleash.world`;
 
 				window.location.href = adminUrl;
 			} else {
