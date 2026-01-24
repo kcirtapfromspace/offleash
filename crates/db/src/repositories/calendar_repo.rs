@@ -6,8 +6,8 @@ use uuid::Uuid;
 
 use crate::models::{
     CalendarConnection, CalendarEvent, CalendarEventType, CalendarEventWithDetails,
-    CalendarSyncLog, CreateCalendarConnection, CreateCalendarEvent, CreateSyncLog, SyncStatus,
-    UpdateCalendarEvent,
+    CalendarSyncLog, CompleteSyncLog, CreateCalendarConnection, CreateCalendarEvent,
+    CreateSyncLog, UpdateCalendarEvent,
 };
 use shared::types::{OrganizationId, UserId};
 
@@ -517,16 +517,9 @@ impl CalendarRepository {
     }
 
     /// Complete a sync log with results
-    #[allow(clippy::too_many_arguments)]
     pub async fn complete_sync_log(
         pool: &PgPool,
-        id: Uuid,
-        status: SyncStatus,
-        events_created: i32,
-        events_updated: i32,
-        events_deleted: i32,
-        conflicts_detected: i32,
-        error_message: Option<&str>,
+        input: CompleteSyncLog<'_>,
     ) -> Result<bool, sqlx::Error> {
         let result = sqlx::query(
             r#"
@@ -537,13 +530,13 @@ impl CalendarRepository {
             WHERE id = $1
             "#,
         )
-        .bind(id)
-        .bind(status)
-        .bind(events_created)
-        .bind(events_updated)
-        .bind(events_deleted)
-        .bind(conflicts_detected)
-        .bind(error_message)
+        .bind(input.id)
+        .bind(input.status)
+        .bind(input.events_created)
+        .bind(input.events_updated)
+        .bind(input.events_deleted)
+        .bind(input.conflicts_detected)
+        .bind(input.error_message)
         .execute(pool)
         .await?;
 

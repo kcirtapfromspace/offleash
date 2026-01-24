@@ -62,7 +62,7 @@ impl BookingRepository {
         .bind(input.scheduled_end)
         .bind(input.price_cents)
         .bind(&input.notes)
-        .bind(input.recurring_series_id.map(|id| id.as_uuid().clone()))
+        .bind(input.recurring_series_id.map(|id| *id.as_uuid()))
         .bind(input.occurrence_number)
         .fetch_one(&mut *tx)
         .await?;
@@ -96,7 +96,7 @@ impl BookingRepository {
         .bind(input.scheduled_end)
         .bind(input.price_cents)
         .bind(&input.notes)
-        .bind(input.recurring_series_id.map(|id| id.as_uuid().clone()))
+        .bind(input.recurring_series_id.map(|id| *id.as_uuid()))
         .bind(input.occurrence_number)
         .fetch_one(&mut **tx)
         .await

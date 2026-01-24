@@ -39,8 +39,7 @@ impl Pet {
     pub fn age_years(&self) -> Option<i32> {
         self.date_of_birth.map(|dob| {
             let today = Utc::now().date_naive();
-            let years = today.years_since(dob).unwrap_or(0) as i32;
-            years
+            today.years_since(dob).unwrap_or(0) as i32
         })
     }
 }

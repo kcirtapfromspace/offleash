@@ -208,7 +208,7 @@ pub async fn get_walker_profile(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid walker ID".to_string())))?;
 
-    let walker_user_id = shared::types::UserId::from(walker_uuid);
+    let walker_user_id = walker_uuid;
 
     // Get or create profile
     let profile =
@@ -281,7 +281,7 @@ pub async fn update_walker_profile(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid walker ID".to_string())))?;
 
-    let walker_user_id = shared::types::UserId::from(walker_uuid);
+    let walker_user_id = walker_uuid;
 
     // Upsert profile
     let profile = WalkerProfileRepository::upsert(

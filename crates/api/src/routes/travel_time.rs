@@ -493,6 +493,7 @@ pub async fn get_availability_slots(
 }
 
 /// Helper function to calculate travel time from previous location
+#[allow(clippy::too_many_arguments)] // Internal helper, refactoring would add complexity without benefit
 async fn calculate_travel_info(
     state: &AppState,
     pool: &sqlx::PgPool,

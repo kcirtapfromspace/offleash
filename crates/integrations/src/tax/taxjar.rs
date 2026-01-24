@@ -47,10 +47,11 @@ impl Address {
 }
 
 /// Tax category for services
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TaxCategory {
     /// General services (default)
+    #[default]
     Services,
     /// Pet services - may have specific rules
     PetServices,
@@ -58,12 +59,6 @@ pub enum TaxCategory {
     Digital,
     /// Physical goods
     Goods,
-}
-
-impl Default for TaxCategory {
-    fn default() -> Self {
-        Self::Services
-    }
 }
 
 impl TaxCategory {
@@ -133,8 +128,7 @@ impl TaxRate {
 
     /// Calculate tax amount for a given subtotal in cents
     pub fn calculate_tax_cents(&self, subtotal_cents: i64) -> i64 {
-        let tax = (subtotal_cents as f64 * self.combined_rate).round() as i64;
-        tax
+        (subtotal_cents as f64 * self.combined_rate).round() as i64
     }
 }
 

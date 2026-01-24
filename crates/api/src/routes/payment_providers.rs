@@ -297,7 +297,7 @@ pub async fn square_oauth_callback(
 
     let client = reqwest::Client::new();
     let response = client
-        .post(&format!("{}/oauth2/token", base))
+        .post(format!("{}/oauth2/token", base))
         .json(&serde_json::json!({
             "client_id": app_id,
             "client_secret": app_secret,
