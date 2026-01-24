@@ -266,16 +266,24 @@
 						<div class="px-6 py-4 hover:bg-gray-50">
 							<div class="flex items-center justify-between mb-1">
 								<p class="font-medium text-gray-900">{booking.service_name}</p>
-								<span class="font-medium text-gray-900">{booking.price_display}</span>
+								{#if data.isAdmin}
+									<span class="font-medium text-gray-900">{booking.price_display}</span>
+								{:else}
+									<span class="px-2 py-0.5 text-xs font-medium rounded-full {getStatusColor(booking.status)}">
+										{formatStatus(booking.status)}
+									</span>
+								{/if}
 							</div>
 							<p class="text-sm text-gray-600">{booking.customer_name}</p>
 							<div class="flex items-center justify-between mt-1">
 								<p class="text-sm text-gray-500">
 									{formatDate(booking.scheduled_start)}
 								</p>
-								<span class="px-2 py-0.5 text-xs font-medium rounded-full {getStatusColor(booking.status)}">
-									{formatStatus(booking.status)}
-								</span>
+								{#if data.isAdmin}
+									<span class="px-2 py-0.5 text-xs font-medium rounded-full {getStatusColor(booking.status)}">
+										{formatStatus(booking.status)}
+									</span>
+								{/if}
 							</div>
 						</div>
 					{/each}
