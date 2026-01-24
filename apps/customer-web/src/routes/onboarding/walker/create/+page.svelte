@@ -39,8 +39,14 @@
 
 			const data = await response.json();
 
-			if (response.ok) {
-				goto('/services');
+			if (response.ok && data.success) {
+				// Redirect to the admin dashboard for the new business
+				// Use the appropriate domain based on environment
+				const adminUrl = window.location.hostname.includes('localhost')
+					? '/services' // Local dev - stay on same domain for now
+					: `https://admin.offleash.world`;
+
+				window.location.href = adminUrl;
 			} else {
 				error = data.error || 'Failed to create business';
 			}
