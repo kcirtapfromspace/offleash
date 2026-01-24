@@ -28,6 +28,37 @@ interface LoginResponse {
 export const load: PageServerLoad = async ({ cookies, url }) => {
 	const token = cookies.get('token');
 	if (token) {
+		// If authenticated user wants to become a walker, send them to walker onboarding
+		const role = url.searchParams.get('role');
+		const redirectTo = url.searchParams.get('redirect');
+
+		if (role === 'walker') {
+			// Check if user already has a walker membership
+			const membershipsStr = cookies.get('memberships');
+			if (membershipsStr) {
+				try {
+					const memberships = JSON.parse(membershipsStr) as MembershipInfo[];
+					const hasWalkerMembership = memberships.some(
+						(m) => m.role === 'walker' || m.role === 'owner' || m.role === 'admin'
+					);
+					if (!hasWalkerMembership) {
+						// Customer wants to become a walker - go to walker onboarding
+						throw redirect(303, '/onboarding/walker');
+					}
+				} catch {
+					// If parsing fails, go to walker onboarding to be safe
+					throw redirect(303, '/onboarding/walker');
+				}
+			} else {
+				// No memberships cookie - go to walker onboarding
+				throw redirect(303, '/onboarding/walker');
+			}
+		}
+
+		// For other cases, respect the redirect param or go to services
+		if (redirectTo && redirectTo.startsWith('/')) {
+			throw redirect(303, redirectTo);
+		}
 		throw redirect(303, '/services');
 	}
 	// Pass role and redirect params to the page
