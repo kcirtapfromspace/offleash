@@ -517,6 +517,7 @@ impl CalendarRepository {
     }
 
     /// Complete a sync log with results
+    #[allow(clippy::too_many_arguments)]
     pub async fn complete_sync_log(
         pool: &PgPool,
         id: Uuid,
