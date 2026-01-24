@@ -30,9 +30,10 @@ impl std::fmt::Display for SubscriptionStatus {
 }
 
 /// Plan tier enum
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "plan_tier", rename_all = "snake_case")]
 pub enum PlanTier {
+    #[default]
     Free,
     Professional,
     Business,
@@ -47,12 +48,6 @@ impl std::fmt::Display for PlanTier {
             PlanTier::Business => write!(f, "business"),
             PlanTier::Enterprise => write!(f, "enterprise"),
         }
-    }
-}
-
-impl Default for PlanTier {
-    fn default() -> Self {
-        PlanTier::Free
     }
 }
 

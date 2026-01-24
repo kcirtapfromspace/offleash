@@ -267,7 +267,7 @@ pub async fn get_walker_service_areas(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid walker ID".to_string())))?;
 
-    let walker_user_id = shared::types::UserId::from(walker_uuid);
+    let walker_user_id = walker_uuid;
 
     let areas =
         ServiceAreaRepository::find_by_walker(&tenant.pool, tenant.org_id, walker_user_id).await?;
@@ -299,7 +299,7 @@ pub async fn create_walker_service_area(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid walker ID".to_string())))?;
 
-    let walker_user_id = shared::types::UserId::from(walker_uuid);
+    let walker_user_id = walker_uuid;
 
     // Verify walker exists
     let walker = UserRepository::find_by_id(&tenant.pool, tenant.org_id, walker_user_id)

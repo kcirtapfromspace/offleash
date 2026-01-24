@@ -482,7 +482,7 @@ async fn create_square_payment(
 
     // First create an order
     let order_response = client
-        .post(&format!("{}/orders", base_url))
+        .post(format!("{}/orders", base_url))
         .header("Authorization", format!("Bearer {}", access_token))
         .header("Content-Type", "application/json")
         .header("Square-Version", "2024-01-18")
@@ -714,7 +714,7 @@ async fn process_square_refund(
     let client = reqwest::Client::new();
 
     let response = client
-        .post(&format!("{}/refunds", base_url))
+        .post(format!("{}/refunds", base_url))
         .header("Authorization", format!("Bearer {}", access_token))
         .header("Content-Type", "application/json")
         .header("Square-Version", "2024-01-18")

@@ -253,6 +253,18 @@ pub struct CreateSyncLog {
     pub direction: SyncDirection,
 }
 
+/// Input for completing a sync log with results
+#[derive(Debug, Clone)]
+pub struct CompleteSyncLog<'a> {
+    pub id: Uuid,
+    pub status: SyncStatus,
+    pub events_created: i32,
+    pub events_updated: i32,
+    pub events_deleted: i32,
+    pub conflicts_detected: i32,
+    pub error_message: Option<&'a str>,
+}
+
 /// Calendar event with additional display info (flattened for sqlx queries)
 #[derive(Debug, Clone, FromRow, Serialize)]
 pub struct CalendarEventWithDetails {
