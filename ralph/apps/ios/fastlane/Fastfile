@@ -90,11 +90,10 @@ platform :ios do
     if ENV["APPLE_PROVISIONING_PROFILE_NAME"]
       team_id = ENV["APPLE_TEAM_ID"] || "67C7724279"
       profile_name = ENV["APPLE_PROVISIONING_PROFILE_NAME"]
-      # For CI: Sign with Distribution identity during archive (required for export to work)
-      # Don't set PROVISIONING_PROFILE_SPECIFIER globally as SPM packages don't support it
-      # The profile is specified only in export_options
-      build_options[:xcargs] = "CODE_SIGN_IDENTITY='Apple Distribution' CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=#{team_id}"
-      build_options[:export_xcargs] = "-allowProvisioningUpdates"
+      # For CI: Use automatic signing with -allowProvisioningUpdates
+      # This lets xcodebuild find the installed profile automatically
+      # SPM packages don't get signed (no profile needed), main app uses installed profile
+      build_options[:xcargs] = "CODE_SIGN_IDENTITY='Apple Distribution' DEVELOPMENT_TEAM=#{team_id} -allowProvisioningUpdates"
       build_options[:export_options] = {
         teamID: team_id,
         signingStyle: "manual",
