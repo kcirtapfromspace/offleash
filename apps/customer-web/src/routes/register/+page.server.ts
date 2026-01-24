@@ -1,7 +1,7 @@
 import { redirect, fail } from '@sveltejs/kit';
-import { dev } from '$app/environment';
 import type { Actions, PageServerLoad } from './$types';
 import { api, ApiError } from '$lib/api';
+import { setAuthCookie } from '$lib/cookies';
 
 interface RegisterResponse {
 	token: string;
@@ -85,13 +85,8 @@ export const actions: Actions = {
 				role: 'customer'
 			});
 
-			cookies.set('token', response.token, {
-				path: '/',
-				httpOnly: true,
-				secure: !dev,
-				sameSite: 'lax',
-				maxAge: 60 * 60 * 24 * 7 // 7 days
-			});
+			// Store token (shared across subdomains)
+			setAuthCookie(cookies, 'token', response.token, host, true);
 
 			throw redirect(303, '/services');
 		} catch (err) {

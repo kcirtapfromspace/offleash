@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { dev } from '$app/environment';
 import type { RequestHandler } from './$types';
 import { api, ApiError } from '$lib/api';
+import { setAuthCookie } from '$lib/cookies';
 
 interface MembershipInfo {
 	id: string;
@@ -31,6 +31,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			return json({ error: 'membership_id is required' }, { status: 400 });
 		}
 
+		const host = request.headers.get('host') || '';
+
 		// Call backend to switch context
 		const response = await api.post<SwitchContextResponse>(
 			'/contexts/switch',
@@ -38,23 +40,11 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			token
 		);
 
-		// Update token cookie with new context
-		cookies.set('token', response.token, {
-			path: '/',
-			httpOnly: true,
-			secure: !dev,
-			sameSite: 'lax',
-			maxAge: 60 * 60 * 24 * 7
-		});
+		// Update token cookie with new context (shared across subdomains)
+		setAuthCookie(cookies, 'token', response.token, host, true);
 
-		// Update membership cookie
-		cookies.set('membership', JSON.stringify(response.membership), {
-			path: '/',
-			httpOnly: false,
-			secure: !dev,
-			sameSite: 'lax',
-			maxAge: 60 * 60 * 24 * 7
-		});
+		// Update membership cookie (shared across subdomains)
+		setAuthCookie(cookies, 'membership', JSON.stringify(response.membership), host, false);
 
 		return json({ success: true, membership: response.membership });
 	} catch (err) {
