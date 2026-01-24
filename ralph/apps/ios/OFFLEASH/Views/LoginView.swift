@@ -44,6 +44,7 @@ struct LoginView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var emailError: String?
+    @State private var showPhoneLogin = false
 
     let selectedRole: SelectedRole
     var onLoginSuccess: () -> Void
@@ -127,6 +128,28 @@ struct LoginView: View {
                             .frame(height: 50)
                             .background(Color.white)
                             .foregroundColor(.black)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color(.systemGray3), lineWidth: 1)
+                            )
+                        }
+                        .disabled(isLoading || isOAuthLoading)
+
+                        // Sign in with Phone
+                        Button {
+                            showPhoneLogin = true
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "phone.fill")
+                                    .font(.title2)
+                                Text("Sign in with Phone")
+                                    .fontWeight(.medium)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(Color(.systemGray6))
+                            .foregroundColor(.primary)
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
@@ -278,6 +301,19 @@ struct LoginView: View {
         }
         .onAppear {
             analyticsService.trackScreenView(screenName: "login")
+        }
+        .sheet(isPresented: $showPhoneLogin) {
+            NavigationStack {
+                PhoneLoginView(
+                    selectedRole: selectedRole,
+                    onLoginSuccess: {
+                        showPhoneLogin = false
+                        onLoginSuccess()
+                    },
+                    onBack: { showPhoneLogin = false }
+                )
+                .environmentObject(themeManager)
+            }
         }
     }
 

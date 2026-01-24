@@ -115,17 +115,26 @@ jobs:
           # Create provisioning profiles directory
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
 
-          # Decode and install provisioning profile
-          PROFILE_PATH=~/Library/MobileDevice/Provisioning\ Profiles/build_profile.mobileprovision
-          echo -n "$PROVISIONING_PROFILE_BASE64" | base64 --decode -o "$PROFILE_PATH"
+          # Decode to temp file first to extract UUID
+          TEMP_PROFILE=/tmp/temp_profile.mobileprovision
+          echo -n "$PROVISIONING_PROFILE_BASE64" | base64 --decode -o "$TEMP_PROFILE"
 
-          # Extract UUID for reference
-          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(/usr/bin/security cms -D -i "$PROFILE_PATH"))
+          # Extract UUID from profile
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(/usr/bin/security cms -D -i "$TEMP_PROFILE"))
           echo "Provisioning Profile UUID: $PROFILE_UUID"
+
+          # Install with UUID as filename (Xcode expects this format)
+          PROFILE_PATH=~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
+          mv "$TEMP_PROFILE" "$PROFILE_PATH"
+
+          # Verify installation
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
+
           echo "PROVISIONING_PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
 
       - name: Build Archive
         run: |
+          echo "Using Provisioning Profile UUID: $PROVISIONING_PROFILE_UUID"
           xcodebuild archive \
             -project $PROJECT \
             -scheme $SCHEME \
@@ -136,11 +145,13 @@ jobs:
             CURRENT_PROJECT_VERSION=${{ steps.version.outputs.build }} \
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
-            PROVISIONING_PROFILE_SPECIFIER="${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}"
+            PROVISIONING_PROFILE="$PROVISIONING_PROFILE_UUID"
 
       - name: Create Export Options
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          cat > $RUNNER_TEMP/ExportOptions.plist << EOF
+          cat > $RUNNER_TEMP/ExportOptions.plist << EXPORTEOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -148,21 +159,25 @@ jobs:
               <key>method</key>
               <string>app-store-connect</string>
               <key>teamID</key>
-              <string>${{ secrets.APPLE_TEAM_ID }}</string>
+              <string>${TEAM_ID}</string>
               <key>uploadSymbols</key>
               <true/>
               <key>compileBitcode</key>
               <false/>
               <key>destination</key>
               <string>upload</string>
+              <key>signingStyle</key>
+              <string>manual</string>
               <key>provisioningProfiles</key>
               <dict>
                   <key>${BUNDLE_ID}</key>
-                  <string>${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}</string>
+                  <string>${PROVISIONING_PROFILE_UUID}</string>
               </dict>
           </dict>
           </plist>
-          EOF
+          EXPORTEOF
+          echo "Created ExportOptions.plist:"
+          cat $RUNNER_TEMP/ExportOptions.plist
 
       - name: Export IPA
         run: |
