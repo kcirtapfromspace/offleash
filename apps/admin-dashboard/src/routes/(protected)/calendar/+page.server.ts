@@ -101,7 +101,7 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 
 		// Determine which walker's data to show
 		// If admin selected a walker, use that; otherwise use current user if they're a walker
-		const viewingWalkerId = selectedWalkerId || (user.role === 'walker' ? user.id : walkersResponse[0]?.id);
+		const viewingWalkerId = selectedWalkerId || (user?.role === 'walker' ? user.id : walkersResponse[0]?.id);
 
 		// Fetch calendar events, bookings, and working hours in parallel
 		const [eventsResponse, bookingsResponse, workingHoursResponse] = await Promise.all([
@@ -159,7 +159,7 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 			weekStart: weekStart.toISOString(),
 			weekEnd: weekEnd.toISOString(),
 			currentDate: currentDate.toISOString(),
-			isAdmin: user.role === 'admin'
+			isAdmin: user?.role === 'admin' || user?.role === 'owner'
 		};
 	} catch (error) {
 		console.error('Failed to fetch calendar data:', error);
@@ -171,7 +171,7 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 			weekStart: weekStart.toISOString(),
 			weekEnd: weekEnd.toISOString(),
 			currentDate: currentDate.toISOString(),
-			isAdmin: user.role === 'admin',
+			isAdmin: user?.role === 'admin' || user?.role === 'owner',
 			error: 'Failed to load calendar'
 		};
 	}
