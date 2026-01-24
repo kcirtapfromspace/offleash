@@ -88,13 +88,12 @@ platform :ios do
 
     # If provisioning profile name is set in environment, use manual signing for CI
     if ENV["APPLE_PROVISIONING_PROFILE_NAME"]
-      # Override signing settings during archive for CI builds
-      build_options[:xcargs] = [
-        "CODE_SIGN_STYLE=Manual",
-        "CODE_SIGN_IDENTITY='Apple Distribution'",
-        "PROVISIONING_PROFILE_SPECIFIER='#{ENV["APPLE_PROVISIONING_PROFILE_NAME"]}'"
-      ].join(" ")
+      # For CI: Skip code signing during archive to avoid SPM signing issues
+      # Actual signing happens during export
+      build_options[:xcargs] = "CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO"
       build_options[:export_options] = {
+        signingStyle: "manual",
+        signingCertificate: "Apple Distribution",
         provisioningProfiles: {
           "com.offleash.ios" => ENV["APPLE_PROVISIONING_PROFILE_NAME"]
         }
