@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
 
@@ -56,7 +56,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
@@ -82,6 +82,13 @@ jobs:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: apps/${{ matrix.app }}/package-lock.json
+
+      - name: Setup environment
+        run: |
+          if [ -f .env.example ]; then
+            cp .env.example .env
+          fi
+        working-directory: apps/${{ matrix.app }}
 
       - name: Install dependencies
         run: npm ci
