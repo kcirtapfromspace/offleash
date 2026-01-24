@@ -169,6 +169,13 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 		};
 	} catch (error) {
 		console.error('Failed to fetch calendar data:', error);
+		// Include more error detail for debugging
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		const apiError = error as { status?: number };
+		const errorDetail = apiError.status
+			? `API Error ${apiError.status}: ${errorMessage}`
+			: `Error: ${errorMessage}`;
+
 		return {
 			events: [],
 			walkers: [],
@@ -178,7 +185,7 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 			weekEnd: weekEnd.toISOString(),
 			currentDate: currentDate.toISOString(),
 			isAdmin,
-			error: 'Failed to load calendar'
+			error: errorDetail
 		};
 	}
 };

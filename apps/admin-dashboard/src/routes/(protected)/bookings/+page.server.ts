@@ -65,12 +65,19 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 		};
 	} catch (error) {
 		console.error('Failed to fetch bookings:', error);
+		// Include more error detail for debugging
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		const apiError = error as { status?: number };
+		const errorDetail = apiError.status
+			? `API Error ${apiError.status}: ${errorMessage}`
+			: `Error: ${errorMessage}`;
+
 		return {
 			bookings: [],
 			statuses: [],
 			currentStatus: statusFilter,
 			searchQuery,
-			error: 'Failed to load bookings'
+			error: errorDetail
 		};
 	}
 };
