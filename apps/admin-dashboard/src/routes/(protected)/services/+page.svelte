@@ -233,12 +233,21 @@
 				action="?/create"
 				use:enhance={() => {
 					isSubmitting = true;
-					return async ({ update }) => {
+					return async ({ result, update }) => {
 						isSubmitting = false;
+						if (result.type === 'success') {
+							closeCreateModal();
+						}
 						await update();
 					};
 				}}
 			>
+				{#if form?.error && showCreateModal}
+					<div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+						{form.error}
+					</div>
+				{/if}
+
 				<div class="space-y-4">
 					<div>
 						<label for="name" class="block text-sm font-medium text-gray-700 mb-1">Service Name</label>
@@ -329,13 +338,22 @@
 				</button>
 			</div>
 
+			{#if form?.error && showEditModal}
+				<div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+					{form.error}
+				</div>
+			{/if}
+
 			<form
 				method="POST"
 				action="?/update"
 				use:enhance={() => {
 					isSubmitting = true;
-					return async ({ update }) => {
+					return async ({ result, update }) => {
 						isSubmitting = false;
+						if (result.type === 'success') {
+							closeEditModal();
+						}
 						await update();
 					};
 				}}

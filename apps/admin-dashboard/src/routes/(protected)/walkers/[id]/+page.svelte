@@ -198,7 +198,7 @@
 			action="?/updateProfile"
 			use:enhance={() => {
 				isSubmitting = true;
-				return async ({ update }) => {
+				return async ({ result, update }) => {
 					isSubmitting = false;
 					await update();
 				};
@@ -330,7 +330,7 @@
 			action="?/updateWorkingHours"
 			use:enhance={() => {
 				isSubmitting = true;
-				return async ({ update }) => {
+				return async ({ result, update }) => {
 					isSubmitting = false;
 					await update();
 				};
@@ -491,13 +491,22 @@
 				</button>
 			</div>
 
+			{#if form?.error && showAreaModal}
+				<div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+					{form.error}
+				</div>
+			{/if}
+
 			<form
 				method="POST"
 				action={editingArea ? '?/updateServiceArea' : '?/createServiceArea'}
 				use:enhance={() => {
 					isSubmitting = true;
-					return async ({ update }) => {
+					return async ({ result, update }) => {
 						isSubmitting = false;
+						if (result.type === 'success') {
+							closeAreaModal();
+						}
 						await update();
 					};
 				}}

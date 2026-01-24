@@ -314,9 +314,11 @@
 			<h3 class="font-semibold mb-4">Change Password</h3>
 			<form method="POST" action="?/changePassword" use:enhance={() => {
 				clearMessages();
-				return async ({ update }) => {
+				return async ({ result, update }) => {
 					await update();
-					showChangePasswordForm = false;
+					if (result.type === 'success') {
+						showChangePasswordForm = false;
+					}
 					await invalidateAll();
 				};
 			}}>
@@ -436,9 +438,11 @@
 						</p>
 						<form method="POST" action="?/linkEmail" use:enhance={() => {
 							clearMessages();
-							return async ({ update }) => {
+							return async ({ result, update }) => {
 								await update();
-								showPasswordForm = false;
+								if (result.type === 'success') {
+									showPasswordForm = false;
+								}
 								await invalidateAll();
 							};
 						}}>
