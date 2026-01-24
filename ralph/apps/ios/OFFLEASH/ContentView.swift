@@ -12,14 +12,23 @@ struct ContentView: View {
     @EnvironmentObject private var sessionStateManager: SessionStateManager
     @ObservedObject private var userSession = UserSession.shared
     @State private var showWalkerOnboarding: Bool = false
+    @State private var isLoadingContexts: Bool = false
 
     /// Optional invite token from deep link for walker onboarding
     var inviteToken: String?
 
     var body: some View {
         Group {
-            // Show different views based on user role and onboarding status
-            if userSession.isWalker {
+            if isLoadingContexts {
+                // Show loading while fetching contexts
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                    Text("Loading...")
+                        .foregroundColor(.secondary)
+                }
+            } else if userSession.isWalkerOrAdmin {
+                // Walker/Admin view - show onboarding if needed, else dashboard
                 if showWalkerOnboarding || userSession.needsOnboarding {
                     WalkerOnboardingView(
                         inviteToken: inviteToken,
@@ -41,6 +50,12 @@ struct ContentView: View {
         }
         .onAppear {
             showWalkerOnboarding = userSession.needsOnboarding
+            // Load contexts on appear if not already loaded
+            if userSession.memberships.isEmpty {
+                Task {
+                    await loadContexts()
+                }
+            }
         }
     }
 
@@ -61,9 +76,29 @@ struct ContentView: View {
                     UserSession.shared.setUser(user)
                 }
             }
+            // Also reload contexts after refreshing user
+            await loadContexts()
         } catch {
             // Handle error silently - user will stay on current view
             print("Failed to refresh user session: \(error)")
+        }
+    }
+
+    private func loadContexts() async {
+        isLoadingContexts = true
+        defer { isLoadingContexts = false }
+
+        do {
+            let contextsResponse = try await APIClient.shared.fetchContexts()
+            await MainActor.run {
+                UserSession.shared.setMemberships(
+                    contextsResponse.memberships,
+                    current: contextsResponse.currentMembership
+                )
+            }
+        } catch {
+            print("Failed to load contexts: \(error)")
+            // Continue without contexts - user can still use the app
         }
     }
 }
