@@ -78,7 +78,10 @@ function getWeekEnd(date: Date): Date {
 }
 
 export const load: PageServerLoad = async ({ parent, url }) => {
-	const { token, user } = await parent();
+	const { token, user, membership } = await parent();
+
+	// Check if user is admin/owner or walker
+	const isAdmin = membership?.role === 'admin' || membership?.role === 'owner';
 
 	// Get date from URL or default to today
 	const dateParam = url.searchParams.get('date');
@@ -96,20 +99,23 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 	const endStr = weekEnd.toISOString();
 
 	try {
-		// Fetch walkers list for admin dropdown
-		const walkersResponse = await api.get<Walker[]>('/users?role=walker', token).catch(() => [] as Walker[]);
+		// Fetch walkers list for admin dropdown (only for admins)
+		const walkersResponse = isAdmin
+			? await api.get<Walker[]>('/users?role=walker', token).catch(() => [] as Walker[])
+			: [];
 
 		// Determine which walker's data to show
 		// If admin selected a walker, use that; otherwise use current user if they're a walker
 		const viewingWalkerId = selectedWalkerId || (user?.role === 'walker' ? user.id : walkersResponse[0]?.id);
 
 		// Fetch calendar events, bookings, and working hours in parallel
+		// Walkers use the walker-specific bookings endpoint
 		const [eventsResponse, bookingsResponse, workingHoursResponse] = await Promise.all([
 			api.get<{ events: CalendarEvent[]; count: number }>(
 				`/calendar/events?start=${encodeURIComponent(startStr)}&end=${encodeURIComponent(endStr)}`,
 				token
 			),
-			api.get<Booking[]>('/bookings', token),
+			api.get<Booking[]>(isAdmin ? '/bookings' : '/bookings/walker', token),
 			viewingWalkerId
 				? api.get<WorkingHours[]>(`/working-hours/${viewingWalkerId}`, token).catch(() => [] as WorkingHours[])
 				: Promise.resolve([] as WorkingHours[])
@@ -159,7 +165,7 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 			weekStart: weekStart.toISOString(),
 			weekEnd: weekEnd.toISOString(),
 			currentDate: currentDate.toISOString(),
-			isAdmin: user?.role === 'admin' || user?.role === 'owner'
+			isAdmin
 		};
 	} catch (error) {
 		console.error('Failed to fetch calendar data:', error);
@@ -171,7 +177,7 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 			weekStart: weekStart.toISOString(),
 			weekEnd: weekEnd.toISOString(),
 			currentDate: currentDate.toISOString(),
-			isAdmin: user?.role === 'admin' || user?.role === 'owner',
+			isAdmin,
 			error: 'Failed to load calendar'
 		};
 	}
@@ -203,13 +209,18 @@ export const actions: Actions = {
 
 		const formData = await request.formData();
 		const title = formData.get('title')?.toString() || '';
-		const startTime = formData.get('start_time')?.toString();
-		const endTime = formData.get('end_time')?.toString();
+		const startTimeLocal = formData.get('start_time')?.toString();
+		const endTimeLocal = formData.get('end_time')?.toString();
 		const isBlocking = formData.get('is_blocking') === 'true';
 
-		if (!startTime || !endTime) {
+		if (!startTimeLocal || !endTimeLocal) {
 			return fail(400, { error: 'Start and end time are required' });
 		}
+
+		// Convert datetime-local format (YYYY-MM-DDTHH:MM) to ISO 8601 with seconds
+		// The API expects RFC3339 format, so we add seconds and timezone
+		const startTime = new Date(startTimeLocal).toISOString();
+		const endTime = new Date(endTimeLocal).toISOString();
 
 		try {
 			await api.post(
@@ -301,10 +312,10 @@ export const actions: Actions = {
 					// Skip if date is in the past
 					if (date < today && week === 0) continue;
 
-					// Create full datetime strings
+					// Create full datetime strings with timezone (ISO 8601/RFC3339)
 					const dateStr = date.toISOString().split('T')[0];
-					const blockStart = `${dateStr}T${startTime}:00`;
-					const blockEnd = `${dateStr}T${endTime}:00`;
+					const blockStart = new Date(`${dateStr}T${startTime}:00`).toISOString();
+					const blockEnd = new Date(`${dateStr}T${endTime}:00`).toISOString();
 
 					try {
 						await api.post(
