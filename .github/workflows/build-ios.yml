@@ -135,6 +135,11 @@ jobs:
       - name: Build Archive
         run: |
           echo "Using Provisioning Profile UUID: $PROVISIONING_PROFILE_UUID"
+
+          # List available signing identities
+          echo "Available signing identities:"
+          security find-identity -v -p codesigning
+
           xcodebuild archive \
             -project $PROJECT \
             -scheme $SCHEME \
@@ -144,6 +149,7 @@ jobs:
             MARKETING_VERSION=${{ steps.version.outputs.version }} \
             CURRENT_PROJECT_VERSION=${{ steps.version.outputs.build }} \
             CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
             PROVISIONING_PROFILE="$PROVISIONING_PROFILE_UUID"
 
