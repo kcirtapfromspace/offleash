@@ -13,7 +13,6 @@
 	// Check if this is a cross-app auth request (from admin app)
 	const isAdminAppAuth = $derived($page.url.searchParams.get('app') === 'admin');
 	const adminRedirect = $derived($page.url.searchParams.get('redirect') || '/dashboard');
-	const autoProvider = $derived($page.url.searchParams.get('provider')); // 'google' or 'apple'
 
 	// Phone auth state
 	let phoneAuthMode = $state(false);
@@ -71,6 +70,20 @@
 		document.cookie = `${name}=${value}; path=/; max-age=${maxAge}; SameSite=Lax${domainPart}`;
 	}
 
+	// Trusted domains for external redirects
+	const TRUSTED_DOMAINS = ['paperwork.offleash.world', 'platform.offleash.world', 'offleash.world', 'localhost'];
+
+	// Helper to validate trusted redirect URLs
+	function isTrustedRedirect(url: string): boolean {
+		if (url.startsWith('/')) return true;
+		try {
+			const parsed = new URL(url);
+			return TRUSTED_DOMAINS.some(d => parsed.hostname === d || parsed.hostname.endsWith('.' + d));
+		} catch {
+			return false;
+		}
+	}
+
 	// Helper to redirect to admin app after auth
 	function redirectAfterAuth(memberships: any[]) {
 		if (isAdminAppAuth) {
@@ -85,9 +98,15 @@
 				return;
 			}
 
-			// Redirect to admin app
-			const adminUrl = env.PUBLIC_ADMIN_URL || 'https://paperwork.offleash.world';
-			window.location.href = `${adminUrl}${adminRedirect}`;
+			// Redirect to admin app - adminRedirect might be a full URL or a path
+			if (adminRedirect.startsWith('http') && isTrustedRedirect(adminRedirect)) {
+				// Full trusted URL provided
+				window.location.href = adminRedirect;
+			} else {
+				// Path only - prepend admin URL
+				const adminUrl = env.PUBLIC_ADMIN_URL || 'https://paperwork.offleash.world';
+				window.location.href = `${adminUrl}${adminRedirect}`;
+			}
 		} else {
 			// Normal customer flow
 			goto('/services');
@@ -103,10 +122,6 @@
 			script.defer = true;
 			script.onload = () => {
 				initializeGoogle();
-				// Auto-trigger Google OAuth if requested
-				if (autoProvider === 'google') {
-					setTimeout(() => handleGoogleLogin(), 500);
-				}
 			};
 			document.head.appendChild(script);
 		}
@@ -119,10 +134,6 @@
 			script.defer = true;
 			script.onload = () => {
 				initializeApple();
-				// Auto-trigger Apple OAuth if requested
-				if (autoProvider === 'apple') {
-					setTimeout(() => handleAppleLogin(), 500);
-				}
 			};
 			document.head.appendChild(script);
 		}
@@ -467,14 +478,20 @@
 
 <div class="min-h-screen flex items-center justify-center bg-gray-100">
 	<div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-		<h1 class="text-2xl font-bold text-center mb-6" style="color: var(--color-primary)">
-			{isAdminAppAuth ? 'Staff Login' : 'Login'}
-		</h1>
-
 		{#if isAdminAppAuth}
-		<p class="text-sm text-gray-600 text-center mb-4">
-			Sign in to access the staff dashboard
-		</p>
+			<div class="text-center mb-6">
+				<div class="inline-flex items-center justify-center w-12 h-12 bg-indigo-100 rounded-full mb-3">
+					<svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+					</svg>
+				</div>
+				<h1 class="text-2xl font-bold text-gray-900">Staff Sign In</h1>
+				<p class="text-gray-600 mt-2">Sign in to access the staff dashboard</p>
+			</div>
+		{:else}
+			<h1 class="text-2xl font-bold text-center mb-6" style="color: var(--color-primary)">
+				Login
+			</h1>
 		{/if}
 
 		{#if form?.error || oauthError || phoneError || walletError}
@@ -727,6 +744,12 @@
 				Register
 			</a>
 		</p>
+
+		{#if isAdminAppAuth}
+			<p class="text-xs text-gray-500 text-center mt-4">
+				After signing in, you'll be redirected to the staff dashboard
+			</p>
+		{/if}
 		{/if}
 	</div>
 </div>

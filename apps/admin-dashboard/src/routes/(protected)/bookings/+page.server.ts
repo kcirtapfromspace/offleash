@@ -6,31 +6,62 @@ interface Booking {
 	id: string;
 	customer_id: string;
 	customer_name: string;
+	customer_email?: string;
+	customer_phone?: string;
 	walker_id: string;
 	walker_name: string;
 	service_id: string;
 	service_name: string;
+	service_duration_minutes?: number;
 	location_id: string;
 	location_address: string;
+	location_notes?: string;
 	status: string;
 	scheduled_start: string;
 	scheduled_end: string;
 	price_cents: number;
 	price_display: string;
 	notes: string | null;
+	// Dog info (if included by API)
+	dogs?: Array<{
+		id: string;
+		name: string;
+		breed?: string;
+		size?: string;
+		notes?: string;
+	}>;
+}
+
+interface WalkerProfile {
+	id: string;
+	can_accept_bookings: boolean;
+	// other fields...
 }
 
 export const load: PageServerLoad = async ({ parent, url }) => {
-	const { token, membership } = await parent();
+	const { token, membership, user } = await parent();
 	const statusFilter = url.searchParams.get('status') || 'all';
 	const searchQuery = url.searchParams.get('q') || '';
 
 	// Check if user is admin/owner or walker
 	const isAdmin = membership?.role === 'admin' || membership?.role === 'owner';
+	const isWalker = membership?.role === 'walker';
 
 	try {
 		// Walkers use the walker-specific endpoint, admins use the full bookings endpoint
 		const bookings = await api.get<Booking[]>(isAdmin ? '/bookings' : '/bookings/walker', token);
+
+		// Check if walker can accept bookings (fetch walker profile if walker)
+		let canAcceptBookings = isAdmin; // Admins can always manage bookings
+		if (isWalker && user?.id) {
+			try {
+				const walkerProfile = await api.get<WalkerProfile>(`/walkers/${user.id}/profile`, token);
+				canAcceptBookings = walkerProfile.can_accept_bookings ?? false;
+			} catch {
+				// If we can't fetch profile, default to false for safety
+				canAcceptBookings = false;
+			}
+		}
 
 		// Apply filters
 		let filteredBookings = bookings;
@@ -61,7 +92,9 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 			bookings: filteredBookings,
 			statuses,
 			currentStatus: statusFilter,
-			searchQuery
+			searchQuery,
+			isAdmin,
+			canAcceptBookings
 		};
 	} catch (error) {
 		console.error('Failed to fetch bookings:', error);
@@ -77,6 +110,8 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 			statuses: [],
 			currentStatus: statusFilter,
 			searchQuery,
+			isAdmin,
+			canAcceptBookings: isAdmin,
 			error: errorDetail
 		};
 	}

@@ -39,6 +39,33 @@ function getOrgSlugFromHost(host: string): string | null {
 	return null;
 }
 
+// Trusted domains for external redirects (cross-app auth)
+const TRUSTED_DOMAINS = [
+	'paperwork.offleash.world',
+	'platform.offleash.world',
+	'offleash.world',
+	'localhost'
+];
+
+// Validate if a redirect URL is to a trusted domain
+function isTrustedRedirect(redirectUrl: string, currentOrigin: string): boolean {
+	// Allow relative paths
+	if (redirectUrl.startsWith('/')) {
+		return true;
+	}
+
+	// Check if it's an absolute URL to a trusted domain
+	try {
+		const url = new URL(redirectUrl);
+		return TRUSTED_DOMAINS.some(domain =>
+			url.hostname === domain || url.hostname.endsWith('.' + domain)
+		);
+	} catch {
+		// If URL parsing fails, treat as relative path
+		return redirectUrl.startsWith('/');
+	}
+}
+
 export const load: PageServerLoad = async ({ cookies, url }) => {
 	const token = cookies.get('token');
 	if (token) {
@@ -70,8 +97,10 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		}
 
 		// For other cases, respect the redirect param or go to services
-		if (redirectTo && redirectTo.startsWith('/')) {
-			throw redirect(303, redirectTo);
+		if (redirectTo) {
+			if (isTrustedRedirect(redirectTo, url.origin)) {
+				throw redirect(303, redirectTo);
+			}
 		}
 		throw redirect(303, '/services');
 	}
@@ -188,8 +217,8 @@ export const actions: Actions = {
 					// New walker with no business - go to onboarding
 					destination = '/onboarding/walker';
 				}
-			} else if (redirectTo && redirectTo.startsWith('/')) {
-				// Use provided redirect if it's a valid path
+			} else if (redirectTo && isTrustedRedirect(redirectTo, url.origin)) {
+				// Use provided redirect if it's valid (internal path or trusted external domain)
 				destination = redirectTo;
 			}
 
