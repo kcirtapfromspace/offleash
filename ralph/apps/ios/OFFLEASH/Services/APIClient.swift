@@ -579,6 +579,48 @@ private struct AnyEncodable: Encodable {
     }
 }
 
+// MARK: - Context/Membership Management
+
+extension APIClient {
+    /// Fetch all user contexts (memberships across organizations)
+    func fetchContexts() async throws -> ContextsResponse {
+        try await get("/contexts")
+    }
+
+    /// Switch to a different context (membership)
+    func switchContext(membershipId: String) async throws -> SwitchContextResponse {
+        struct SwitchRequest: Encodable {
+            let membershipId: String
+
+            enum CodingKeys: String, CodingKey {
+                case membershipId = "membership_id"
+            }
+        }
+
+        let response: SwitchContextResponse = try await post("/contexts/switch", body: SwitchRequest(membershipId: membershipId))
+
+        // Update stored token with new context
+        _ = KeychainHelper.shared.saveToken(response.token)
+
+        // Update user session with new membership
+        Task { @MainActor in
+            UserSession.shared.setCurrentMembership(response.membership)
+        }
+
+        return response
+    }
+
+    /// Join a business as a customer
+    func joinAsCustomer(orgSlug: String) async throws -> Membership {
+        struct JoinResponse: Decodable {
+            let membership: Membership
+        }
+
+        let response: JoinResponse = try await post("/contexts/join-as-customer/\(orgSlug)")
+        return response.membership
+    }
+}
+
 // MARK: - Convenience Extensions
 
 extension APIClient {

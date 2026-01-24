@@ -507,12 +507,49 @@ enum BookingAction {
 struct WalkerSettingsView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var userSession = UserSession.shared
     @State private var pushNotificationsEnabled = true
     @State private var emailNotificationsEnabled = true
+    @State private var showPersonaSwitcher = false
 
     var body: some View {
         NavigationStack {
             List {
+                // Persona Switcher (only if multiple memberships)
+                if userSession.hasMultipleMemberships {
+                    Section("Current Role") {
+                        Button {
+                            showPersonaSwitcher = true
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: userSession.currentMembership?.role.iconName ?? "person.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(themeManager.primaryColor)
+                                    .frame(width: 32, height: 32)
+                                    .background(themeManager.primaryColor.opacity(0.1))
+                                    .clipShape(Circle())
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(userSession.currentOrganizationName)
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(.primary)
+
+                                    Text(userSession.currentMembership?.role.displayName ?? "Walker")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                }
+
                 Section("Account") {
                     NavigationLink {
                         WalkerProfileView()
@@ -574,6 +611,9 @@ struct WalkerSettingsView: View {
                 }
             }
             .tint(themeManager.primaryColor)
+            .sheet(isPresented: $showPersonaSwitcher) {
+                PersonaSwitcherSheet()
+            }
         }
     }
 }

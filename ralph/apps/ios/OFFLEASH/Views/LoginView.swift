@@ -352,8 +352,12 @@ struct LoginView: View {
                     }
                 }
 
+                // Load user contexts/memberships
+                await loadContexts()
+
                 await MainActor.run {
                     isLoading = false
+                    analyticsService.trackEvent(name: "login_success", params: ["method": "email"])
                     onLoginSuccess()
                 }
             } catch let error as APIError {
@@ -418,6 +422,12 @@ struct LoginView: View {
                     )
                     await MainActor.run {
                         UserSession.shared.setUser(user)
+                    }
+
+                    // Load user contexts/memberships
+                    await loadContexts()
+
+                    await MainActor.run {
                         isOAuthLoading = false
                         analyticsService.trackEvent(name: "login_success", params: ["method": "apple"])
                         onLoginSuccess()
@@ -518,6 +528,12 @@ struct LoginView: View {
 
                     await MainActor.run {
                         UserSession.shared.setUser(sessionUser)
+                    }
+
+                    // Load user contexts/memberships
+                    await loadContexts()
+
+                    await MainActor.run {
                         isOAuthLoading = false
                         analyticsService.trackEvent(name: "login_success", params: ["method": "google"])
                         onLoginSuccess()
@@ -536,6 +552,23 @@ struct LoginView: View {
                     }
                 }
             }
+        }
+    }
+
+    // MARK: - Context Loading
+
+    private func loadContexts() async {
+        do {
+            let contextsResponse = try await APIClient.shared.fetchContexts()
+            await MainActor.run {
+                UserSession.shared.setMemberships(
+                    contextsResponse.memberships,
+                    current: contextsResponse.currentMembership
+                )
+            }
+        } catch {
+            // Continue without contexts - user can still use the app
+            print("Failed to load contexts: \(error)")
         }
     }
 }
