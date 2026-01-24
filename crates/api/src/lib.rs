@@ -37,6 +37,8 @@ pub fn create_app(state: AppState) -> Router {
         .route("/auth/login", post(routes::auth::login))
         .route("/auth/login/universal", post(routes::auth::universal_login))
         .route("/auth/validate", get(routes::auth::validate_token))
+        .route("/auth/refresh", post(routes::auth::refresh_token))
+        .route("/auth/session", get(routes::auth::session_info))
         // OAuth routes
         .route("/auth/google", post(routes::oauth::google_auth))
         .route("/auth/apple", post(routes::oauth::apple_auth))
