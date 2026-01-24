@@ -113,6 +113,16 @@ export const load: LayoutServerLoad = async ({ cookies, url, request }) => {
     throw redirect(303, "https://offleash.world/services");
   }
 
+  // Debug logging to help diagnose API issues
+  console.log('Layout data:', {
+    hasToken: !!token,
+    hasUser: !!user,
+    hasMembership: !!membership,
+    membershipRole: membership?.role,
+    membershipOrgId: membership?.organization_id,
+    membershipsCount: memberships.length
+  });
+
   return {
     token,
     user,
