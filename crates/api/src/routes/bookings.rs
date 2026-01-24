@@ -366,19 +366,20 @@ pub async fn reschedule_booking(
     }))
 }
 
-/// List all bookings (admin only)
+/// List all bookings (admin/owner only)
 pub async fn list_bookings(
     State(_state): State<AppState>,
     tenant: TenantContext,
     auth: AuthUser,
     Query(query): Query<ListBookingsQuery>,
 ) -> ApiResult<Json<Vec<BookingListItem>>> {
-    // Verify user is admin
-    let user = UserRepository::find_by_id(&tenant.pool, tenant.org_id, auth.user_id)
-        .await?
-        .ok_or_else(|| ApiError::from(AppError::Forbidden))?;
+    // Verify user has admin/owner membership for this organization
+    let memberships =
+        db::MembershipRepository::find_by_user_and_org(&tenant.pool, auth.user_id, tenant.org_id)
+            .await?;
 
-    if !user.is_admin() {
+    let is_manager = memberships.iter().any(|m| m.role.is_manager());
+    if !is_manager {
         return Err(ApiError::from(AppError::Forbidden));
     }
 
@@ -573,7 +574,7 @@ pub async fn list_walker_bookings(
     Ok(Json(responses))
 }
 
-/// Complete a booking (admin only)
+/// Complete a booking (admin/owner only)
 pub async fn complete_booking(
     State(_state): State<AppState>,
     tenant: TenantContext,
@@ -584,12 +585,13 @@ pub async fn complete_booking(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid booking ID".to_string())))?;
 
-    // Verify user is admin
-    let user = UserRepository::find_by_id(&tenant.pool, tenant.org_id, auth.user_id)
-        .await?
-        .ok_or_else(|| ApiError::from(AppError::Forbidden))?;
+    // Verify user has admin/owner membership for this organization
+    let memberships =
+        db::MembershipRepository::find_by_user_and_org(&tenant.pool, auth.user_id, tenant.org_id)
+            .await?;
 
-    if !user.is_admin() {
+    let is_manager = memberships.iter().any(|m| m.role.is_manager());
+    if !is_manager {
         return Err(ApiError::from(AppError::Forbidden));
     }
 
