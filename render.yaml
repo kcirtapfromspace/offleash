@@ -3,6 +3,11 @@
 # Documentation: https://render.com/docs/blueprint-spec
 # =============================================================================
 #
+# DEPLOYMENT STRATEGY:
+#   - API: Pre-built Docker image from GitHub Container Registry (GHCR)
+#          Built by GitHub Actions, deployed via deploy hook
+#   - Web Apps: Built on Render, deployed via GitHub Actions deploy hooks
+#
 # COST BREAKDOWN (Test Environment):
 #   - API (Rust):        $7/mo (Starter) - always on
 #   - PostgreSQL:        Free (30-day expiration, 1GB)
@@ -30,15 +35,19 @@ databases:
 # =============================================================================
 services:
   # ---------------------------------------------------------------------------
-  # API Server (Rust) - Starter plan for always-on
+  # API Server (Rust) - Pre-built image from GitHub Container Registry
+  # Image built by GitHub Actions (.github/workflows/build-api.yml)
+  # Deployed via deploy hook triggered by GitHub Actions
   # ---------------------------------------------------------------------------
   - type: web
     name: offleash-api
-    runtime: docker
+    runtime: image
     plan: starter
     region: oregon
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
+    image:
+      url: ghcr.io/kcirtapfromspace/offleash-api:latest
+      # If using private image, add credentials in Render Dashboard:
+      # Account Settings → Registry Credentials → Add ghcr.io credential
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
@@ -64,17 +73,14 @@ services:
         sync: false  # Set via environment group
       - key: PUBLIC_APPLE_CLIENT_ID
         sync: false  # Set via environment group
-    autoDeploy: true
-    buildFilter:
-      paths:
-        - crates/**
-        - migrations/**
-        - Cargo.toml
-        - Cargo.lock
-        - Dockerfile
+      - key: APPLE_IOS_BUNDLE_ID
+        sync: false  # Set via environment group (com.offleash.ios)
+    # Auto-deploy disabled - GitHub Actions triggers deploy via hook
+    autoDeploy: false
 
   # ---------------------------------------------------------------------------
   # Customer Web App (SvelteKit Node.js) - Free tier with auto-sleep
+  # Deployed via deploy hook triggered by GitHub Actions
   # ---------------------------------------------------------------------------
   - type: web
     name: offleash-app
@@ -103,13 +109,12 @@ services:
         sync: false  # Set manually in dashboard
       - key: PUBLIC_APPLE_CLIENT_ID
         sync: false  # Set manually in dashboard
-    autoDeploy: true
-    buildFilter:
-      paths:
-        - "**"
+    # Auto-deploy disabled - GitHub Actions triggers deploy via hook
+    autoDeploy: false
 
   # ---------------------------------------------------------------------------
   # Admin Dashboard (SvelteKit Node.js) - Free tier with auto-sleep
+  # Deployed via deploy hook triggered by GitHub Actions
   # ---------------------------------------------------------------------------
   - type: web
     name: offleash-admin
@@ -136,13 +141,12 @@ services:
         sync: false  # Set manually in dashboard
       - key: PUBLIC_APPLE_CLIENT_ID
         sync: false  # Set manually in dashboard
-    autoDeploy: true
-    buildFilter:
-      paths:
-        - "**"
+    # Auto-deploy disabled - GitHub Actions triggers deploy via hook
+    autoDeploy: false
 
   # ---------------------------------------------------------------------------
   # Platform Admin (SvelteKit Node.js) - Free tier with auto-sleep
+  # Deployed via deploy hook triggered by GitHub Actions
   # ---------------------------------------------------------------------------
   - type: web
     name: offleash-platform
@@ -164,7 +168,5 @@ services:
         value: https://offleash-api.onrender.com
       - key: ORIGIN
         value: https://offleash-platform.onrender.com
-    autoDeploy: true
-    buildFilter:
-      paths:
-        - "**"
+    # Auto-deploy disabled - GitHub Actions triggers deploy via hook
+    autoDeploy: false
