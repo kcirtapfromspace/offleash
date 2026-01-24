@@ -63,17 +63,47 @@ export const load: LayoutServerLoad = async ({ cookies, url, request }) => {
 		needsSessionFetch = true;
 	}
 
+	// Check if token has been upgraded to include org_id
+	// If not, we need to fetch session and potentially switch context
+	const tokenHasOrgId = cookies.get('token_has_org_id');
+	if (!tokenHasOrgId) {
+		needsSessionFetch = true;
+	}
+
 	// If we're missing user or memberships info, fetch from API session endpoint
 	// This handles cross-subdomain SSO where we have a token but no user cookies
+	let currentToken = token;
 	if (needsSessionFetch) {
 		try {
-			const session = await api.get<SessionResponse>('/auth/session', token);
+			const session = await api.get<SessionResponse>('/auth/session', currentToken);
 			user = session.user;
 			membership = session.membership || null;
 			memberships = session.memberships || [];
 
-			// Update cookies with session data for faster subsequent loads
+			// If token doesn't have org_id but user has a membership, switch context
 			const host = request.headers.get('host') || '';
+			if (!session.org_id && membership) {
+				try {
+					const switchResponse = await api.post<{ token: string; membership: MembershipInfo }>(
+						'/contexts/switch',
+						{ membership_id: membership.id },
+						currentToken
+					);
+					currentToken = switchResponse.token;
+
+					// Update the token cookie with the new token that has org_id
+					setAuthCookie(cookies, 'token', currentToken, host, true);
+					// Mark that token now has org_id
+					setAuthCookie(cookies, 'token_has_org_id', 'true', host, false);
+				} catch (switchErr) {
+					console.warn('Failed to switch context:', switchErr);
+				}
+			} else if (session.org_id) {
+				// Token already has org_id, mark it
+				setAuthCookie(cookies, 'token_has_org_id', 'true', host, false);
+			}
+
+			// Update cookies with session data for faster subsequent loads
 			setAuthCookie(cookies, 'user', JSON.stringify(user), host, false);
 			if (membership) {
 				setAuthCookie(cookies, 'membership', JSON.stringify(membership), host, false);
@@ -91,7 +121,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, request }) => {
 	}
 
 	return {
-		token,
+		token: currentToken,
 		user,
 		membership,
 		memberships
