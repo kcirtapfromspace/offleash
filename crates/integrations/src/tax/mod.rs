@@ -1,5 +1,5 @@
-mod taxjar;
 mod error;
+mod taxjar;
 
-pub use taxjar::{TaxJarClient, TaxRate, TaxCalculation, TaxLineItem, Address, TaxCategory};
 pub use error::{TaxError, TaxResult};
+pub use taxjar::{Address, TaxCalculation, TaxCategory, TaxJarClient, TaxLineItem, TaxRate};

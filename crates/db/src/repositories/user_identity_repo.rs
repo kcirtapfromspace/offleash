@@ -97,12 +97,11 @@ impl UserIdentityRepository {
 
     /// Count identities for a user (to prevent deleting the last one)
     pub async fn count_for_user(pool: &PgPool, user_id: Uuid) -> Result<i64, sqlx::Error> {
-        let result: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*)::bigint FROM user_identities WHERE user_id = $1",
-        )
-        .bind(user_id)
-        .fetch_one(pool)
-        .await?;
+        let result: (i64,) =
+            sqlx::query_as("SELECT COUNT(*)::bigint FROM user_identities WHERE user_id = $1")
+                .bind(user_id)
+                .fetch_one(pool)
+                .await?;
         Ok(result.0)
     }
 }

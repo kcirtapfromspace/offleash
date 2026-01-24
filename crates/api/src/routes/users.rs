@@ -2,7 +2,10 @@ use axum::{
     extract::{Path, Query, State},
     Json,
 };
-use db::{models::{UpdateUser, UserRole}, UserRepository};
+use db::{
+    models::{UpdateUser, UserRole},
+    UserRepository,
+};
 use serde::{Deserialize, Serialize};
 use shared::{AppError, DomainError};
 

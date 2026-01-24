@@ -2,7 +2,9 @@ use shared::types::{OrganizationId, UserId};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::{CreateCustomerPaymentMethod, CustomerPaymentMethod, UpdateCustomerPaymentMethod};
+use crate::models::{
+    CreateCustomerPaymentMethod, CustomerPaymentMethod, UpdateCustomerPaymentMethod,
+};
 
 pub struct CustomerPaymentMethodRepository;
 

@@ -4,8 +4,7 @@ use uuid::Uuid;
 
 use crate::models::{
     CreateCustomerSubscription, CreateTenantSubscription, CustomerSubscription, PlanTier,
-    PlatformFeeTier, TenantSubscription, UpdateCustomerSubscription,
-    UpdateTenantSubscription,
+    PlatformFeeTier, TenantSubscription, UpdateCustomerSubscription, UpdateTenantSubscription,
 };
 
 pub struct SubscriptionRepository;

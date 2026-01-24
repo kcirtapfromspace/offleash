@@ -207,7 +207,8 @@ impl TransactionFeeBreakdown {
         let provider_fee_cents = ((subtotal_cents as f64) * provider_fee_percent).round() as i32;
 
         // Processing fee (Stripe/Square - typically 2.9% + $0.30)
-        let processing_fee_cents = ((total_cents as f64) * (processing_fee_percent / 100.0)).round() as i32 + 30;
+        let processing_fee_cents =
+            ((total_cents as f64) * (processing_fee_percent / 100.0)).round() as i32 + 30;
 
         // Platform total revenue (customer fee + provider fee)
         let platform_fee_cents = customer_fee_cents + provider_fee_cents;

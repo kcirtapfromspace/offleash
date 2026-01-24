@@ -84,6 +84,6 @@ pub struct AvailabilitySlot {
     pub end_time: DateTime<Utc>,
     pub travel_minutes: Option<i32>,
     pub travel_from: Option<String>, // Description of origin
-    pub is_tight: bool, // True if buffer is minimal
+    pub is_tight: bool,              // True if buffer is minimal
     pub warning: Option<String>,
 }

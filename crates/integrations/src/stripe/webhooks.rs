@@ -1,6 +1,6 @@
 use hmac::{Hmac, Mac};
-use sha2::Sha256;
 use serde::Deserialize;
+use sha2::Sha256;
 
 use super::error::{StripeError, StripeResult};
 
@@ -79,13 +79,9 @@ pub fn verify_signature(payload: &str, signature: &str, secret: &str) -> StripeR
         })
         .collect();
 
-    let timestamp = parts
-        .get("t")
-        .ok_or(StripeError::WebhookSignatureError)?;
+    let timestamp = parts.get("t").ok_or(StripeError::WebhookSignatureError)?;
 
-    let v1_signature = parts
-        .get("v1")
-        .ok_or(StripeError::WebhookSignatureError)?;
+    let v1_signature = parts.get("v1").ok_or(StripeError::WebhookSignatureError)?;
 
     // Prepare signed payload
     let signed_payload = format!("{}.{}", timestamp, payload);
@@ -125,11 +121,7 @@ pub fn parse_event(payload: &str) -> StripeResult<WebhookEvent> {
 }
 
 /// Verify and parse webhook
-pub fn construct_event(
-    payload: &str,
-    signature: &str,
-    secret: &str,
-) -> StripeResult<WebhookEvent> {
+pub fn construct_event(payload: &str, signature: &str, secret: &str) -> StripeResult<WebhookEvent> {
     verify_signature(payload, signature, secret)?;
     parse_event(payload)
 }

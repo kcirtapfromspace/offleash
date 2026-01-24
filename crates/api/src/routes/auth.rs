@@ -127,12 +127,11 @@ pub async fn register(
         .await?;
 
     // Create token with org_id
-    let token =
-        create_token(user.id, Some(organization.id), &state.jwt_secret).map_err(|_| {
-            ApiError::from(shared::AppError::Internal(
-                "Token creation failed".to_string(),
-            ))
-        })?;
+    let token = create_token(user.id, Some(organization.id), &state.jwt_secret).map_err(|_| {
+        ApiError::from(shared::AppError::Internal(
+            "Token creation failed".to_string(),
+        ))
+    })?;
 
     Ok(Json(AuthResponse {
         token,
@@ -185,20 +184,19 @@ pub async fn login(
         .map_err(|_| ApiError::from(DomainError::InvalidCredentials))?;
 
     // Get user's membership in this organization (used for future reference if needed)
-    let _membership = MembershipRepository::find_by_user_and_org(&state.pool, user.id, organization.id)
-        .await?;
+    let _membership =
+        MembershipRepository::find_by_user_and_org(&state.pool, user.id, organization.id).await?;
 
     // Get all user's memberships for the response
     let all_memberships = MembershipRepository::find_with_org_by_user(&state.pool, user.id).await?;
 
     // Get default membership ID
-    let default_membership_id: Option<uuid::Uuid> = sqlx::query_scalar(
-        "SELECT default_membership_id FROM users WHERE id = $1",
-    )
-    .bind(user.id)
-    .fetch_optional(&state.pool)
-    .await?
-    .flatten();
+    let default_membership_id: Option<uuid::Uuid> =
+        sqlx::query_scalar("SELECT default_membership_id FROM users WHERE id = $1")
+            .bind(user.id)
+            .fetch_optional(&state.pool)
+            .await?
+            .flatten();
 
     let memberships_info: Vec<MembershipInfo> = all_memberships
         .into_iter()
@@ -213,12 +211,11 @@ pub async fn login(
         .collect();
 
     // Create token with org_id
-    let token =
-        create_token(user.id, Some(organization.id), &state.jwt_secret).map_err(|_| {
-            ApiError::from(shared::AppError::Internal(
-                "Token creation failed".to_string(),
-            ))
-        })?;
+    let token = create_token(user.id, Some(organization.id), &state.jwt_secret).map_err(|_| {
+        ApiError::from(shared::AppError::Internal(
+            "Token creation failed".to_string(),
+        ))
+    })?;
 
     // Find current membership info
     let current_membership = memberships_info
@@ -278,13 +275,12 @@ pub async fn universal_login(
     let all_memberships = MembershipRepository::find_with_org_by_user(&state.pool, user.id).await?;
 
     // Get default membership ID
-    let default_membership_id: Option<uuid::Uuid> = sqlx::query_scalar(
-        "SELECT default_membership_id FROM users WHERE id = $1",
-    )
-    .bind(user.id)
-    .fetch_optional(&state.pool)
-    .await?
-    .flatten();
+    let default_membership_id: Option<uuid::Uuid> =
+        sqlx::query_scalar("SELECT default_membership_id FROM users WHERE id = $1")
+            .bind(user.id)
+            .fetch_optional(&state.pool)
+            .await?
+            .flatten();
 
     let memberships_info: Vec<MembershipInfo> = all_memberships
         .into_iter()
@@ -302,29 +298,50 @@ pub async fn universal_login(
     // Otherwise, create a context-free token
     let (token, default_membership) = if let Some(default_id) = default_membership_id {
         // Find the default membership's org_id
-        if let Some(default_mem) = memberships_info.iter().find(|m| m.id == default_id.to_string()) {
+        if let Some(default_mem) = memberships_info
+            .iter()
+            .find(|m| m.id == default_id.to_string())
+        {
             let org_id: uuid::Uuid = default_mem.organization_id.parse().unwrap();
-            let token = create_token(user.id, Some(OrganizationId::from_uuid(org_id)), &state.jwt_secret).map_err(|_| {
-                ApiError::from(shared::AppError::Internal("Token creation failed".to_string()))
+            let token = create_token(
+                user.id,
+                Some(OrganizationId::from_uuid(org_id)),
+                &state.jwt_secret,
+            )
+            .map_err(|_| {
+                ApiError::from(shared::AppError::Internal(
+                    "Token creation failed".to_string(),
+                ))
             })?;
             (token, Some(default_mem.clone()))
         } else {
             let token = create_token(user.id, None, &state.jwt_secret).map_err(|_| {
-                ApiError::from(shared::AppError::Internal("Token creation failed".to_string()))
+                ApiError::from(shared::AppError::Internal(
+                    "Token creation failed".to_string(),
+                ))
             })?;
             (token, None)
         }
     } else if let Some(first_membership) = memberships_info.first() {
         // Use first membership as default if no default is set
         let org_id: uuid::Uuid = first_membership.organization_id.parse().unwrap();
-        let token = create_token(user.id, Some(OrganizationId::from_uuid(org_id)), &state.jwt_secret).map_err(|_| {
-            ApiError::from(shared::AppError::Internal("Token creation failed".to_string()))
+        let token = create_token(
+            user.id,
+            Some(OrganizationId::from_uuid(org_id)),
+            &state.jwt_secret,
+        )
+        .map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Token creation failed".to_string(),
+            ))
         })?;
         (token, Some(first_membership.clone()))
     } else {
         // No memberships - context-free token
         let token = create_token(user.id, None, &state.jwt_secret).map_err(|_| {
-            ApiError::from(shared::AppError::Internal("Token creation failed".to_string()))
+            ApiError::from(shared::AppError::Internal(
+                "Token creation failed".to_string(),
+            ))
         })?;
         (token, None)
     };

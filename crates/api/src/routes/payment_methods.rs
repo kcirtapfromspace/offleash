@@ -3,7 +3,10 @@ use axum::{
     Json,
 };
 use db::{
-    models::{CreateCustomerPaymentMethod, PaymentMethodType, PaymentProviderType, UpdateCustomerPaymentMethod},
+    models::{
+        CreateCustomerPaymentMethod, PaymentMethodType, PaymentProviderType,
+        UpdateCustomerPaymentMethod,
+    },
     CustomerPaymentMethodRepository,
 };
 use serde::{Deserialize, Serialize};
@@ -39,9 +42,12 @@ pub async fn list_payment_methods(
     auth_user: AuthUser,
     tenant: TenantContext,
 ) -> ApiResult<Json<Vec<PaymentMethodResponse>>> {
-    let methods =
-        CustomerPaymentMethodRepository::list_for_user(&tenant.pool, tenant.org_id, auth_user.user_id)
-            .await?;
+    let methods = CustomerPaymentMethodRepository::list_for_user(
+        &tenant.pool,
+        tenant.org_id,
+        auth_user.user_id,
+    )
+    .await?;
 
     let response: Vec<PaymentMethodResponse> = methods
         .into_iter()
@@ -124,7 +130,13 @@ pub async fn create_payment_method(
     };
 
     // Parse provider type
-    let provider_type = match req.provider_type.as_deref().unwrap_or("stripe").to_lowercase().as_str() {
+    let provider_type = match req
+        .provider_type
+        .as_deref()
+        .unwrap_or("stripe")
+        .to_lowercase()
+        .as_str()
+    {
         "stripe" => PaymentProviderType::Stripe,
         "square" => PaymentProviderType::Square,
         "platform" => PaymentProviderType::Platform,
@@ -200,9 +212,11 @@ pub async fn set_default_payment_method(
     tenant: TenantContext,
     Path(id): Path<String>,
 ) -> ApiResult<Json<PaymentMethodResponse>> {
-    let method_id: Uuid = id
-        .parse()
-        .map_err(|_| ApiError::from(AppError::Validation("Invalid payment method ID".to_string())))?;
+    let method_id: Uuid = id.parse().map_err(|_| {
+        ApiError::from(AppError::Validation(
+            "Invalid payment method ID".to_string(),
+        ))
+    })?;
 
     let method = CustomerPaymentMethodRepository::set_default(
         &tenant.pool,
@@ -223,9 +237,11 @@ pub async fn delete_payment_method(
     tenant: TenantContext,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let method_id: Uuid = id
-        .parse()
-        .map_err(|_| ApiError::from(AppError::Validation("Invalid payment method ID".to_string())))?;
+    let method_id: Uuid = id.parse().map_err(|_| {
+        ApiError::from(AppError::Validation(
+            "Invalid payment method ID".to_string(),
+        ))
+    })?;
 
     let deleted = CustomerPaymentMethodRepository::delete(
         &tenant.pool,
@@ -258,9 +274,11 @@ pub async fn update_payment_method(
     Path(id): Path<String>,
     Json(req): Json<UpdatePaymentMethodRequest>,
 ) -> ApiResult<Json<PaymentMethodResponse>> {
-    let method_id: Uuid = id
-        .parse()
-        .map_err(|_| ApiError::from(AppError::Validation("Invalid payment method ID".to_string())))?;
+    let method_id: Uuid = id.parse().map_err(|_| {
+        ApiError::from(AppError::Validation(
+            "Invalid payment method ID".to_string(),
+        ))
+    })?;
 
     let input = UpdateCustomerPaymentMethod {
         is_default: req.is_default,

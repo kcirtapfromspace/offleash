@@ -111,7 +111,10 @@ pub struct WalkerLocationRepository;
 
 impl WalkerLocationRepository {
     /// Get walker's current location
-    pub async fn get(pool: &PgPool, walker_id: UserId) -> Result<Option<WalkerLocation>, sqlx::Error> {
+    pub async fn get(
+        pool: &PgPool,
+        walker_id: UserId,
+    ) -> Result<Option<WalkerLocation>, sqlx::Error> {
         let location = sqlx::query_as::<_, WalkerLocation>(
             r#"
             SELECT walker_id, latitude, longitude, accuracy_meters,

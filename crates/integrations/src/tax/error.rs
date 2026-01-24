@@ -5,10 +5,7 @@ pub type TaxResult<T> = Result<T, TaxError>;
 #[derive(Debug, Error)]
 pub enum TaxError {
     #[error("Tax API error: {message}")]
-    ApiError {
-        status: u16,
-        message: String,
-    },
+    ApiError { status: u16, message: String },
 
     #[error("Invalid address: {0}")]
     InvalidAddress(String),

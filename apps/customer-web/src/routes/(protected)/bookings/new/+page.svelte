@@ -120,11 +120,13 @@
 	$: canShowSlots = selectedServiceId && selectedDate && selectedLocationId;
 
 	// Get selected slot's travel info
-	$: selectedSlotData = selectedSlot
-		? data.availability
-				.find((w) => w.walkerId === selectedSlot.walkerId)
-				?.slots.find((s) => s.start === selectedSlot.start)
-		: null;
+	$: selectedSlotData = (() => {
+		const slot = selectedSlot;
+		if (!slot) return null;
+		return data.availability
+			.find((w) => w.walkerId === slot.walkerId)
+			?.slots.find((s) => s.start === slot.start) ?? null;
+	})();
 
 	// Calculate total price for recurring bookings
 	$: totalOccurrences = endConditionType === 'occurrences' ? endOccurrences : estimatedOccurrences;

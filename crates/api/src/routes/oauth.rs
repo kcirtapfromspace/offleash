@@ -1,5 +1,8 @@
 use axum::{extract::State, Json};
-use db::models::{AuthProvider, CreateMembership, CreateUser, CreateUserIdentity, MembershipRole, MembershipStatus, UserRole};
+use db::models::{
+    AuthProvider, CreateMembership, CreateUser, CreateUserIdentity, MembershipRole,
+    MembershipStatus, UserRole,
+};
 use db::{MembershipRepository, OrganizationRepository, UserIdentityRepository, UserRepository};
 use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
 use once_cell::sync::Lazy;
@@ -51,7 +54,7 @@ pub struct AppleAuthRequest {
 // Google JWT claims
 #[derive(Debug, Deserialize)]
 struct GoogleClaims {
-    sub: String,           // Google user ID
+    sub: String, // Google user ID
     email: String,
     email_verified: bool,
     name: Option<String>,
@@ -63,9 +66,9 @@ struct GoogleClaims {
 // Apple JWT claims
 #[derive(Debug, Deserialize)]
 struct AppleClaims {
-    sub: String,           // Apple user ID
+    sub: String, // Apple user ID
     email: Option<String>,
-    aud: String,           // Audience (bundle ID or service ID)
+    aud: String, // Audience (bundle ID or service ID)
 }
 
 // Google JWK response
@@ -83,8 +86,8 @@ struct AppleKeys {
 #[derive(Debug, Deserialize, Clone)]
 struct JwkKey {
     kid: String,
-    n: String,   // RSA modulus
-    e: String,   // RSA exponent
+    n: String, // RSA modulus
+    e: String, // RSA exponent
 }
 
 /// Google OAuth sign-in (Universal - works with or without org_slug)
@@ -95,9 +98,11 @@ pub async fn google_auth(
     // Get Google client ID from environment (supports both names for flexibility)
     let google_client_id = std::env::var("PUBLIC_GOOGLE_CLIENT_ID")
         .or_else(|_| std::env::var("GOOGLE_CLIENT_ID"))
-        .map_err(|_| ApiError::from(shared::AppError::Internal(
-            "Google OAuth not configured".to_string()
-        )))?;
+        .map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Google OAuth not configured".to_string(),
+            ))
+        })?;
 
     // Verify the ID token
     let claims = verify_google_token(&req.id_token, &google_client_id).await?;
@@ -110,16 +115,17 @@ pub async fn google_auth(
     };
 
     // Try to find existing identity (existing OAuth user)
-    if let Some(identity) = UserIdentityRepository::find_by_provider(
-        &state.pool,
-        AuthProvider::Google,
-        &claims.sub,
-    ).await? {
+    if let Some(identity) =
+        UserIdentityRepository::find_by_provider(&state.pool, AuthProvider::Google, &claims.sub)
+            .await?
+    {
         // Existing user - ensure they have membership with requested role
         let user_id = UserId::from_uuid(identity.user_id);
         let user = UserRepository::find_by_id_unchecked(&state.pool, user_id)
             .await?
-            .ok_or_else(|| ApiError::from(shared::AppError::Internal("User not found".to_string())))?;
+            .ok_or_else(|| {
+                ApiError::from(shared::AppError::Internal("User not found".to_string()))
+            })?;
 
         // Handle role-based membership
         if let Some(role) = requested_role {
@@ -130,22 +136,29 @@ pub async fn google_auth(
     }
 
     // Try to find existing user by email globally and link identity
-    if let Some(existing_user) = UserRepository::find_by_email_globally(&state.pool, &claims.email).await? {
+    if let Some(existing_user) =
+        UserRepository::find_by_email_globally(&state.pool, &claims.email).await?
+    {
         // Link Google identity to existing user
-        UserIdentityRepository::create(&state.pool, CreateUserIdentity {
-            user_id: existing_user.id.into_uuid(),
-            provider: AuthProvider::Google,
-            provider_user_id: claims.sub,
-            provider_email: Some(claims.email.clone()),
-            provider_data: Some(serde_json::json!({
-                "name": claims.name,
-                "picture": claims.picture,
-            })),
-        }).await?;
+        UserIdentityRepository::create(
+            &state.pool,
+            CreateUserIdentity {
+                user_id: existing_user.id.into_uuid(),
+                provider: AuthProvider::Google,
+                provider_user_id: claims.sub,
+                provider_email: Some(claims.email.clone()),
+                provider_data: Some(serde_json::json!({
+                    "name": claims.name,
+                    "picture": claims.picture,
+                })),
+            },
+        )
+        .await?;
 
         // Handle role-based membership
         if let Some(role) = requested_role {
-            ensure_membership_for_role(&state, &existing_user, role, req.org_slug.as_deref()).await?;
+            ensure_membership_for_role(&state, &existing_user, role, req.org_slug.as_deref())
+                .await?;
         }
 
         return build_oauth_response(&state, existing_user).await;
@@ -156,19 +169,23 @@ pub async fn google_auth(
     let organization = if let Some(ref slug) = req.org_slug {
         OrganizationRepository::find_by_slug(&state.pool, slug)
             .await?
-            .ok_or_else(|| ApiError::from(shared::DomainError::OrganizationNotFound(slug.clone())))?
+            .ok_or_else(|| {
+                ApiError::from(shared::DomainError::OrganizationNotFound(slug.clone()))
+            })?
     } else {
         // Use first/default organization or create one
         OrganizationRepository::find_default(&state.pool)
             .await?
-            .ok_or_else(|| ApiError::from(shared::AppError::Internal(
-                "No default organization configured".to_string()
-            )))?
+            .ok_or_else(|| {
+                ApiError::from(shared::AppError::Internal(
+                    "No default organization configured".to_string(),
+                ))
+            })?
     };
 
-    let first_name = claims.given_name.unwrap_or_else(||
-        claims.name.clone().unwrap_or_else(|| "User".to_string())
-    );
+    let first_name = claims
+        .given_name
+        .unwrap_or_else(|| claims.name.clone().unwrap_or_else(|| "User".to_string()));
     let last_name = claims.family_name.unwrap_or_default();
 
     // Determine role from request (default to customer)
@@ -189,7 +206,8 @@ pub async fn google_auth(
             phone: None,
             timezone: None,
         },
-    ).await?;
+    )
+    .await?;
 
     // Create membership for the user
     let membership = MembershipRepository::create(
@@ -201,7 +219,8 @@ pub async fn google_auth(
             status: Some(MembershipStatus::Active),
             title: None,
         },
-    ).await?;
+    )
+    .await?;
 
     // Set as default membership
     sqlx::query("UPDATE users SET default_membership_id = $1 WHERE id = $2")
@@ -211,16 +230,20 @@ pub async fn google_auth(
         .await?;
 
     // Create identity
-    UserIdentityRepository::create(&state.pool, CreateUserIdentity {
-        user_id: user.id.into_uuid(),
-        provider: AuthProvider::Google,
-        provider_user_id: claims.sub,
-        provider_email: Some(claims.email.clone()),
-        provider_data: Some(serde_json::json!({
-            "name": claims.name,
-            "picture": claims.picture,
-        })),
-    }).await?;
+    UserIdentityRepository::create(
+        &state.pool,
+        CreateUserIdentity {
+            user_id: user.id.into_uuid(),
+            provider: AuthProvider::Google,
+            provider_user_id: claims.sub,
+            provider_email: Some(claims.email.clone()),
+            provider_data: Some(serde_json::json!({
+                "name": claims.name,
+                "picture": claims.picture,
+            })),
+        },
+    )
+    .await?;
 
     build_oauth_response(&state, user).await
 }
@@ -233,9 +256,11 @@ pub async fn apple_auth(
     // Get Apple client ID (Service ID) from environment (supports both names for flexibility)
     let apple_client_id = std::env::var("PUBLIC_APPLE_CLIENT_ID")
         .or_else(|_| std::env::var("APPLE_SERVICE_ID"))
-        .map_err(|_| ApiError::from(shared::AppError::Internal(
-            "Apple Sign-In not configured".to_string()
-        )))?;
+        .map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Apple Sign-In not configured".to_string(),
+            ))
+        })?;
 
     // Verify the ID token
     let claims = verify_apple_token(&req.id_token, &apple_client_id).await?;
@@ -248,16 +273,17 @@ pub async fn apple_auth(
     };
 
     // Try to find existing identity
-    if let Some(identity) = UserIdentityRepository::find_by_provider(
-        &state.pool,
-        AuthProvider::Apple,
-        &claims.sub,
-    ).await? {
+    if let Some(identity) =
+        UserIdentityRepository::find_by_provider(&state.pool, AuthProvider::Apple, &claims.sub)
+            .await?
+    {
         // Existing user - ensure they have membership with requested role
         let user_id = UserId::from_uuid(identity.user_id);
         let user = UserRepository::find_by_id_unchecked(&state.pool, user_id)
             .await?
-            .ok_or_else(|| ApiError::from(shared::AppError::Internal("User not found".to_string())))?;
+            .ok_or_else(|| {
+                ApiError::from(shared::AppError::Internal("User not found".to_string()))
+            })?;
 
         // Handle role-based membership
         if let Some(role) = requested_role {
@@ -279,19 +305,26 @@ pub async fn apple_auth(
     // If they chose "Hide My Email", we respect that and create a new account
     // Users can explicitly link accounts later in settings if needed
     if !is_private_relay {
-        if let Some(existing_user) = UserRepository::find_by_email_globally(&state.pool, &email).await? {
+        if let Some(existing_user) =
+            UserRepository::find_by_email_globally(&state.pool, &email).await?
+        {
             // Link Apple identity to existing user
-            UserIdentityRepository::create(&state.pool, CreateUserIdentity {
-                user_id: existing_user.id.into_uuid(),
-                provider: AuthProvider::Apple,
-                provider_user_id: claims.sub,
-                provider_email: Some(email.clone()),
-                provider_data: None,
-            }).await?;
+            UserIdentityRepository::create(
+                &state.pool,
+                CreateUserIdentity {
+                    user_id: existing_user.id.into_uuid(),
+                    provider: AuthProvider::Apple,
+                    provider_user_id: claims.sub,
+                    provider_email: Some(email.clone()),
+                    provider_data: None,
+                },
+            )
+            .await?;
 
             // Handle role-based membership
             if let Some(role) = requested_role {
-                ensure_membership_for_role(&state, &existing_user, role, req.org_slug.as_deref()).await?;
+                ensure_membership_for_role(&state, &existing_user, role, req.org_slug.as_deref())
+                    .await?;
             }
 
             return build_oauth_response(&state, existing_user).await;
@@ -302,13 +335,17 @@ pub async fn apple_auth(
     let organization = if let Some(ref slug) = req.org_slug {
         OrganizationRepository::find_by_slug(&state.pool, slug)
             .await?
-            .ok_or_else(|| ApiError::from(shared::DomainError::OrganizationNotFound(slug.clone())))?
+            .ok_or_else(|| {
+                ApiError::from(shared::DomainError::OrganizationNotFound(slug.clone()))
+            })?
     } else {
         OrganizationRepository::find_default(&state.pool)
             .await?
-            .ok_or_else(|| ApiError::from(shared::AppError::Internal(
-                "No default organization configured".to_string()
-            )))?
+            .ok_or_else(|| {
+                ApiError::from(shared::AppError::Internal(
+                    "No default organization configured".to_string(),
+                ))
+            })?
     };
 
     let first_name = req.first_name.unwrap_or_else(|| "Apple".to_string());
@@ -332,7 +369,8 @@ pub async fn apple_auth(
             phone: None,
             timezone: None,
         },
-    ).await?;
+    )
+    .await?;
 
     // Create membership
     let membership = MembershipRepository::create(
@@ -344,7 +382,8 @@ pub async fn apple_auth(
             status: Some(MembershipStatus::Active),
             title: None,
         },
-    ).await?;
+    )
+    .await?;
 
     // Set as default membership
     sqlx::query("UPDATE users SET default_membership_id = $1 WHERE id = $2")
@@ -354,13 +393,17 @@ pub async fn apple_auth(
         .await?;
 
     // Create identity
-    UserIdentityRepository::create(&state.pool, CreateUserIdentity {
-        user_id: user.id.into_uuid(),
-        provider: AuthProvider::Apple,
-        provider_user_id: claims.sub,
-        provider_email: Some(email),
-        provider_data: None,
-    }).await?;
+    UserIdentityRepository::create(
+        &state.pool,
+        CreateUserIdentity {
+            user_id: user.id.into_uuid(),
+            provider: AuthProvider::Apple,
+            provider_user_id: claims.sub,
+            provider_email: Some(email),
+            provider_data: None,
+        },
+    )
+    .await?;
 
     build_oauth_response(&state, user).await
 }
@@ -377,26 +420,31 @@ async fn ensure_membership_for_role(
     let organization = if let Some(slug) = org_slug {
         OrganizationRepository::find_by_slug(&state.pool, slug)
             .await?
-            .ok_or_else(|| ApiError::from(shared::DomainError::OrganizationNotFound(slug.to_string())))?
+            .ok_or_else(|| {
+                ApiError::from(shared::DomainError::OrganizationNotFound(slug.to_string()))
+            })?
     } else {
         OrganizationRepository::find_default(&state.pool)
             .await?
-            .ok_or_else(|| ApiError::from(shared::AppError::Internal(
-                "No default organization configured".to_string()
-            )))?
+            .ok_or_else(|| {
+                ApiError::from(shared::AppError::Internal(
+                    "No default organization configured".to_string(),
+                ))
+            })?
     };
 
     // Check if user already has a membership with this role in this org
     let existing_memberships = MembershipRepository::find_by_user(&state.pool, user.id).await?;
-    let has_role = existing_memberships.iter().any(|m|
-        m.organization_id == organization.id && m.role == requested_role
-    );
+    let has_role = existing_memberships
+        .iter()
+        .any(|m| m.organization_id == organization.id && m.role == requested_role);
 
     if has_role {
         // User already has this role - find the membership and set as default
-        if let Some(membership) = existing_memberships.iter().find(|m|
-            m.organization_id == organization.id && m.role == requested_role
-        ) {
+        if let Some(membership) = existing_memberships
+            .iter()
+            .find(|m| m.organization_id == organization.id && m.role == requested_role)
+        {
             sqlx::query("UPDATE users SET default_membership_id = $1 WHERE id = $2")
                 .bind(membership.id)
                 .bind(user.id)
@@ -414,7 +462,8 @@ async fn ensure_membership_for_role(
                 status: Some(MembershipStatus::Active),
                 title: None,
             },
-        ).await?;
+        )
+        .await?;
 
         // Set as default membership
         sqlx::query("UPDATE users SET default_membership_id = $1 WHERE id = $2")
@@ -438,13 +487,12 @@ async fn build_oauth_response(
     let all_memberships = MembershipRepository::find_with_org_by_user(&state.pool, user.id).await?;
 
     // Get default membership ID
-    let default_membership_id: Option<uuid::Uuid> = sqlx::query_scalar(
-        "SELECT default_membership_id FROM users WHERE id = $1",
-    )
-    .bind(user.id)
-    .fetch_optional(&state.pool)
-    .await?
-    .flatten();
+    let default_membership_id: Option<uuid::Uuid> =
+        sqlx::query_scalar("SELECT default_membership_id FROM users WHERE id = $1")
+            .bind(user.id)
+            .fetch_optional(&state.pool)
+            .await?
+            .flatten();
 
     let memberships_info: Vec<MembershipInfo> = all_memberships
         .into_iter()
@@ -460,24 +508,49 @@ async fn build_oauth_response(
 
     // Create token with default org context if available
     let (token, default_membership) = if let Some(default_id) = default_membership_id {
-        if let Some(default_mem) = memberships_info.iter().find(|m| m.id == default_id.to_string()) {
+        if let Some(default_mem) = memberships_info
+            .iter()
+            .find(|m| m.id == default_id.to_string())
+        {
             let org_id: uuid::Uuid = default_mem.organization_id.parse().unwrap();
-            let token = create_token(user.id, Some(OrganizationId::from_uuid(org_id)), &state.jwt_secret)
-                .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
+            let token = create_token(
+                user.id,
+                Some(OrganizationId::from_uuid(org_id)),
+                &state.jwt_secret,
+            )
+            .map_err(|_| {
+                ApiError::from(shared::AppError::Internal(
+                    "Token creation failed".to_string(),
+                ))
+            })?;
             (token, Some(default_mem.clone()))
         } else {
-            let token = create_token(user.id, None, &state.jwt_secret)
-                .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
+            let token = create_token(user.id, None, &state.jwt_secret).map_err(|_| {
+                ApiError::from(shared::AppError::Internal(
+                    "Token creation failed".to_string(),
+                ))
+            })?;
             (token, None)
         }
     } else if let Some(first_membership) = memberships_info.first() {
         let org_id: uuid::Uuid = first_membership.organization_id.parse().unwrap();
-        let token = create_token(user.id, Some(OrganizationId::from_uuid(org_id)), &state.jwt_secret)
-            .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
+        let token = create_token(
+            user.id,
+            Some(OrganizationId::from_uuid(org_id)),
+            &state.jwt_secret,
+        )
+        .map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Token creation failed".to_string(),
+            ))
+        })?;
         (token, Some(first_membership.clone()))
     } else {
-        let token = create_token(user.id, None, &state.jwt_secret)
-            .map_err(|_| ApiError::from(shared::AppError::Internal("Token creation failed".to_string())))?;
+        let token = create_token(user.id, None, &state.jwt_secret).map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Token creation failed".to_string(),
+            ))
+        })?;
         (token, None)
     };
 
@@ -519,9 +592,11 @@ pub struct VerifiedAppleIdentity {
 pub async fn verify_google_token_public(token: &str) -> ApiResult<VerifiedGoogleIdentity> {
     let google_client_id = std::env::var("PUBLIC_GOOGLE_CLIENT_ID")
         .or_else(|_| std::env::var("GOOGLE_CLIENT_ID"))
-        .map_err(|_| ApiError::from(shared::AppError::Internal(
-            "Google OAuth not configured".to_string()
-        )))?;
+        .map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Google OAuth not configured".to_string(),
+            ))
+        })?;
 
     let claims = verify_google_token(token, &google_client_id).await?;
 
@@ -537,9 +612,11 @@ pub async fn verify_google_token_public(token: &str) -> ApiResult<VerifiedGoogle
 pub async fn verify_apple_token_public(token: &str) -> ApiResult<VerifiedAppleIdentity> {
     let apple_client_id = std::env::var("PUBLIC_APPLE_CLIENT_ID")
         .or_else(|_| std::env::var("APPLE_SERVICE_ID"))
-        .map_err(|_| ApiError::from(shared::AppError::Internal(
-            "Apple Sign-In not configured".to_string()
-        )))?;
+        .map_err(|_| {
+            ApiError::from(shared::AppError::Internal(
+                "Apple Sign-In not configured".to_string(),
+            ))
+        })?;
 
     let claims = verify_apple_token(token, &apple_client_id).await?;
 
@@ -557,11 +634,14 @@ async fn verify_google_token(token: &str, client_id: &str) -> ApiResult<GoogleCl
     let header = decode_header(token)
         .map_err(|_| ApiError::from(shared::DomainError::InvalidCredentials))?;
 
-    let kid = header.kid
+    let kid = header
+        .kid
         .ok_or_else(|| ApiError::from(shared::DomainError::InvalidCredentials))?;
 
     // Find the matching key
-    let key = keys.keys.iter()
+    let key = keys
+        .keys
+        .iter()
         .find(|k| k.kid == kid)
         .ok_or_else(|| ApiError::from(shared::DomainError::InvalidCredentials))?;
 
@@ -588,11 +668,10 @@ async fn verify_google_token(token: &str, client_id: &str) -> ApiResult<GoogleCl
     validation.set_issuer(&["https://accounts.google.com", "accounts.google.com"]);
 
     // Decode and verify the token
-    let token_data = decode::<GoogleClaims>(token, &decoding_key, &validation)
-        .map_err(|e| {
-            tracing::error!("Google token verification failed: {:?}", e);
-            ApiError::from(shared::DomainError::InvalidCredentials)
-        })?;
+    let token_data = decode::<GoogleClaims>(token, &decoding_key, &validation).map_err(|e| {
+        tracing::error!("Google token verification failed: {:?}", e);
+        ApiError::from(shared::DomainError::InvalidCredentials)
+    })?;
 
     // Verify email is verified
     if !token_data.claims.email_verified {
@@ -609,10 +688,13 @@ async fn verify_apple_token(token: &str, client_id: &str) -> ApiResult<AppleClai
     let header = decode_header(token)
         .map_err(|_| ApiError::from(shared::DomainError::InvalidCredentials))?;
 
-    let kid = header.kid
+    let kid = header
+        .kid
         .ok_or_else(|| ApiError::from(shared::DomainError::InvalidCredentials))?;
 
-    let key = keys.keys.iter()
+    let key = keys
+        .keys
+        .iter()
         .find(|k| k.kid == kid)
         .ok_or_else(|| ApiError::from(shared::DomainError::InvalidCredentials))?;
 
@@ -624,13 +706,19 @@ async fn verify_apple_token(token: &str, client_id: &str) -> ApiResult<AppleClai
 
     // Add iOS bundle ID if configured (iOS uses app bundle ID as audience)
     if let Ok(ios_bundle_id) = std::env::var("APPLE_IOS_BUNDLE_ID") {
-        tracing::info!("Adding APPLE_IOS_BUNDLE_ID to valid audiences: {}", ios_bundle_id);
+        tracing::info!(
+            "Adding APPLE_IOS_BUNDLE_ID to valid audiences: {}",
+            ios_bundle_id
+        );
         valid_audiences.push(ios_bundle_id);
     }
 
     // Also check for alternative environment variable names
     if let Ok(ios_bundle_id) = std::env::var("PUBLIC_APPLE_IOS_BUNDLE_ID") {
-        tracing::info!("Adding PUBLIC_APPLE_IOS_BUNDLE_ID to valid audiences: {}", ios_bundle_id);
+        tracing::info!(
+            "Adding PUBLIC_APPLE_IOS_BUNDLE_ID to valid audiences: {}",
+            ios_bundle_id
+        );
         valid_audiences.push(ios_bundle_id);
     }
 
@@ -655,11 +743,10 @@ async fn verify_apple_token(token: &str, client_id: &str) -> ApiResult<AppleClai
     validation.set_audience(&valid_audiences);
     validation.set_issuer(&["https://appleid.apple.com"]);
 
-    let token_data = decode::<AppleClaims>(token, &decoding_key, &validation)
-        .map_err(|e| {
-            tracing::error!("Apple token verification failed: {:?}", e);
-            ApiError::from(shared::DomainError::InvalidCredentials)
-        })?;
+    let token_data = decode::<AppleClaims>(token, &decoding_key, &validation).map_err(|e| {
+        tracing::error!("Apple token verification failed: {:?}", e);
+        ApiError::from(shared::DomainError::InvalidCredentials)
+    })?;
 
     Ok(token_data.claims)
 }
@@ -684,14 +771,17 @@ async fn get_google_keys() -> ApiResult<GoogleKeys> {
         .await
         .map_err(|e| {
             tracing::error!("Failed to fetch Google keys: {:?}", e);
-            ApiError::from(shared::AppError::Internal("Failed to verify token".to_string()))
+            ApiError::from(shared::AppError::Internal(
+                "Failed to verify token".to_string(),
+            ))
         })?;
 
-    let keys: GoogleKeys = response.json().await
-        .map_err(|e| {
-            tracing::error!("Failed to parse Google keys: {:?}", e);
-            ApiError::from(shared::AppError::Internal("Failed to verify token".to_string()))
-        })?;
+    let keys: GoogleKeys = response.json().await.map_err(|e| {
+        tracing::error!("Failed to parse Google keys: {:?}", e);
+        ApiError::from(shared::AppError::Internal(
+            "Failed to verify token".to_string(),
+        ))
+    })?;
 
     // Update cache
     {
@@ -722,14 +812,17 @@ async fn get_apple_keys() -> ApiResult<AppleKeys> {
         .await
         .map_err(|e| {
             tracing::error!("Failed to fetch Apple keys: {:?}", e);
-            ApiError::from(shared::AppError::Internal("Failed to verify token".to_string()))
+            ApiError::from(shared::AppError::Internal(
+                "Failed to verify token".to_string(),
+            ))
         })?;
 
-    let keys: AppleKeys = response.json().await
-        .map_err(|e| {
-            tracing::error!("Failed to parse Apple keys: {:?}", e);
-            ApiError::from(shared::AppError::Internal("Failed to verify token".to_string()))
-        })?;
+    let keys: AppleKeys = response.json().await.map_err(|e| {
+        tracing::error!("Failed to parse Apple keys: {:?}", e);
+        ApiError::from(shared::AppError::Internal(
+            "Failed to verify token".to_string(),
+        ))
+    })?;
 
     // Update cache
     {
