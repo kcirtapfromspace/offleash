@@ -22,11 +22,11 @@
 
 	// Redirect to customer-web for OAuth authentication
 	// OAuth providers (Apple, Google) only have the root domain registered
-	function handleOAuthLogin(provider: 'google' | 'apple') {
+	// Don't pass provider param - let user click OAuth button on customer-web (proper gesture context)
+	function handleOAuthLogin(_provider: 'google' | 'apple') {
 		const authUrl = new URL('/login', customerWebUrl);
 		authUrl.searchParams.set('app', 'admin');
-		authUrl.searchParams.set('redirect', redirectPath);
-		authUrl.searchParams.set('provider', provider);
+		authUrl.searchParams.set('redirect', window.location.origin + redirectPath);
 		window.location.href = authUrl.toString();
 	}
 </script>
