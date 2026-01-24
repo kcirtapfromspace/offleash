@@ -2,6 +2,7 @@ import { redirect, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { api, ApiError } from '$lib/api';
 import { setAuthCookie } from '$lib/cookies';
+import { env } from '$env/dynamic/public';
 
 interface MembershipInfo {
 	id: string;
@@ -116,9 +117,14 @@ export const actions: Actions = {
 				}
 			}
 
-			// If no active membership from subdomain, use default or first available
+			// If no active membership from subdomain, prefer customer role for customer-web
 			if (!activeMembership && response.memberships && response.memberships.length > 0) {
-				activeMembership = response.memberships.find(m => m.is_default) || response.memberships[0];
+				// First try to find a customer membership (preferred for customer-web)
+				activeMembership = response.memberships.find(m => m.role === 'customer');
+				// Fall back to default or first if no customer membership exists
+				if (!activeMembership) {
+					activeMembership = response.memberships.find(m => m.is_default) || response.memberships[0];
+				}
 			}
 
 			// Switch context to get a token with org_id
@@ -165,6 +171,12 @@ export const actions: Actions = {
 
 			// Determine redirect destination
 			let destination = '/services';
+
+			// If user ended up in an admin role (no customer memberships), redirect to admin app
+			if (activeMembership && ['walker', 'owner', 'admin'].includes(activeMembership.role)) {
+				const adminUrl = env.PUBLIC_ADMIN_URL || 'https://paperwork.offleash.world';
+				throw redirect(303, adminUrl);
+			}
 
 			if (selectedRole === 'walker') {
 				// Check if user has any walker/owner/admin memberships

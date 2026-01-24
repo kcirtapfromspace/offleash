@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { env } from '$env/dynamic/public';
 
 	function selectRole(role: 'customer' | 'walker') {
 		// Redirect to login/register with role parameter
@@ -7,7 +8,9 @@
 		if (role === 'customer') {
 			goto('/login?role=customer&redirect=/services');
 		} else {
-			goto('/login?role=walker&redirect=/onboarding/walker');
+			// Walker/staff should use the admin app
+			const adminUrl = env.PUBLIC_ADMIN_URL || 'https://paperwork.offleash.world';
+			window.location.href = adminUrl;
 		}
 	}
 </script>
