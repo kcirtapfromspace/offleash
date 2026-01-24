@@ -157,7 +157,6 @@ jobs:
       - name: Create Export Options
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          PROFILE_NAME: ${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}
         run: |
           cat > $RUNNER_TEMP/ExportOptions.plist << EXPORTEOF
           <?xml version="1.0" encoding="UTF-8"?>
@@ -175,14 +174,7 @@ jobs:
               <key>destination</key>
               <string>upload</string>
               <key>signingStyle</key>
-              <string>manual</string>
-              <key>signingCertificate</key>
-              <string>Apple Distribution</string>
-              <key>provisioningProfiles</key>
-              <dict>
-                  <key>com.offleash.ios</key>
-                  <string>${PROFILE_NAME}</string>
-              </dict>
+              <string>automatic</string>
           </dict>
           </plist>
           EXPORTEOF
@@ -198,6 +190,7 @@ jobs:
             -archivePath $RUNNER_TEMP/OFFLEASH.xcarchive \
             -exportPath $RUNNER_TEMP/export \
             -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
+            -allowProvisioningUpdates \
             -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8 \
             -authenticationKeyID "$API_KEY_ID" \
             -authenticationKeyIssuerID "$API_ISSUER_ID"
