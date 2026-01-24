@@ -31,7 +31,12 @@ jobs:
           echo "iOS version: ${VERSION} (${BUILD})"
 
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+        run: |
+          # Use the latest available Xcode
+          XCODE_PATH=$(ls -d /Applications/Xcode*.app | tail -1)
+          echo "Using Xcode at: $XCODE_PATH"
+          sudo xcode-select -s "$XCODE_PATH"
+          xcodebuild -version
 
       - name: Build for testing
         run: |
