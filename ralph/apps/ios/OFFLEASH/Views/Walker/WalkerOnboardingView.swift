@@ -8,7 +8,8 @@
 import SwiftUI
 
 enum WalkerOnboardingStep {
-    case tenantChoice
+    case orgPicker      // Show existing orgs to pick from
+    case tenantChoice   // Create or join (no existing orgs)
     case createTenant
     case joinTenant
 }
@@ -16,6 +17,7 @@ enum WalkerOnboardingStep {
 struct WalkerOnboardingView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.analyticsService) private var analyticsService
+    @ObservedObject private var session = UserSession.shared
 
     @State private var currentStep: WalkerOnboardingStep = .tenantChoice
 
@@ -23,9 +25,29 @@ struct WalkerOnboardingView: View {
     var inviteToken: String?
     var onOnboardingComplete: () -> Void
 
+    /// Walker/admin memberships the user already has
+    private var existingWalkerMemberships: [Membership] {
+        session.memberships.filter { $0.role.isWalkerOrAdmin }
+    }
+
     var body: some View {
         Group {
             switch currentStep {
+            case .orgPicker:
+                WalkerOrgPickerView(
+                    walkerMemberships: existingWalkerMemberships,
+                    onOrgSelected: {
+                        onOnboardingComplete()
+                    },
+                    onCreateNew: {
+                        currentStep = .createTenant
+                    },
+                    onJoinExisting: {
+                        currentStep = .joinTenant
+                    }
+                )
+                .withThemeManager(themeManager)
+
             case .tenantChoice:
                 TenantChoiceView(
                     onCreateTenant: {
@@ -43,7 +65,8 @@ struct WalkerOnboardingView: View {
                         onOnboardingComplete()
                     },
                     onBack: {
-                        currentStep = .tenantChoice
+                        // Go back to appropriate view
+                        currentStep = existingWalkerMemberships.isEmpty ? .tenantChoice : .orgPicker
                     }
                 )
                 .withThemeManager(themeManager)
@@ -55,16 +78,24 @@ struct WalkerOnboardingView: View {
                         onOnboardingComplete()
                     },
                     onBack: {
-                        currentStep = .tenantChoice
+                        // Go back to appropriate view
+                        currentStep = existingWalkerMemberships.isEmpty ? .tenantChoice : .orgPicker
                     }
                 )
                 .withThemeManager(themeManager)
             }
         }
         .onAppear {
-            // If we have an invite token, go directly to join flow
+            // Determine initial step based on user's state
             if inviteToken != nil {
+                // If we have an invite token, go directly to join flow
                 currentStep = .joinTenant
+            } else if !existingWalkerMemberships.isEmpty {
+                // User has existing walker/owner orgs - let them pick
+                currentStep = .orgPicker
+            } else {
+                // No existing orgs - show create/join choice
+                currentStep = .tenantChoice
             }
         }
     }

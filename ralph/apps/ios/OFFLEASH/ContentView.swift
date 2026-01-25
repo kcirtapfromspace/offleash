@@ -70,12 +70,21 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            // Determine if walker onboarding is needed
-            // - User selected walker role but has no walker/admin memberships
-            // - Or user has walker role but no organization
-            let needsWalkerOnboarding = (selectedRole == .walker || userSession.currentUser?.role == .walker)
-                && !userSession.memberships.contains { $0.role.isWalkerOrAdmin }
-            showWalkerOnboarding = needsWalkerOnboarding
+            // Determine if walker onboarding/org picker is needed
+            // Show onboarding flow (which includes org picker) when:
+            // - User selected walker role during login, OR
+            // - User's base role is walker
+            // The WalkerOnboardingView will then decide whether to show:
+            // - Org picker (if they have existing walker/owner memberships)
+            // - Create/join choice (if they have no walker memberships)
+            let isWalkerFlow = selectedRole == .walker || userSession.currentUser?.role == .walker
+            let hasWalkerMembership = userSession.memberships.contains { $0.role.isWalkerOrAdmin }
+
+            // Show onboarding if walker flow AND either no membership OR no current walker membership selected
+            showWalkerOnboarding = isWalkerFlow && (
+                !hasWalkerMembership ||
+                userSession.currentMembership?.role.isWalkerOrAdmin != true
+            )
 
             // Load contexts on appear if not already loaded
             if userSession.memberships.isEmpty {
