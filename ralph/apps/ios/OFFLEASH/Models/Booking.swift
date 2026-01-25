@@ -15,6 +15,7 @@ enum BookingStatus: String, Codable, CaseIterable {
     case inProgress = "in_progress"
     case completed
     case cancelled
+    case noShow = "no_show"
 
     var displayName: String {
         switch self {
@@ -23,6 +24,7 @@ enum BookingStatus: String, Codable, CaseIterable {
         case .inProgress: return "In Progress"
         case .completed: return "Completed"
         case .cancelled: return "Cancelled"
+        case .noShow: return "No Show"
         }
     }
 
@@ -33,6 +35,7 @@ enum BookingStatus: String, Codable, CaseIterable {
         case .inProgress: return "green"
         case .completed: return "gray"
         case .cancelled: return "red"
+        case .noShow: return "red"
         }
     }
 }
@@ -82,7 +85,7 @@ struct Booking: Identifiable, Codable {
         switch status {
         case .pending, .confirmed:
             return !isPast
-        case .inProgress, .completed, .cancelled:
+        case .inProgress, .completed, .cancelled, .noShow:
             return false
         }
     }
@@ -92,7 +95,7 @@ struct Booking: Identifiable, Codable {
         switch status {
         case .pending, .confirmed:
             return !isPast
-        case .inProgress, .completed, .cancelled:
+        case .inProgress, .completed, .cancelled, .noShow:
             return false
         }
     }
