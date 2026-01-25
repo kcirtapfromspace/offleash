@@ -52,7 +52,6 @@ struct Membership: Codable, Identifiable, Equatable {
     let organizationName: String
     let organizationSlug: String
     let role: MembershipRole
-    let isDefault: Bool
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -60,7 +59,6 @@ struct Membership: Codable, Identifiable, Equatable {
         case organizationName = "organization_name"
         case organizationSlug = "organization_slug"
         case role
-        case isDefault = "is_default"
     }
 
     static func == (lhs: Membership, rhs: Membership) -> Bool {
@@ -78,11 +76,19 @@ struct SwitchContextResponse: Codable {
 // MARK: - Contexts Response
 
 struct ContextsResponse: Decodable {
-    let currentMembership: Membership?
     let memberships: [Membership]
+    let defaultMembershipId: String?
+
+    /// The current/default membership based on defaultMembershipId
+    var currentMembership: Membership? {
+        guard let defaultId = defaultMembershipId else {
+            return memberships.first
+        }
+        return memberships.first { $0.id == defaultId } ?? memberships.first
+    }
 
     enum CodingKeys: String, CodingKey {
-        case currentMembership = "current_membership"
         case memberships
+        case defaultMembershipId = "default_membership_id"
     }
 }
