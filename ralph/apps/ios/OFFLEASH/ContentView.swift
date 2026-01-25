@@ -137,15 +137,21 @@ struct ContentView: View {
         defer { isLoadingContexts = false }
 
         do {
+            print("[ContentView] Fetching contexts...")
             let contextsResponse = try await APIClient.shared.fetchContexts()
+            print("[ContentView] Got \(contextsResponse.memberships.count) memberships")
+            for m in contextsResponse.memberships {
+                print("[ContentView]   - \(m.organizationName): \(m.role.rawValue)")
+            }
             await MainActor.run {
                 UserSession.shared.setMemberships(
                     contextsResponse.memberships,
                     current: contextsResponse.currentMembership
                 )
+                print("[ContentView] Set memberships in UserSession")
             }
         } catch {
-            print("Failed to load contexts: \(error)")
+            print("[ContentView] Failed to load contexts: \(error)")
             // Continue without contexts - user can still use the app
         }
     }
