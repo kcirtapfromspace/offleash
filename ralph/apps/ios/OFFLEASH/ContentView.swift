@@ -17,8 +17,14 @@ struct ContentView: View {
     /// The role selected during login/register flow - used for routing new users
     var selectedRole: SelectedRole
 
+    /// Whether this is a fresh login (user just authenticated) vs returning user
+    var isFreshLogin: Bool = true
+
     /// Optional invite token from deep link for walker onboarding
     var inviteToken: String?
+
+    /// Called when user wants to go back to role selection (logout and restart)
+    var onBackToRoleSelection: (() -> Void)?
 
     /// Determines if the current user should see the walker/admin experience
     private var shouldShowWalkerExperience: Bool {
@@ -49,7 +55,7 @@ struct ContentView: View {
                         .foregroundColor(.secondary)
                 }
             } else if shouldShowWalkerExperience {
-                // Walker/Admin view - show onboarding if needed, else dashboard
+                // Walker/Admin view - show onboarding/picker if needed, else dashboard
                 if showWalkerOnboarding || userSession.needsOnboarding {
                     WalkerOnboardingView(
                         inviteToken: inviteToken,
@@ -59,7 +65,8 @@ struct ContentView: View {
                             Task {
                                 await refreshUserSession()
                             }
-                        }
+                        },
+                        onBack: onBackToRoleSelection
                     )
                 } else {
                     WalkerTabView()
@@ -71,20 +78,25 @@ struct ContentView: View {
         }
         .onAppear {
             // Determine if walker onboarding/org picker is needed
-            // Show onboarding flow (which includes org picker) when:
-            // - User selected walker role during login, OR
-            // - User's base role is walker
-            // The WalkerOnboardingView will then decide whether to show:
-            // - Org picker (if they have existing walker/owner memberships)
-            // - Create/join choice (if they have no walker memberships)
             let isWalkerFlow = selectedRole == .walker || userSession.currentUser?.role == .walker
             let hasWalkerMembership = userSession.memberships.contains { $0.role.isWalkerOrAdmin }
 
-            // Show onboarding if walker flow AND either no membership OR no current walker membership selected
-            showWalkerOnboarding = isWalkerFlow && (
-                !hasWalkerMembership ||
-                userSession.currentMembership?.role.isWalkerOrAdmin != true
-            )
+            // Show onboarding/org picker when:
+            // 1. Fresh login as walker (isFreshLogin && selectedRole == .walker) - always show picker
+            // 2. Walker with no walker memberships yet (needs to create/join)
+            // 3. Returning walker with no current walker membership selected
+            if isFreshLogin && selectedRole == .walker {
+                // Fresh login as walker - always show org picker (or create/join if no orgs)
+                showWalkerOnboarding = true
+            } else if isWalkerFlow && !hasWalkerMembership {
+                // Walker who needs to join/create an org
+                showWalkerOnboarding = true
+            } else if isWalkerFlow && userSession.currentMembership?.role.isWalkerOrAdmin != true {
+                // Walker but current membership isn't a walker role - show picker
+                showWalkerOnboarding = true
+            } else {
+                showWalkerOnboarding = false
+            }
 
             // Load contexts on appear if not already loaded
             if userSession.memberships.isEmpty {
@@ -140,7 +152,12 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView(selectedRole: .customer, inviteToken: nil)
-        .withThemeManager()
-        .environmentObject(SessionStateManager.shared)
+    ContentView(
+        selectedRole: .customer,
+        isFreshLogin: true,
+        inviteToken: nil,
+        onBackToRoleSelection: { print("Back to role selection") }
+    )
+    .withThemeManager()
+    .environmentObject(SessionStateManager.shared)
 }
