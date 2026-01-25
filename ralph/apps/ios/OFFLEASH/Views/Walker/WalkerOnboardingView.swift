@@ -90,17 +90,27 @@ struct WalkerOnboardingView: View {
             }
         }
         .onAppear {
-            // Determine initial step based on user's state
-            if inviteToken != nil {
-                // If we have an invite token, go directly to join flow
-                currentStep = .joinTenant
-            } else if !existingWalkerMemberships.isEmpty {
-                // User has existing walker/owner orgs - let them pick
-                currentStep = .orgPicker
-            } else {
-                // No existing orgs - show create/join choice
-                currentStep = .tenantChoice
-            }
+            updateStepBasedOnMemberships()
+        }
+        .onChange(of: session.memberships) { _ in
+            // Re-evaluate step when memberships load/change
+            updateStepBasedOnMemberships()
+        }
+    }
+
+    private func updateStepBasedOnMemberships() {
+        // Don't change step if user has navigated to create/join
+        guard currentStep == .orgPicker || currentStep == .tenantChoice else { return }
+
+        if inviteToken != nil {
+            // If we have an invite token, go directly to join flow
+            currentStep = .joinTenant
+        } else if !existingWalkerMemberships.isEmpty {
+            // User has existing walker/owner orgs - let them pick
+            currentStep = .orgPicker
+        } else {
+            // No existing orgs - show create/join choice
+            currentStep = .tenantChoice
         }
     }
 }
