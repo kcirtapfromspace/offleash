@@ -396,13 +396,12 @@ pub async fn refresh_token(
     auth_user: AuthUser,
 ) -> ApiResult<Json<RefreshResponse>> {
     // Create a new token with the same claims but fresh expiry
-    let token = create_token(auth_user.user_id, auth_user.org_id, &state.jwt_secret).map_err(
-        |_| {
+    let token =
+        create_token(auth_user.user_id, auth_user.org_id, &state.jwt_secret).map_err(|_| {
             ApiError::from(shared::AppError::Internal(
                 "Token creation failed".to_string(),
             ))
-        },
-    )?;
+        })?;
 
     Ok(Json(RefreshResponse {
         token,
