@@ -21,7 +21,7 @@ jobs:
   # Build and test on PRs only (no signing required)
   build:
     name: Build & Test
-    runs-on: macos-latest
+    runs-on: macos-14  # M1 runner - significantly faster than Intel
     if: github.event_name == 'pull_request'
     defaults:
       run:
@@ -30,11 +30,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: |
+            ralph/apps/ios/build/DerivedData
+          key: ${{ runner.os }}-deriveddata-${{ hashFiles('ralph/apps/ios/**/*.swift', 'ralph/apps/ios/**/*.xcodeproj/**') }}
+          restore-keys: |
+            ${{ runner.os }}-deriveddata-
+
       - name: Cache SPM packages
         uses: actions/cache@v4
         with:
           path: |
-            ralph/apps/ios/build/DerivedData/SourcePackages
             ~/Library/Caches/org.swift.swiftpm
           key: ${{ runner.os }}-spm-${{ hashFiles('ralph/apps/ios/OFFLEASH.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: |
@@ -48,23 +56,36 @@ jobs:
           xcodebuild -version
 
       - name: Build for testing
+        id: build
         run: |
+          BUILD_START=$(date +%s)
+
           # Find the first available iPhone simulator
           SIMULATOR_NAME=$(xcrun simctl list devices available | grep -m 1 "iPhone" | sed -E 's/^[[:space:]]+([^(]+).*/\1/' | xargs)
           echo "Using simulator: $SIMULATOR_NAME"
+
+          # Build with parallel targets and maximum jobs
           xcodebuild build \
             -project $PROJECT \
             -scheme $SCHEME \
             -destination "platform=iOS Simulator,name=$SIMULATOR_NAME" \
             -configuration Debug \
             -derivedDataPath ./build/DerivedData \
+            -parallelizeTargets \
+            -jobs $(sysctl -n hw.ncpu) \
             CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO
+            CODE_SIGNING_REQUIRED=NO \
+            2>&1 | tee build.log
+
+          BUILD_END=$(date +%s)
+          BUILD_DURATION=$((BUILD_END - BUILD_START))
+          echo "build_duration=${BUILD_DURATION}" >> $GITHUB_OUTPUT
+          echo "::notice::Build completed in ${BUILD_DURATION}s"
 
   # Deploy to TestFlight on main branch pushes (runs in parallel, no wait)
   deploy-testflight:
     name: Deploy to TestFlight
-    runs-on: macos-latest
+    runs-on: macos-14  # M1 runner - significantly faster than Intel
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     defaults:
       run:
@@ -73,11 +94,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: |
+            ralph/apps/ios/build/DerivedData
+          key: ${{ runner.os }}-deriveddata-${{ hashFiles('ralph/apps/ios/**/*.swift', 'ralph/apps/ios/**/*.xcodeproj/**') }}
+          restore-keys: |
+            ${{ runner.os }}-deriveddata-
+
       - name: Cache SPM packages
         uses: actions/cache@v4
         with:
           path: |
-            ralph/apps/ios/build/DerivedData/SourcePackages
             ~/Library/Caches/org.swift.swiftpm
           key: ${{ runner.os }}-spm-${{ hashFiles('ralph/apps/ios/OFFLEASH.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: |
