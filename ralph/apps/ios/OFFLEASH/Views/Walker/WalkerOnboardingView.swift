@@ -24,6 +24,8 @@ struct WalkerOnboardingView: View {
     /// Optional invite token from deep link - if present, goes directly to join flow
     var inviteToken: String?
     var onOnboardingComplete: () -> Void
+    /// Called when user wants to go back to role selection
+    var onBack: (() -> Void)?
 
     /// Walker/admin memberships the user already has
     private var existingWalkerMemberships: [Membership] {
@@ -44,7 +46,8 @@ struct WalkerOnboardingView: View {
                     },
                     onJoinExisting: {
                         currentStep = .joinTenant
-                    }
+                    },
+                    onBack: onBack
                 )
                 .withThemeManager(themeManager)
 
@@ -55,7 +58,8 @@ struct WalkerOnboardingView: View {
                     },
                     onJoinTenant: {
                         currentStep = .joinTenant
-                    }
+                    },
+                    onBack: onBack
                 )
                 .withThemeManager(themeManager)
 
@@ -109,10 +113,29 @@ struct TenantChoiceView: View {
 
     var onCreateTenant: () -> Void
     var onJoinTenant: () -> Void
+    var onBack: (() -> Void)?
 
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
+                // Back button
+                if let onBack = onBack {
+                    HStack {
+                        Button(action: onBack) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text("Back")
+                                    .font(.body)
+                            }
+                            .foregroundColor(themeManager.primaryColor)
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 16)
+                }
+
                 Spacer()
 
                 // Header

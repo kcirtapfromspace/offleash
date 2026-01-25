@@ -19,12 +19,31 @@ struct WalkerOrgPickerView: View {
     var onOrgSelected: () -> Void
     var onCreateNew: () -> Void
     var onJoinExisting: () -> Void
+    var onBack: (() -> Void)?
 
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(spacing: 24) {
-                    Spacer(minLength: 40)
+                    // Back button
+                    if let onBack = onBack {
+                        HStack {
+                            Button(action: onBack) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "chevron.left")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("Back")
+                                        .font(.body)
+                                }
+                                .foregroundColor(themeManager.primaryColor)
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.top, 16)
+                    } else {
+                        Spacer(minLength: 40)
+                    }
 
                     // Header
                     VStack(spacing: 16) {
@@ -226,27 +245,11 @@ private struct OrgSelectionCard: View {
 
 #Preview {
     WalkerOrgPickerView(
-        walkerMemberships: [
-            Membership(
-                id: "1",
-                organizationId: "org1",
-                organizationName: "Happy Paws",
-                organizationSlug: "happy-paws",
-                role: .owner,
-                isDefault: true
-            ),
-            Membership(
-                id: "2",
-                organizationId: "org2",
-                organizationName: "OFFLEASH Demo",
-                organizationSlug: "demo",
-                role: .walker,
-                isDefault: false
-            )
-        ],
+        walkerMemberships: [],
         onOrgSelected: { print("Selected") },
         onCreateNew: { print("Create") },
-        onJoinExisting: { print("Join") }
+        onJoinExisting: { print("Join") },
+        onBack: { print("Back") }
     )
     .withThemeManager()
 }
