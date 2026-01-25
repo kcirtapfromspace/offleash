@@ -61,6 +61,7 @@ struct OFFLEASHApp: App {
     @State private var authFlowState: AuthFlowState = .roleSelection
     @State private var selectedRole: SelectedRole = .customer
     @State private var showSessionExpiredAlert = false
+    @State private var isFreshLogin: Bool = true
 
     init() {
         // Skip Firebase in UI testing mode or if configuration is invalid
@@ -105,9 +106,24 @@ struct OFFLEASHApp: App {
                     .withThemeManager(themeManager)
 
                 case .authenticated:
-                    ContentView(selectedRole: selectedRole)
-                        .withThemeManager(themeManager)
-                        .environmentObject(sessionStateManager)
+                    ContentView(
+                        selectedRole: selectedRole,
+                        isFreshLogin: isFreshLogin,
+                        onBackToRoleSelection: {
+                            // Clear auth and go back to role selection
+                            Task {
+                                await APIClient.shared.clearAuthToken()
+                                await MainActor.run {
+                                    UserSession.shared.clearUser()
+                                    isFreshLogin = true
+                                    appState = .unauthenticated
+                                    authFlowState = .roleSelection
+                                }
+                            }
+                        }
+                    )
+                    .withThemeManager(themeManager)
+                    .environmentObject(sessionStateManager)
 
                 case .unauthenticated:
                     switch authFlowState {
@@ -122,6 +138,7 @@ struct OFFLEASHApp: App {
                         LoginView(
                             selectedRole: selectedRole,
                             onLoginSuccess: {
+                                isFreshLogin = true
                                 appState = .authenticated
                             },
                             onNavigateToRegister: {
@@ -137,6 +154,7 @@ struct OFFLEASHApp: App {
                         RegisterView(
                             selectedRole: selectedRole,
                             onRegisterSuccess: {
+                                isFreshLogin = true
                                 appState = .authenticated
                             },
                             onNavigateToLogin: {
@@ -211,6 +229,8 @@ struct OFFLEASHApp: App {
                         UserSession.shared.setUser(user)
                         // Set selectedRole based on user's actual role for proper routing
                         selectedRole = role == .walker ? .walker : .customer
+                        // Returning user - don't show org picker immediately
+                        isFreshLogin = false
                     }
                 }
                 appState = .authenticated
@@ -223,12 +243,14 @@ struct OFFLEASHApp: App {
             // Check if it's a network error for graceful degradation
             if case APIError.networkError = error {
                 // Network error - allow user to proceed (graceful degradation)
+                isFreshLogin = false  // Returning user
                 appState = .authenticated
             } else if case APIError.unauthorized = error {
                 // Token was rejected - go to login
                 appState = .unauthenticated
             } else {
                 // Other errors - allow user to proceed (graceful degradation)
+                isFreshLogin = false  // Returning user
                 appState = .authenticated
             }
         }
