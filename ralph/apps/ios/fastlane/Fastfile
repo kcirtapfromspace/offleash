@@ -83,7 +83,8 @@ platform :ios do
       scheme: "OFFLEASH",
       configuration: "Release",
       export_method: "app-store",
-      derived_data_path: "./build/DerivedData"
+      derived_data_path: "./build/DerivedData",
+      xcargs: "-parallelizeTargets -jobs #{`sysctl -n hw.ncpu`.strip}"
     }
 
     # If provisioning profile is set in environment, use manual signing for CI
@@ -110,7 +111,8 @@ platform :ios do
       update_code_signing_settings(signing_opts)
 
       # Build - SPM packages use their defaults (no signing needed)
-      build_options[:xcargs] = "DEVELOPMENT_TEAM=#{team_id}"
+      # Append team ID to existing xcargs (parallel build flags)
+      build_options[:xcargs] = "#{build_options[:xcargs]} DEVELOPMENT_TEAM=#{team_id}"
       build_options[:export_options] = {
         teamID: team_id,
         signingStyle: "manual",
@@ -121,7 +123,8 @@ platform :ios do
       }
     else
       # Use automatic signing for local builds
-      build_options[:xcargs] = "-allowProvisioningUpdates"
+      # Append provisioning flag to existing xcargs (parallel build flags)
+      build_options[:xcargs] = "#{build_options[:xcargs]} -allowProvisioningUpdates"
     end
 
     # Build the app
