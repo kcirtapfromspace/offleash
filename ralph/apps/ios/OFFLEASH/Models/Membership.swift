@@ -46,20 +46,17 @@ enum MembershipRole: String, Codable, CaseIterable {
 
 // MARK: - Membership Model
 
+/// Note: APIClient uses keyDecodingStrategy = .convertFromSnakeCase
+/// so we don't need explicit CodingKeys for snake_case conversion
 struct Membership: Codable, Identifiable, Equatable {
     let id: String
     let organizationId: String
     let organizationName: String
     let organizationSlug: String
     let role: MembershipRole
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case organizationId = "organization_id"
-        case organizationName = "organization_name"
-        case organizationSlug = "organization_slug"
-        case role
-    }
+    // API also returns these optional fields - we include them to avoid decoding issues
+    let title: String?
+    let joinedAt: String?
 
     static func == (lhs: Membership, rhs: Membership) -> Bool {
         lhs.id == rhs.id
@@ -75,9 +72,16 @@ struct SwitchContextResponse: Codable {
 
 // MARK: - Contexts Response
 
+/// Note: APIClient uses keyDecodingStrategy = .convertFromSnakeCase
+/// so defaultMembershipId automatically maps from default_membership_id
 struct ContextsResponse: Decodable {
     let memberships: [Membership]
     let defaultMembershipId: String?
+    // API also returns user info - we include to avoid decoding issues
+    let userId: String?
+    let email: String?
+    let firstName: String?
+    let lastName: String?
 
     /// The current/default membership based on defaultMembershipId
     var currentMembership: Membership? {
@@ -85,10 +89,5 @@ struct ContextsResponse: Decodable {
             return memberships.first
         }
         return memberships.first { $0.id == defaultId } ?? memberships.first
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case memberships
-        case defaultMembershipId = "default_membership_id"
     }
 }
