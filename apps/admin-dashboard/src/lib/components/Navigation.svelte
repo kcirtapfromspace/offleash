@@ -39,6 +39,7 @@
 	const allNavItems = [
 		{ path: '/dashboard', label: 'Dashboard', roles: ['admin', 'owner', 'walker'] },
 		{ path: '/calendar', label: 'Calendar', roles: ['admin', 'owner', 'walker'] },
+		{ path: '/map', label: 'Map', roles: ['admin', 'owner', 'walker'] },
 		{ path: '/walkers', label: 'Staff', roles: ['admin', 'owner'] },
 		{ path: '/services', label: 'Services', roles: ['admin', 'owner'] },
 		{ path: '/bookings', label: 'Bookings', roles: ['admin', 'owner', 'walker'] },
