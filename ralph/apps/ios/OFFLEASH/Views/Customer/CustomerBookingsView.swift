@@ -459,7 +459,7 @@ struct CustomerStatusBadge: View {
             return .green
         case .completed:
             return .gray
-        case .cancelled:
+        case .cancelled, .noShow:
             return .red
         }
     }
