@@ -8,10 +8,12 @@
 import SwiftUI
 
 enum WalkerOnboardingStep {
-    case orgPicker      // Show existing orgs to pick from
+    case loading        // Waiting for memberships to load
+    case orgPicker      // Show existing orgs to pick from (2+ orgs)
     case tenantChoice   // Create or join (no existing orgs)
     case createTenant
     case joinTenant
+    case autoSelecting  // Auto-selecting single org
 }
 
 struct WalkerOnboardingView: View {
@@ -19,7 +21,8 @@ struct WalkerOnboardingView: View {
     @Environment(\.analyticsService) private var analyticsService
     @ObservedObject private var session = UserSession.shared
 
-    @State private var currentStep: WalkerOnboardingStep = .tenantChoice
+    @State private var currentStep: WalkerOnboardingStep = .loading
+    @State private var hasEvaluatedMemberships = false
 
     /// Optional invite token from deep link - if present, goes directly to join flow
     var inviteToken: String?
@@ -35,6 +38,15 @@ struct WalkerOnboardingView: View {
     var body: some View {
         Group {
             switch currentStep {
+            case .loading, .autoSelecting:
+                // Show loading while determining route or auto-selecting
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                    Text(currentStep == .autoSelecting ? "Loading your business..." : "Loading...")
+                        .foregroundColor(.secondary)
+                }
+
             case .orgPicker:
                 WalkerOrgPickerView(
                     walkerMemberships: existingWalkerMemberships,
@@ -90,27 +102,61 @@ struct WalkerOnboardingView: View {
             }
         }
         .onAppear {
-            updateStepBasedOnMemberships()
+            evaluateMembershipsAndRoute()
         }
-        .onChange(of: session.memberships) { _ in
-            // Re-evaluate step when memberships load/change
-            updateStepBasedOnMemberships()
+        .onReceive(session.$memberships) { memberships in
+            // Re-evaluate when memberships change (more reliable than onChange)
+            print("[WalkerOnboarding] Memberships updated: \(memberships.count) total")
+            evaluateMembershipsAndRoute()
         }
     }
 
-    private func updateStepBasedOnMemberships() {
+    private func evaluateMembershipsAndRoute() {
         // Don't change step if user has navigated to create/join
-        guard currentStep == .orgPicker || currentStep == .tenantChoice else { return }
+        guard currentStep == .loading || currentStep == .orgPicker || currentStep == .tenantChoice else { return }
 
+        // If invite token, go directly to join flow
         if inviteToken != nil {
-            // If we have an invite token, go directly to join flow
             currentStep = .joinTenant
-        } else if !existingWalkerMemberships.isEmpty {
-            // User has existing walker/owner orgs - let them pick
-            currentStep = .orgPicker
-        } else {
-            // No existing orgs - show create/join choice
+            return
+        }
+
+        let walkerOrgs = existingWalkerMemberships
+        print("[WalkerOnboarding] Walker/admin orgs: \(walkerOrgs.count)")
+
+        switch walkerOrgs.count {
+        case 0:
+            // No walker/admin orgs - show create/join choice
             currentStep = .tenantChoice
+
+        case 1:
+            // Exactly 1 org - auto-select and go to dashboard
+            let singleOrg = walkerOrgs[0]
+            print("[WalkerOnboarding] Auto-selecting single org: \(singleOrg.organizationName)")
+            currentStep = .autoSelecting
+            autoSelectOrg(singleOrg)
+
+        default:
+            // Multiple orgs - show picker
+            currentStep = .orgPicker
+        }
+    }
+
+    private func autoSelectOrg(_ membership: Membership) {
+        Task {
+            do {
+                _ = try await APIClient.shared.switchContext(membershipId: membership.id)
+                await MainActor.run {
+                    print("[WalkerOnboarding] Auto-selected org, completing onboarding")
+                    onOnboardingComplete()
+                }
+            } catch {
+                // If switch fails, show the org picker so user can try manually
+                await MainActor.run {
+                    print("[WalkerOnboarding] Auto-select failed: \(error)")
+                    currentStep = .orgPicker
+                }
+            }
         }
     }
 }
