@@ -354,7 +354,7 @@ struct ScheduleBookingRow: View {
         case .inProgress: return .green
         case .pending: return .orange
         case .completed: return .gray
-        case .cancelled: return .red
+        case .cancelled, .noShow: return .red
         }
     }
 }
@@ -381,7 +381,7 @@ struct StatusBadge: View {
         case .confirmed: return .blue
         case .inProgress: return .green
         case .completed: return .gray
-        case .cancelled: return .red
+        case .cancelled, .noShow: return .red
         }
     }
 }

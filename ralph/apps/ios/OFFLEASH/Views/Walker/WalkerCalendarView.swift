@@ -296,7 +296,7 @@ struct BookingEventBlock: View {
         case .confirmed: return primaryColor
         case .inProgress: return .green
         case .completed: return .gray
-        case .cancelled: return .red
+        case .cancelled, .noShow: return .red
         }
     }
 }

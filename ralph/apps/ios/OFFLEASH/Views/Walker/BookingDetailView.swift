@@ -88,10 +88,10 @@ struct BookingDetailView: View {
                     .fontWeight(.bold)
             }
             Spacer()
-            Text(booking.priceDisplay)
-                .font(.title)
-                .fontWeight(.bold)
-                .foregroundColor(themeManager.primaryColor)
+            Text("\(booking.duration) min")
+                .font(.title3)
+                .fontWeight(.semibold)
+                .foregroundColor(.secondary)
         }
         .padding()
         .background(statusColor.opacity(0.1))
@@ -104,7 +104,7 @@ struct BookingDetailView: View {
         case .confirmed: return .blue
         case .inProgress: return .green
         case .completed: return .gray
-        case .cancelled: return .red
+        case .cancelled, .noShow: return .red
         }
     }
 
@@ -194,18 +194,12 @@ struct BookingDetailView: View {
 
     private var serviceSection: some View {
         DetailSection(title: "Service", icon: "pawprint") {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(booking.serviceName ?? "Service")
-                        .font(.body)
-                    Text("\(booking.duration) min")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-                Text(booking.priceDisplay)
-                    .font(.headline)
-                    .foregroundColor(themeManager.primaryColor)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(booking.serviceName ?? "Service")
+                    .font(.body)
+                Text("\(booking.duration) min")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         }
     }
@@ -319,7 +313,7 @@ struct BookingDetailView: View {
                     .cornerRadius(12)
                 }
 
-            case .completed, .cancelled:
+            case .completed, .cancelled, .noShow:
                 EmptyView()
             }
         }
@@ -357,23 +351,23 @@ struct DetailSection<Content: View>: View {
         booking: Booking(
             id: "1",
             customerId: "c1",
-            customerName: "John Smith",
+            customerName: "Sarah Johnson",
             walkerId: "w1",
             walkerName: "Alex",
             serviceId: "s1",
             serviceName: "30 Min Walk",
             locationId: "l1",
-            locationAddress: "123 Main St, San Francisco, CA",
-            latitude: 37.7749,
-            longitude: -122.4194,
+            locationAddress: "1600 Broadway, Denver, CO 80202",
+            latitude: 39.7392,
+            longitude: -104.9903,
             status: .confirmed,
             scheduledStart: Date(),
             scheduledEnd: Date().addingTimeInterval(1800),
-            priceCents: 3500,
-            priceDisplay: "$35.00",
-            notes: "Please use the side gate",
-            customerPhone: "555-123-4567",
-            petName: "Max",
+            priceCents: 0,
+            priceDisplay: "",
+            notes: "Please use the side gate by the garden",
+            customerPhone: "720-555-1234",
+            petName: "Luna",
             petBreed: "Golden Retriever"
         ),
         onAction: { _ in }

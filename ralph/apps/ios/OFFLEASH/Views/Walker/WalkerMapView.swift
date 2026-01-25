@@ -132,13 +132,6 @@ struct WalkerMapView: View {
                     label: "Driving",
                     color: .orange
                 )
-
-                StatItem(
-                    icon: "dollarsign.circle.fill",
-                    value: viewModel.totalEarningsString,
-                    label: "Earnings",
-                    color: .blue
-                )
             }
 
             // Optimization status
@@ -270,7 +263,7 @@ struct BookingMapPin: View {
         case .confirmed: return primaryColor
         case .inProgress: return .green
         case .completed: return .gray
-        case .cancelled: return .red
+        case .cancelled, .noShow: return .red
         }
     }
 }
@@ -680,9 +673,50 @@ class WalkerMapViewModel: ObservableObject {
     }
 
     private func optimizeForMinimalTravel() async {
-        // Nearest neighbor algorithm for TSP approximation
+        // Use backend route optimization API
         guard !bookings.isEmpty else { return }
 
+        do {
+            // Get the walker's user ID from stored credentials
+            guard let userId = UserDefaults.standard.string(forKey: "userId") else {
+                // Fallback to local optimization if no user ID
+                await localOptimizeForMinimalTravel()
+                return
+            }
+
+            let response = try await AvailabilityService.shared.optimizeRoute(
+                walkerId: userId,
+                date: Date()
+            )
+
+            // Reorder bookings based on API response
+            var optimizedBookings: [Booking] = []
+            for stop in response.stops {
+                if let booking = bookings.first(where: { $0.id == stop.bookingId }) {
+                    optimizedBookings.append(booking)
+                }
+            }
+
+            // Update with optimized order
+            if !optimizedBookings.isEmpty {
+                bookings = optimizedBookings
+                isOptimized = true
+                timeSaved = response.savingsMinutes
+            } else {
+                // Fallback if response doesn't match
+                await localOptimizeForMinimalTravel()
+            }
+        } catch {
+            print("Failed to optimize route via API: \(error)")
+            // Fallback to local optimization
+            await localOptimizeForMinimalTravel()
+        }
+    }
+
+    private var timeSaved: Int = 0
+
+    private func localOptimizeForMinimalTravel() async {
+        // Nearest neighbor algorithm for TSP approximation (local fallback)
         var remaining = bookings
         var optimized: [Booking] = []
         var currentCoord = currentLocation ?? CLLocationCoordinate2D(latitude: 39.7392, longitude: -104.9903)
