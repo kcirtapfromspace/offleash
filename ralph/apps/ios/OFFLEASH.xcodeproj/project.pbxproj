@@ -39,6 +39,8 @@
 		A1000001229D0093000A0001 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0092000A0001 /* User.swift */; };
 		A1000001229D0096000A0001 /* WalkerDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0095000A0001 /* WalkerDashboardView.swift */; };
 		A1000001229D0098000A0001 /* WalkerCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0097000A0001 /* WalkerCalendarView.swift */; };
+		A1000001229DCWKV000A0002 /* CalendarWeekView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DCWKV000A0001 /* CalendarWeekView.swift */; };
+		A1000001229DCMNV000A0002 /* CalendarMonthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DCMNV000A0001 /* CalendarMonthView.swift */; };
 		A1000001229D009A000A0001 /* BookingDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0099000A0001 /* BookingDetailView.swift */; };
 		A1000001229D009C000A0001 /* PendingBookingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D009B000A0001 /* PendingBookingsView.swift */; };
 		A1000001229D009E000A0001 /* WalkerTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D009D000A0001 /* WalkerTabView.swift */; };
@@ -132,6 +134,8 @@
 		A1000001229D0092000A0001 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		A1000001229D0095000A0001 /* WalkerDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerDashboardView.swift; sourceTree = "<group>"; };
 		A1000001229D0097000A0001 /* WalkerCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCalendarView.swift; sourceTree = "<group>"; };
+		A1000001229DCWKV000A0001 /* CalendarWeekView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarWeekView.swift; sourceTree = "<group>"; };
+		A1000001229DCMNV000A0001 /* CalendarMonthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarMonthView.swift; sourceTree = "<group>"; };
 		A1000001229D0099000A0001 /* BookingDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookingDetailView.swift; sourceTree = "<group>"; };
 		A1000001229D009B000A0001 /* PendingBookingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingBookingsView.swift; sourceTree = "<group>"; };
 		A1000001229D009D000A0001 /* WalkerTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerTabView.swift; sourceTree = "<group>"; };
@@ -335,6 +339,8 @@
 				A1000001229D009D000A0001 /* WalkerTabView.swift */,
 				A1000001229D0095000A0001 /* WalkerDashboardView.swift */,
 				A1000001229D0097000A0001 /* WalkerCalendarView.swift */,
+				A1000001229DCWKV000A0001 /* CalendarWeekView.swift */,
+				A1000001229DCMNV000A0001 /* CalendarMonthView.swift */,
 				A1000001229D00B4000A0001 /* WalkerMapView.swift */,
 				A1000001229D0099000A0001 /* BookingDetailView.swift */,
 				A1000001229D009B000A0001 /* PendingBookingsView.swift */,
@@ -533,6 +539,8 @@
 				A1000001229DROLE000A0002 /* SelectedRole.swift in Sources */,
 				A1000001229D0096000A0001 /* WalkerDashboardView.swift in Sources */,
 				A1000001229D0098000A0001 /* WalkerCalendarView.swift in Sources */,
+				A1000001229DCWKV000A0002 /* CalendarWeekView.swift in Sources */,
+				A1000001229DCMNV000A0002 /* CalendarMonthView.swift in Sources */,
 				A1000001229D009A000A0001 /* BookingDetailView.swift in Sources */,
 				A1000001229D009C000A0001 /* PendingBookingsView.swift in Sources */,
 				A1000001229D009E000A0001 /* WalkerTabView.swift in Sources */,
