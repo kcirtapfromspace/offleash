@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		8FA62CFB2F232B6B00CDC946 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = A1000001229D00C2000A0001 /* GoogleSignIn */; };
 		8FA62CFC2F232B6B00CDC946 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = A1000001229D00C3000A0001 /* GoogleSignInSwift */; };
+		8FA62CFE2F26ED1C00CDC946 /* AvailabilityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FA62CFD2F26ED1C00CDC946 /* AvailabilityService.swift */; };
 		A1000001229D0001000A0001 /* OFFLEASHApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0002000A0001 /* OFFLEASHApp.swift */; };
 		A1000001229D0003000A0001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0004000A0001 /* ContentView.swift */; };
 		A1000001229D0005000A0001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1000001229D0006000A0001 /* Assets.xcassets */; };
@@ -36,17 +37,6 @@
 		A1000001229D008C000A0001 /* PasswordRequirements.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D008D000A0001 /* PasswordRequirements.swift */; };
 		A1000001229D0091000A0001 /* Booking.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0090000A0001 /* Booking.swift */; };
 		A1000001229D0093000A0001 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0092000A0001 /* User.swift */; };
-		A1000001229DMEMB000A0002 /* Membership.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DMEMB000A0001 /* Membership.swift */; };
-		A1000001229DROLE000A0002 /* SelectedRole.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DROLE000A0001 /* SelectedRole.swift */; };
-		A1000001229DRESC000A0002 /* RescheduleBookingSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DRESC000A0001 /* RescheduleBookingSheet.swift */; };
-		A1000001229DROLS000A0002 /* RoleSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DROLS000A0001 /* RoleSelectionView.swift */; };
-		A1000001229DPERS000A0002 /* PersonaSwitcherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DPERS000A0001 /* PersonaSwitcherView.swift */; };
-		A1000001229DWONB000A0002 /* WalkerOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DWONB000A0001 /* WalkerOnboardingView.swift */; };
-		A1000001229DWOPK000A0002 /* WalkerOrgPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DWOPK000A0001 /* WalkerOrgPickerView.swift */; };
-		A1000001229DCRTN000A0002 /* CreateTenantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DCRTN000A0001 /* CreateTenantView.swift */; };
-		A1000001229DJNTN000A0002 /* JoinTenantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DJNTN000A0001 /* JoinTenantView.swift */; };
-		A1000001229DINVW000A0002 /* InviteWalkerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DINVW000A0001 /* InviteWalkerView.swift */; };
-		A1000001229DINVC000A0002 /* InviteClientView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DINVC000A0001 /* InviteClientView.swift */; };
 		A1000001229D0096000A0001 /* WalkerDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0095000A0001 /* WalkerDashboardView.swift */; };
 		A1000001229D0098000A0001 /* WalkerCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0097000A0001 /* WalkerCalendarView.swift */; };
 		A1000001229D009A000A0001 /* BookingDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D0099000A0001 /* BookingDetailView.swift */; };
@@ -67,28 +57,39 @@
 		A1000001229D00B9000A0001 /* WorkingHoursView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00B8000A0001 /* WorkingHoursView.swift */; };
 		A1000001229D00BB000A0001 /* ServiceAreasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00BA000A0001 /* ServiceAreasView.swift */; };
 		A1000001229D00BC000A0001 /* OAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229D00BD000A0001 /* OAuthService.swift */; };
-		A2UITEST229D0001000A0001 /* WalkerAppDemoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2UITEST229D0002000A0001 /* WalkerAppDemoTests.swift */; };
-		A2UITEST229D0003000A0001 /* E2ETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2UITEST229D0004000A0001 /* E2ETests.swift */; };
-		A100PAYTXN002000A0001 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PAYTXN001000A0001 /* Transaction.swift */; };
-		A100PAYCHK002000A0001 /* Checkout.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PAYCHK001000A0001 /* Checkout.swift */; };
-		A100PAYSUB002000A0001 /* Subscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PAYSUB001000A0001 /* Subscription.swift */; };
-		A100PAYSVC002000A0001 /* PaymentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PAYSVC001000A0001 /* PaymentService.swift */; };
-		A100PAYCV0002000A0001 /* CheckoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PAYCV0001000A0001 /* CheckoutView.swift */; };
-		A100PAYTH0002000A0001 /* TransactionHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PAYTH0001000A0001 /* TransactionHistoryView.swift */; };
-		A100PAYSV0002000A0001 /* SubscriptionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PAYSV0001000A0001 /* SubscriptionsView.swift */; };
-		A100PET00002000A0001 /* Pet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PET00001000A0001 /* Pet.swift */; };
-		A100PETSVC002000A0001 /* PetService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PETSVC001000A0001 /* PetService.swift */; };
-		A100PETLST002000A0001 /* PetsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PETLST001000A0001 /* PetsListView.swift */; };
-		A100PETEDT002000A0001 /* AddEditPetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PETEDT001000A0001 /* AddEditPetView.swift */; };
-		A100PHLOG002000A0001 /* PhoneLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PHLOG001000A0001 /* PhoneLoginView.swift */; };
-		A100OTPVW002000A0001 /* OTPVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100OTPVW001000A0001 /* OTPVerificationView.swift */; };
-		A100USRID002000A0001 /* UserIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100USRID001000A0001 /* UserIdentity.swift */; };
+		A1000001229DCRTN000A0002 /* CreateTenantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DCRTN000A0001 /* CreateTenantView.swift */; };
+		A1000001229DINVC000A0002 /* InviteClientView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DINVC000A0001 /* InviteClientView.swift */; };
+		A1000001229DINVW000A0002 /* InviteWalkerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DINVW000A0001 /* InviteWalkerView.swift */; };
+		A1000001229DJNTN000A0002 /* JoinTenantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DJNTN000A0001 /* JoinTenantView.swift */; };
+		A1000001229DMEMB000A0002 /* Membership.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DMEMB000A0001 /* Membership.swift */; };
+		A1000001229DPERS000A0002 /* PersonaSwitcherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DPERS000A0001 /* PersonaSwitcherView.swift */; };
+		A1000001229DRESC000A0002 /* RescheduleBookingSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DRESC000A0001 /* RescheduleBookingSheet.swift */; };
+		A1000001229DROLE000A0002 /* SelectedRole.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DROLE000A0001 /* SelectedRole.swift */; };
+		A1000001229DROLS000A0002 /* RoleSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DROLS000A0001 /* RoleSelectionView.swift */; };
+		A1000001229DWONB000A0002 /* WalkerOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DWONB000A0001 /* WalkerOnboardingView.swift */; };
+		A1000001229DWOPK000A0002 /* WalkerOrgPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001229DWOPK000A0001 /* WalkerOrgPickerView.swift */; };
 		A100CONAC002000A0001 /* ConnectedAccountsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100CONAC001000A0001 /* ConnectedAccountsView.swift */; };
 		A100FEEDB002000A0001 /* Feedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100FEEDB001000A0001 /* Feedback.swift */; };
 		A100FEEVW002000A0001 /* FeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100FEEVW001000A0001 /* FeedbackView.swift */; };
+		A100OTPVW002000A0001 /* OTPVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100OTPVW001000A0001 /* OTPVerificationView.swift */; };
+		A100PAYCHK002000A0001 /* Checkout.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PAYCHK001000A0001 /* Checkout.swift */; };
+		A100PAYCV0002000A0001 /* CheckoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PAYCV0001000A0001 /* CheckoutView.swift */; };
+		A100PAYSUB002000A0001 /* Subscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PAYSUB001000A0001 /* Subscription.swift */; };
+		A100PAYSV0002000A0001 /* SubscriptionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PAYSV0001000A0001 /* SubscriptionsView.swift */; };
+		A100PAYSVC002000A0001 /* PaymentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PAYSVC001000A0001 /* PaymentService.swift */; };
+		A100PAYTH0002000A0001 /* TransactionHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PAYTH0001000A0001 /* TransactionHistoryView.swift */; };
+		A100PAYTXN002000A0001 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PAYTXN001000A0001 /* Transaction.swift */; };
+		A100PET00002000A0001 /* Pet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PET00001000A0001 /* Pet.swift */; };
+		A100PETEDT002000A0001 /* AddEditPetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PETEDT001000A0001 /* AddEditPetView.swift */; };
+		A100PETLST002000A0001 /* PetsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PETLST001000A0001 /* PetsListView.swift */; };
+		A100PETSVC002000A0001 /* PetService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PETSVC001000A0001 /* PetService.swift */; };
+		A100PHLOG002000A0001 /* PhoneLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100PHLOG001000A0001 /* PhoneLoginView.swift */; };
 		A100RECBK002000A0001 /* RecurringBooking.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100RECBK001000A0001 /* RecurringBooking.swift */; };
-		A100RECLV002000A0001 /* RecurringBookingsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100RECLV001000A0001 /* RecurringBookingsListView.swift */; };
 		A100RECDV002000A0001 /* RecurringBookingDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100RECDV001000A0001 /* RecurringBookingDetailView.swift */; };
+		A100RECLV002000A0001 /* RecurringBookingsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100RECLV001000A0001 /* RecurringBookingsListView.swift */; };
+		A100USRID002000A0001 /* UserIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100USRID001000A0001 /* UserIdentity.swift */; };
+		A2UITEST229D0001000A0001 /* WalkerAppDemoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2UITEST229D0002000A0001 /* WalkerAppDemoTests.swift */; };
+		A2UITEST229D0003000A0001 /* E2ETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2UITEST229D0004000A0001 /* E2ETests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -102,6 +103,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		8FA62CFD2F26ED1C00CDC946 /* AvailabilityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvailabilityService.swift; sourceTree = "<group>"; };
 		A1000001229D0002000A0001 /* OFFLEASHApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFLEASHApp.swift; sourceTree = "<group>"; };
 		A1000001229D0004000A0001 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A1000001229D0006000A0001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -128,8 +130,6 @@
 		A1000001229D008D000A0001 /* PasswordRequirements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordRequirements.swift; sourceTree = "<group>"; };
 		A1000001229D0090000A0001 /* Booking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Booking.swift; sourceTree = "<group>"; };
 		A1000001229D0092000A0001 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
-		A1000001229DMEMB000A0001 /* Membership.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Membership.swift; sourceTree = "<group>"; };
-		A1000001229DROLE000A0001 /* SelectedRole.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectedRole.swift; sourceTree = "<group>"; };
 		A1000001229D0095000A0001 /* WalkerDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerDashboardView.swift; sourceTree = "<group>"; };
 		A1000001229D0097000A0001 /* WalkerCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerCalendarView.swift; sourceTree = "<group>"; };
 		A1000001229D0099000A0001 /* BookingDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookingDetailView.swift; sourceTree = "<group>"; };
@@ -151,38 +151,40 @@
 		A1000001229D00BA000A0001 /* ServiceAreasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceAreasView.swift; sourceTree = "<group>"; };
 		A1000001229D00BD000A0001 /* OAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuthService.swift; sourceTree = "<group>"; };
 		A1000001229D00BF000A0001 /* OFFLEASH.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OFFLEASH.entitlements; sourceTree = "<group>"; };
-		A2UITEST229D0002000A0001 /* WalkerAppDemoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerAppDemoTests.swift; sourceTree = "<group>"; };
-		A2UITEST229D0004000A0001 /* E2ETests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = E2ETests.swift; sourceTree = "<group>"; };
-		A2UITEST229D0009000A0001 /* OFFLEASHUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OFFLEASHUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		A1000001229DRESC000A0001 /* RescheduleBookingSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RescheduleBookingSheet.swift; sourceTree = "<group>"; };
-		A1000001229DROLS000A0001 /* RoleSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoleSelectionView.swift; sourceTree = "<group>"; };
+		A1000001229DCRTN000A0001 /* CreateTenantView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTenantView.swift; sourceTree = "<group>"; };
+		A1000001229DINVC000A0001 /* InviteClientView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteClientView.swift; sourceTree = "<group>"; };
+		A1000001229DINVW000A0001 /* InviteWalkerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteWalkerView.swift; sourceTree = "<group>"; };
+		A1000001229DJNTN000A0001 /* JoinTenantView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinTenantView.swift; sourceTree = "<group>"; };
+		A1000001229DMEMB000A0001 /* Membership.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Membership.swift; sourceTree = "<group>"; };
 		A1000001229DPERS000A0001 /* PersonaSwitcherView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaSwitcherView.swift; sourceTree = "<group>"; };
+		A1000001229DRESC000A0001 /* RescheduleBookingSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RescheduleBookingSheet.swift; sourceTree = "<group>"; };
+		A1000001229DROLE000A0001 /* SelectedRole.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectedRole.swift; sourceTree = "<group>"; };
+		A1000001229DROLS000A0001 /* RoleSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoleSelectionView.swift; sourceTree = "<group>"; };
 		A1000001229DWONB000A0001 /* WalkerOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerOnboardingView.swift; sourceTree = "<group>"; };
 		A1000001229DWOPK000A0001 /* WalkerOrgPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerOrgPickerView.swift; sourceTree = "<group>"; };
-		A1000001229DCRTN000A0001 /* CreateTenantView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTenantView.swift; sourceTree = "<group>"; };
-		A1000001229DJNTN000A0001 /* JoinTenantView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinTenantView.swift; sourceTree = "<group>"; };
-		A1000001229DINVW000A0001 /* InviteWalkerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteWalkerView.swift; sourceTree = "<group>"; };
-		A1000001229DINVC000A0001 /* InviteClientView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteClientView.swift; sourceTree = "<group>"; };
-		A100PAYTXN001000A0001 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
-		A100PAYCHK001000A0001 /* Checkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Checkout.swift; sourceTree = "<group>"; };
-		A100PAYSUB001000A0001 /* Subscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subscription.swift; sourceTree = "<group>"; };
-		A100PAYSVC001000A0001 /* PaymentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentService.swift; sourceTree = "<group>"; };
-		A100PAYCV0001000A0001 /* CheckoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckoutView.swift; sourceTree = "<group>"; };
-		A100PAYTH0001000A0001 /* TransactionHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionHistoryView.swift; sourceTree = "<group>"; };
-		A100PAYSV0001000A0001 /* SubscriptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionsView.swift; sourceTree = "<group>"; };
-		A100PET00001000A0001 /* Pet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pet.swift; sourceTree = "<group>"; };
-		A100PETSVC001000A0001 /* PetService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PetService.swift; sourceTree = "<group>"; };
-		A100PETLST001000A0001 /* PetsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PetsListView.swift; sourceTree = "<group>"; };
-		A100PETEDT001000A0001 /* AddEditPetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditPetView.swift; sourceTree = "<group>"; };
-		A100PHLOG001000A0001 /* PhoneLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneLoginView.swift; sourceTree = "<group>"; };
-		A100OTPVW001000A0001 /* OTPVerificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OTPVerificationView.swift; sourceTree = "<group>"; };
-		A100USRID001000A0001 /* UserIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserIdentity.swift; sourceTree = "<group>"; };
 		A100CONAC001000A0001 /* ConnectedAccountsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectedAccountsView.swift; sourceTree = "<group>"; };
 		A100FEEDB001000A0001 /* Feedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Feedback.swift; sourceTree = "<group>"; };
 		A100FEEVW001000A0001 /* FeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackView.swift; sourceTree = "<group>"; };
+		A100OTPVW001000A0001 /* OTPVerificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OTPVerificationView.swift; sourceTree = "<group>"; };
+		A100PAYCHK001000A0001 /* Checkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Checkout.swift; sourceTree = "<group>"; };
+		A100PAYCV0001000A0001 /* CheckoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckoutView.swift; sourceTree = "<group>"; };
+		A100PAYSUB001000A0001 /* Subscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subscription.swift; sourceTree = "<group>"; };
+		A100PAYSV0001000A0001 /* SubscriptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionsView.swift; sourceTree = "<group>"; };
+		A100PAYSVC001000A0001 /* PaymentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentService.swift; sourceTree = "<group>"; };
+		A100PAYTH0001000A0001 /* TransactionHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionHistoryView.swift; sourceTree = "<group>"; };
+		A100PAYTXN001000A0001 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
+		A100PET00001000A0001 /* Pet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pet.swift; sourceTree = "<group>"; };
+		A100PETEDT001000A0001 /* AddEditPetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditPetView.swift; sourceTree = "<group>"; };
+		A100PETLST001000A0001 /* PetsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PetsListView.swift; sourceTree = "<group>"; };
+		A100PETSVC001000A0001 /* PetService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PetService.swift; sourceTree = "<group>"; };
+		A100PHLOG001000A0001 /* PhoneLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneLoginView.swift; sourceTree = "<group>"; };
 		A100RECBK001000A0001 /* RecurringBooking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecurringBooking.swift; sourceTree = "<group>"; };
-		A100RECLV001000A0001 /* RecurringBookingsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecurringBookingsListView.swift; sourceTree = "<group>"; };
 		A100RECDV001000A0001 /* RecurringBookingDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecurringBookingDetailView.swift; sourceTree = "<group>"; };
+		A100RECLV001000A0001 /* RecurringBookingsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecurringBookingsListView.swift; sourceTree = "<group>"; };
+		A100USRID001000A0001 /* UserIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserIdentity.swift; sourceTree = "<group>"; };
+		A2UITEST229D0002000A0001 /* WalkerAppDemoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerAppDemoTests.swift; sourceTree = "<group>"; };
+		A2UITEST229D0004000A0001 /* E2ETests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = E2ETests.swift; sourceTree = "<group>"; };
+		A2UITEST229D0009000A0001 /* OFFLEASHUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OFFLEASHUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -272,10 +274,10 @@
 		A1000001229D0021000A0001 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-								A100PAYTXN001000A0001 /* Transaction.swift */,
+				A100PAYTXN001000A0001 /* Transaction.swift */,
 				A100PAYCHK001000A0001 /* Checkout.swift */,
 				A100PAYSUB001000A0001 /* Subscription.swift */,
-A1000001229D0090000A0001 /* Booking.swift */,
+				A1000001229D0090000A0001 /* Booking.swift */,
 				A1000001229D0092000A0001 /* User.swift */,
 				A1000001229DMEMB000A0001 /* Membership.swift */,
 				A1000001229DROLE000A0001 /* SelectedRole.swift */,
@@ -295,8 +297,9 @@ A1000001229D0090000A0001 /* Booking.swift */,
 		A1000001229D0022000A0001 /* Services */ = {
 			isa = PBXGroup;
 			children = (
-								A100PAYSVC001000A0001 /* PaymentService.swift */,
-A1000001229D0025000A0001 /* APIClient.swift */,
+				8FA62CFD2F26ED1C00CDC946 /* AvailabilityService.swift */,
+				A100PAYSVC001000A0001 /* PaymentService.swift */,
+				A1000001229D0025000A0001 /* APIClient.swift */,
 				A1000001229D0081000A0001 /* AnalyticsService.swift */,
 				A1000001229D0073000A0001 /* BrandingService.swift */,
 				A1000001229D0085000A0001 /* CacheManager.swift */,
@@ -351,10 +354,10 @@ A1000001229D0025000A0001 /* APIClient.swift */,
 		A1000001229D00A7000A0001 /* Customer */ = {
 			isa = PBXGroup;
 			children = (
-								A100PAYCV0001000A0001 /* CheckoutView.swift */,
+				A100PAYCV0001000A0001 /* CheckoutView.swift */,
 				A100PAYTH0001000A0001 /* TransactionHistoryView.swift */,
 				A100PAYSV0001000A0001 /* SubscriptionsView.swift */,
-A1000001229D009F000A0001 /* CustomerTabView.swift */,
+				A1000001229D009F000A0001 /* CustomerTabView.swift */,
 				A1000001229D00A1000A0001 /* CustomerProfileView.swift */,
 				A1000001229D00A3000A0001 /* CustomerBookingsView.swift */,
 				A1000001229DRESC000A0001 /* RescheduleBookingSheet.swift */,
@@ -493,14 +496,15 @@ A1000001229D009F000A0001 /* CustomerTabView.swift */,
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-								A100PAYTXN002000A0001 /* Transaction.swift in Sources */,
+				A100PAYTXN002000A0001 /* Transaction.swift in Sources */,
 				A100PAYCHK002000A0001 /* Checkout.swift in Sources */,
+				8FA62CFE2F26ED1C00CDC946 /* AvailabilityService.swift in Sources */,
 				A100PAYSUB002000A0001 /* Subscription.swift in Sources */,
 				A100PAYSVC002000A0001 /* PaymentService.swift in Sources */,
 				A100PAYCV0002000A0001 /* CheckoutView.swift in Sources */,
 				A100PAYTH0002000A0001 /* TransactionHistoryView.swift in Sources */,
 				A100PAYSV0002000A0001 /* SubscriptionsView.swift in Sources */,
-A1000001229D0003000A0001 /* ContentView.swift in Sources */,
+				A1000001229D0003000A0001 /* ContentView.swift in Sources */,
 				A1000001229D0001000A0001 /* OFFLEASHApp.swift in Sources */,
 				A1000001229D0024000A0001 /* APIClient.swift in Sources */,
 				A1000001229D0056000A0001 /* Theme.swift in Sources */,
