@@ -167,7 +167,7 @@ actor AvailabilityService {
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let dateString = dateFormatter.string(from: date)
 
-        return try await APIClient.shared.post(
+        return try await APIClient.shared.get(
             "/walkers/\(walkerId)/route/optimize",
             queryItems: [URLQueryItem(name: "date", value: dateString)]
         )
