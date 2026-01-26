@@ -2,10 +2,18 @@
 //  WalkerCalendarView.swift
 //  OFFLEASH
 //
-//  iOS Calendar-style day view for walkers
+//  iOS Calendar-style day view for walkers with week and month views
 //
 
 import SwiftUI
+
+// MARK: - Calendar View Mode
+
+enum CalendarViewMode: String, CaseIterable {
+    case day = "Day"
+    case week = "Week"
+    case month = "Month"
+}
 
 struct WalkerCalendarView: View {
     @EnvironmentObject private var themeManager: ThemeManager
@@ -13,8 +21,112 @@ struct WalkerCalendarView: View {
     @StateObject private var viewModel = WalkerCalendarViewModel()
     @State private var selectedDate = Date()
     @State private var showAddBreak = false
+    @State private var viewMode: CalendarViewMode = .day
+
+    // Drag-to-create state
+    @State private var isDragging = false
+    @State private var dragStartY: CGFloat = 0
+    @State private var dragEndY: CGFloat = 0
+    @State private var showCreateActionSheet = false
+    @State private var dragStartTime: Date?
+    @State private var dragEndTime: Date?
 
     var body: some View {
+        VStack(spacing: 0) {
+            // View mode picker
+            viewModePicker
+
+            Divider()
+
+            // Content based on view mode
+            switch viewMode {
+            case .day:
+                dayView
+            case .week:
+                CalendarWeekView(
+                    selectedDate: $selectedDate,
+                    bookings: viewModel.allBookings,
+                    blocks: viewModel.allBlocks,
+                    onDateSelected: { date in
+                        selectedDate = date
+                        viewMode = .day
+                    }
+                )
+            case .month:
+                CalendarMonthView(
+                    selectedDate: $selectedDate,
+                    bookings: viewModel.allBookings,
+                    blocks: viewModel.allBlocks,
+                    onDateSelected: { date in
+                        selectedDate = date
+                        viewMode = .day
+                    }
+                )
+            }
+        }
+        .navigationTitle("Schedule")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: { selectedDate = Date() }) {
+                    Text("Today")
+                        .font(.subheadline)
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { showAddBreak = true }) {
+                    Image(systemName: "plus")
+                }
+            }
+        }
+        .sheet(isPresented: $showAddBreak, onDismiss: {
+            // Clear prefilled times when sheet is dismissed
+            viewModel.prefilledBreakStart = nil
+            viewModel.prefilledBreakEnd = nil
+        }) {
+            AddBreakView(
+                selectedDate: selectedDate,
+                prefilledStart: viewModel.prefilledBreakStart,
+                prefilledEnd: viewModel.prefilledBreakEnd
+            ) {
+                Task { await viewModel.loadData() }
+            }
+            .environmentObject(themeManager)
+        }
+        .sheet(item: $viewModel.selectedBooking) { booking in
+            BookingDetailView(booking: booking) { action in
+                Task {
+                    await viewModel.handleBookingAction(booking: booking, action: action)
+                }
+            }
+        }
+        .task {
+            await viewModel.loadData()
+        }
+        .onChange(of: selectedDate) { newDate in
+            viewModel.selectDate(newDate)
+        }
+        .onAppear {
+            analyticsService.trackScreenView(screenName: "walker_calendar")
+        }
+    }
+
+    // MARK: - View Mode Picker
+
+    private var viewModePicker: some View {
+        Picker("View Mode", selection: $viewMode) {
+            ForEach(CalendarViewMode.allCases, id: \.self) { mode in
+                Text(mode.rawValue).tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+    }
+
+    // MARK: - Day View (existing timeline)
+
+    private var dayView: some View {
         VStack(spacing: 0) {
             // Week selector
             weekSelector
@@ -36,43 +148,6 @@ struct WalkerCalendarView: View {
                     }
                 }
             }
-        }
-        .navigationTitle("Schedule")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: { selectedDate = Date() }) {
-                    Text("Today")
-                        .font(.subheadline)
-                }
-            }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { showAddBreak = true }) {
-                    Image(systemName: "plus")
-                }
-            }
-        }
-        .sheet(isPresented: $showAddBreak) {
-            AddBreakView(selectedDate: selectedDate) {
-                Task { await viewModel.loadData() }
-            }
-            .environmentObject(themeManager)
-        }
-        .sheet(item: $viewModel.selectedBooking) { booking in
-            BookingDetailView(booking: booking) { action in
-                Task {
-                    await viewModel.handleBookingAction(booking: booking, action: action)
-                }
-            }
-        }
-        .task {
-            await viewModel.loadData()
-        }
-        .onChange(of: selectedDate) { newDate in
-            viewModel.selectDate(newDate)
-        }
-        .onAppear {
-            analyticsService.trackScreenView(screenName: "walker_calendar")
         }
     }
 
@@ -153,6 +228,19 @@ struct WalkerCalendarView: View {
                 let hourHeight: CGFloat = 60
                 let leftMargin: CGFloat = 60
 
+                // Drag-to-create overlay
+                if isDragging {
+                    DragPreviewOverlay(
+                        startY: min(dragStartY, dragEndY),
+                        endY: max(dragStartY, dragEndY),
+                        leftMargin: leftMargin,
+                        width: geometry.size.width - leftMargin - 16,
+                        startTime: dragStartTime,
+                        endTime: dragEndTime,
+                        primaryColor: themeManager.primaryColor
+                    )
+                }
+
                 // Breaks (gray blocks)
                 ForEach(viewModel.blocksForSelectedDate) { block in
                     BreakEventBlock(
@@ -183,9 +271,158 @@ struct WalkerCalendarView: View {
                 if Calendar.current.isDateInToday(selectedDate) {
                     CurrentTimeIndicator(hourHeight: hourHeight, leftMargin: leftMargin)
                 }
+
+                // Drag gesture layer (invisible, captures taps)
+                Color.clear
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 20)
+                            .onChanged { value in
+                                handleDragChanged(value: value, hourHeight: hourHeight, geometry: geometry)
+                            }
+                            .onEnded { _ in
+                                handleDragEnded()
+                            }
+                    )
             }
         }
         .padding(.trailing, 8)
+        .confirmationDialog(
+            "Create Event",
+            isPresented: $showCreateActionSheet,
+            titleVisibility: .visible
+        ) {
+            if let start = dragStartTime, let end = dragEndTime {
+                Button("Block Time Off") {
+                    showAddBreakWithTimes(start: start, end: end)
+                }
+                Button("Cancel", role: .cancel) {
+                    resetDragState()
+                }
+            }
+        } message: {
+            if let start = dragStartTime, let end = dragEndTime {
+                Text(timeRangeString(start: start, end: end))
+            }
+        }
+    }
+
+    // MARK: - Drag Gesture Handling
+
+    private func handleDragChanged(value: DragGesture.Value, hourHeight: CGFloat, geometry: GeometryProxy) {
+        let leftMargin: CGFloat = 60
+
+        // Only process drags that start in the timeline area (not the hour labels)
+        guard value.startLocation.x > leftMargin else { return }
+
+        if !isDragging {
+            isDragging = true
+            dragStartY = value.startLocation.y
+        }
+        dragEndY = value.location.y
+
+        // Calculate times from Y positions
+        dragStartTime = yPositionToTime(dragStartY, hourHeight: hourHeight)
+        dragEndTime = yPositionToTime(dragEndY, hourHeight: hourHeight)
+
+        // Ensure start is before end
+        if let start = dragStartTime, let end = dragEndTime, start > end {
+            swap(&dragStartTime, &dragEndTime)
+        }
+    }
+
+    private func handleDragEnded() {
+        guard isDragging,
+              let start = dragStartTime,
+              let end = dragEndTime,
+              end.timeIntervalSince(start) >= 15 * 60 else { // Minimum 15 minutes
+            resetDragState()
+            return
+        }
+
+        showCreateActionSheet = true
+        isDragging = false
+    }
+
+    private func resetDragState() {
+        isDragging = false
+        dragStartY = 0
+        dragEndY = 0
+        dragStartTime = nil
+        dragEndTime = nil
+    }
+
+    private func yPositionToTime(_ y: CGFloat, hourHeight: CGFloat) -> Date {
+        let calendar = Calendar.current
+        let startHour = 6
+        let hoursFromStart = y / hourHeight
+        let totalMinutes = Int(hoursFromStart * 60)
+
+        // Snap to 15-minute increments
+        let snappedMinutes = (totalMinutes / 15) * 15
+
+        let hour = startHour + (snappedMinutes / 60)
+        let minute = snappedMinutes % 60
+
+        return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: selectedDate) ?? selectedDate
+    }
+
+    private func timeRangeString(start: Date, end: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return "\(formatter.string(from: start)) - \(formatter.string(from: end))"
+    }
+
+    private func showAddBreakWithTimes(start: Date, end: Date) {
+        // Set the break times and show the sheet
+        viewModel.prefilledBreakStart = start
+        viewModel.prefilledBreakEnd = end
+        showAddBreak = true
+        resetDragState()
+    }
+}
+
+// MARK: - Drag Preview Overlay
+
+struct DragPreviewOverlay: View {
+    let startY: CGFloat
+    let endY: CGFloat
+    let leftMargin: CGFloat
+    let width: CGFloat
+    let startTime: Date?
+    let endTime: Date?
+    let primaryColor: Color
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Time range label
+            if let start = startTime, let end = endTime {
+                Text(timeRangeString(start: start, end: end))
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(primaryColor)
+                    .cornerRadius(4)
+            }
+
+            // Preview rectangle
+            Rectangle()
+                .fill(primaryColor.opacity(0.3))
+                .overlay(
+                    Rectangle()
+                        .strokeBorder(primaryColor, style: StrokeStyle(lineWidth: 2, dash: [5]))
+                )
+        }
+        .frame(width: width, height: max(endY - startY, 30))
+        .position(x: leftMargin + width / 2, y: startY + (endY - startY) / 2)
+    }
+
+    private func timeRangeString(start: Date, end: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return "\(formatter.string(from: start)) - \(formatter.string(from: end))"
     }
 }
 
@@ -490,6 +727,10 @@ class WalkerCalendarViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var selectedBooking: Booking?
 
+    // Prefilled times for drag-to-create
+    var prefilledBreakStart: Date?
+    var prefilledBreakEnd: Date?
+
     private var selectedDate = Date()
 
     func loadData() async {
@@ -588,6 +829,8 @@ struct AddBreakView: View {
     @Environment(\.dismiss) private var dismiss
 
     let selectedDate: Date
+    let prefilledStart: Date?
+    let prefilledEnd: Date?
     let onSave: () -> Void
 
     @State private var reason = "Break"
@@ -596,6 +839,13 @@ struct AddBreakView: View {
     @State private var isSaving = false
     @State private var showError = false
     @State private var errorMessage = ""
+
+    init(selectedDate: Date, prefilledStart: Date? = nil, prefilledEnd: Date? = nil, onSave: @escaping () -> Void) {
+        self.selectedDate = selectedDate
+        self.prefilledStart = prefilledStart
+        self.prefilledEnd = prefilledEnd
+        self.onSave = onSave
+    }
 
     var body: some View {
         NavigationStack {
@@ -638,10 +888,15 @@ struct AddBreakView: View {
                 }
             }
             .onAppear {
-                // Default to selected date at noon for 1 hour
-                let calendar = Calendar.current
-                startTime = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: selectedDate) ?? selectedDate
-                endTime = calendar.date(byAdding: .hour, value: 1, to: startTime) ?? startTime
+                // Use prefilled times if available, otherwise default to noon for 1 hour
+                if let start = prefilledStart, let end = prefilledEnd {
+                    startTime = start
+                    endTime = end
+                } else {
+                    let calendar = Calendar.current
+                    startTime = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: selectedDate) ?? selectedDate
+                    endTime = calendar.date(byAdding: .hour, value: 1, to: startTime) ?? startTime
+                }
             }
             .alert("Error", isPresented: $showError) {
                 Button("OK", role: .cancel) {}

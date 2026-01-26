@@ -15,9 +15,14 @@ struct WalkerMapView: View {
     @State private var selectedBookingId: String?
     @State private var showOptimizeSheet = false
     @State private var cameraPosition: MapCameraPosition = .automatic
+    @State private var selectedDate: Date = Date()
 
     var body: some View {
-        ZStack {
+        VStack(spacing: 0) {
+            // Date picker header
+            datePickerHeader
+
+            ZStack {
             // Map with booking annotations
             Map(position: $cameraPosition, selection: $selectedBookingId) {
                 // Current location marker
@@ -99,10 +104,68 @@ struct WalkerMapView: View {
             }
         }
         .task {
-            await viewModel.loadBookings()
+            await viewModel.loadBookings(for: selectedDate)
+        }
+        .onChange(of: selectedDate) { newDate in
+            Task {
+                await viewModel.loadBookings(for: newDate)
+            }
         }
         .onAppear {
             analyticsService.trackScreenView(screenName: "walker_map")
+        }
+        }
+    }
+
+    // MARK: - Date Picker Header
+
+    private var datePickerHeader: some View {
+        HStack(spacing: 16) {
+            // Previous day button
+            Button(action: { moveDate(by: -1) }) {
+                Image(systemName: "chevron.left")
+                    .font(.title3)
+                    .foregroundColor(themeManager.primaryColor)
+            }
+
+            Spacer()
+
+            // Today button
+            Button(action: { selectedDate = Date() }) {
+                Text("Today")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(Calendar.current.isDateInToday(selectedDate) ? .secondary : themeManager.primaryColor)
+            }
+            .disabled(Calendar.current.isDateInToday(selectedDate))
+
+            // Date display with picker
+            DatePicker(
+                "",
+                selection: $selectedDate,
+                displayedComponents: .date
+            )
+            .datePickerStyle(.compact)
+            .labelsHidden()
+            .accentColor(themeManager.primaryColor)
+
+            Spacer()
+
+            // Next day button
+            Button(action: { moveDate(by: 1) }) {
+                Image(systemName: "chevron.right")
+                    .font(.title3)
+                    .foregroundColor(themeManager.primaryColor)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 12)
+        .background(Color(.systemBackground))
+    }
+
+    private func moveDate(by days: Int) {
+        if let newDate = Calendar.current.date(byAdding: .day, value: days, to: selectedDate) {
+            selectedDate = newDate
         }
     }
 
@@ -561,6 +624,7 @@ class WalkerMapViewModel: ObservableObject {
     @Published var isOptimized = false
     @Published var optimizedRoute: [CLLocationCoordinate2D]?
     @Published var isLoading = false
+    @Published var selectedDate: Date = Date()
 
     private var originalOrder: [Booking] = []
     private var driveTimeCache: [String: Int] = [:]
@@ -609,25 +673,27 @@ class WalkerMapViewModel: ObservableObject {
         return "\(max(0, saved))m"
     }
 
-    func loadBookings() async {
+    func loadBookings(for date: Date) async {
         isLoading = true
+        selectedDate = date
         defer { isLoading = false }
 
         do {
             let fetchedBookings: [Booking] = try await APIClient.shared.get("/bookings/walker")
 
-            // Filter to today's bookings only
+            // Filter to selected date's bookings only
             let calendar = Calendar.current
-            let today = calendar.startOfDay(for: Date())
-            let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
+            let startOfDay = calendar.startOfDay(for: date)
+            let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
 
             bookings = fetchedBookings.filter { booking in
-                booking.scheduledStart >= today &&
-                booking.scheduledStart < tomorrow &&
+                booking.scheduledStart >= startOfDay &&
+                booking.scheduledStart < endOfDay &&
                 booking.status != .cancelled
             }.sorted { $0.scheduledStart < $1.scheduledStart }
 
             originalOrder = bookings
+            isOptimized = false
 
             // Build route coordinates
             updateRouteCoordinates()
@@ -686,7 +752,7 @@ class WalkerMapViewModel: ObservableObject {
 
             let response = try await AvailabilityService.shared.optimizeRoute(
                 walkerId: userId,
-                date: Date()
+                date: selectedDate
             )
 
             // Reorder bookings based on API response
