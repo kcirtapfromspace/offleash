@@ -413,13 +413,17 @@ pub async fn delete_organization(
     }
 
     // Verify org exists
-    let org = OrganizationRepository::find_by_id(&state.pool, org_id)
+    let _org = OrganizationRepository::find_by_id(&state.pool, org_id)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::OrganizationNotFound(org_id.to_string())))?;
 
     // Soft-delete: Update tenant_database status to 'inactive'
-    TenantDatabaseRepository::update_status_by_org_id(&state.pool, org_id, TenantDbStatus::Inactive)
-        .await?;
+    TenantDatabaseRepository::update_status_by_org_id(
+        &state.pool,
+        org_id,
+        TenantDbStatus::Inactive,
+    )
+    .await?;
 
     Ok(Json(DeleteOrganizationResponse {
         message: "Organization deactivated successfully".to_string(),
