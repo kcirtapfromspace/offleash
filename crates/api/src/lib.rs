@@ -78,6 +78,12 @@ pub fn create_app(state: AppState) -> Router {
             "/admin/branding",
             get(routes::admin_branding::get_branding).put(routes::admin_branding::update_branding),
         )
+        // Tenant admin payment configuration routes
+        .route(
+            "/admin/payment-config",
+            get(routes::admin_branding::get_payment_config)
+                .put(routes::admin_branding::update_payment_config),
+        )
         // Dashboard metrics route (tenant admin)
         .route(
             "/admin/dashboard/metrics",
