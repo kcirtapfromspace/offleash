@@ -236,7 +236,10 @@ impl RouteOptimizer {
         }
 
         // Return the single merged route
-        non_empty.into_iter().next().unwrap_or_else(|| (0..n).collect())
+        non_empty
+            .into_iter()
+            .next()
+            .unwrap_or_else(|| (0..n).collect())
     }
 
     /// Build a distance matrix for all booking pairs
