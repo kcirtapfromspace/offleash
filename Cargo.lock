@@ -770,6 +770,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "proptest",
+ "serde",
  "shared",
  "thiserror 1.0.69",
  "uuid",

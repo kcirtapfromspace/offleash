@@ -4,13 +4,15 @@ use axum::{
 };
 use chrono::{Datelike, Duration, NaiveDate, NaiveTime, Utc};
 use db::{
-    BlockRepository, BookingRepository, LocationRepository, ServiceRepository, UserRepository,
+    BlockRepository, BookingRepository, LocationRepository, ServiceAreaRepository,
+    ServiceRepository, TravelTimeCacheRepository, UserRepository,
 };
 use domain::{
-    AvailabilityConfig, AvailabilityEngine, BlockSlot, BookingSlot, DayHours, TravelTimeMatrix,
+    walker_can_service_location, AvailabilityConfig, AvailabilityEngine, BlockSlot, BookingSlot,
+    DayHours, PolygonPoint, ServiceAreaBoundary, TrafficConfig, TravelTimeMatrix,
 };
 use serde::{Deserialize, Serialize};
-use shared::{AppError, DomainError};
+use shared::{types::DurationMinutes, AppError, DomainError};
 
 use crate::{
     auth::TenantContext,
@@ -82,9 +84,46 @@ pub async fn get_availability(
         .parse()
         .map_err(|_| ApiError::from(AppError::Validation("Invalid location ID".to_string())))?;
 
-    let _location = LocationRepository::find_by_id(&tenant.pool, tenant.org_id, location_id)
+    let location = LocationRepository::find_by_id(&tenant.pool, tenant.org_id, location_id)
         .await?
         .ok_or_else(|| ApiError::from(DomainError::LocationNotFound(query.location_id.clone())))?;
+
+    // Check if walker can service this location
+    let walker_service_areas =
+        ServiceAreaRepository::find_active_by_walker(&tenant.pool, tenant.org_id, walker_id_parsed)
+            .await?;
+
+    if !walker_service_areas.is_empty() {
+        // Walker has defined service areas, check if location is within them
+        let boundaries: Vec<ServiceAreaBoundary> = walker_service_areas
+            .iter()
+            .map(|sa| ServiceAreaBoundary {
+                walker_id: sa.walker_id.to_string(),
+                area_id: sa.id.to_string(),
+                name: sa.name.clone(),
+                polygon: sa
+                    .polygon
+                    .0
+                    .iter()
+                    .map(|p| PolygonPoint::new(p.lat, p.lng))
+                    .collect(),
+                min_lat: sa.min_latitude.unwrap_or(-90.0),
+                max_lat: sa.max_latitude.unwrap_or(90.0),
+                min_lng: sa.min_longitude.unwrap_or(-180.0),
+                max_lng: sa.max_longitude.unwrap_or(180.0),
+                priority: sa.priority.unwrap_or(0),
+                price_adjustment_percent: sa.price_adjustment_percent.unwrap_or(0),
+            })
+            .collect();
+
+        let coords = location.coordinates();
+
+        if walker_can_service_location(&boundaries, &walker_id, &coords).is_none() {
+            return Err(ApiError::from(AppError::Validation(
+                "Location is outside walker's service area".to_string(),
+            )));
+        }
+    }
 
     // Get working hours for this day (simplified - using default 9-5 for now)
     // TODO: Load from working_hours table
@@ -133,9 +172,39 @@ pub async fn get_availability(
         .map(|b| BlockSlot::new(b.id, b.start_time, b.end_time))
         .collect();
 
-    // Calculate availability
+    // Calculate availability with traffic-aware travel times
     let config = AvailabilityConfig::default();
-    let travel_times = TravelTimeMatrix::new(); // Empty for now, would be populated from cache/API
+    let traffic_config = TrafficConfig::default();
+
+    // Build travel time matrix from cache
+    let mut travel_times = TravelTimeMatrix::new();
+
+    // Collect all location IDs (target + booking locations)
+    let mut location_ids: Vec<shared::types::LocationId> = vec![location_id];
+    for booking in &booking_slots {
+        if !location_ids.contains(&booking.location_id) {
+            location_ids.push(booking.location_id);
+        }
+    }
+
+    // Fetch cached travel times
+    let cache_ttl = traffic_config.get_cache_ttl_minutes(start_of_day);
+    let cached_times =
+        TravelTimeCacheRepository::get_batch_fresh(&tenant.pool, &location_ids, cache_ttl).await?;
+
+    // Populate travel matrix with traffic-adjusted times
+    for cache_entry in cached_times {
+        let base_minutes = cache_entry.travel_minutes();
+        // Apply peak hour multiplier based on a representative time (midday of requested date)
+        let representative_time = start_of_day + Duration::hours(12);
+        let adjusted_minutes = traffic_config.adjust_travel_time(base_minutes, representative_time);
+
+        travel_times.insert(
+            cache_entry.origin_location_id,
+            cache_entry.destination_location_id,
+            DurationMinutes::new(adjusted_minutes),
+        );
+    }
 
     let available_slots = AvailabilityEngine::calculate_slots(
         working_hours.as_ref(),

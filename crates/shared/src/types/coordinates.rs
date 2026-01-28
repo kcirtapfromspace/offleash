@@ -77,6 +77,42 @@ impl Coordinates {
     pub fn to_lat_lng_string(&self) -> String {
         format!("{},{}", self.latitude, self.longitude)
     }
+
+    /// Check if point is within a polygon using ray casting algorithm
+    /// Polygon should be a slice of (latitude, longitude) pairs
+    pub fn is_within_polygon(&self, polygon: &[(f64, f64)]) -> bool {
+        if polygon.len() < 3 {
+            return false;
+        }
+
+        let mut inside = false;
+        let n = polygon.len();
+
+        let mut j = n - 1;
+        for i in 0..n {
+            let (lat_i, lng_i) = polygon[i];
+            let (lat_j, lng_j) = polygon[j];
+
+            // Ray casting algorithm
+            if ((lng_i > self.longitude) != (lng_j > self.longitude))
+                && (self.latitude
+                    < (lat_j - lat_i) * (self.longitude - lng_i) / (lng_j - lng_i) + lat_i)
+            {
+                inside = !inside;
+            }
+            j = i;
+        }
+
+        inside
+    }
+
+    /// Check if point is within a bounding box (quick pre-filter)
+    pub fn is_within_bounds(&self, min_lat: f64, max_lat: f64, min_lng: f64, max_lng: f64) -> bool {
+        self.latitude >= min_lat
+            && self.latitude <= max_lat
+            && self.longitude >= min_lng
+            && self.longitude <= max_lng
+    }
 }
 
 /// Error for invalid coordinates
@@ -141,5 +177,32 @@ mod tests {
     fn test_lat_lng_string() {
         let coords = Coordinates::new(40.7128, -74.0060).unwrap();
         assert_eq!(coords.to_lat_lng_string(), "40.7128,-74.006");
+    }
+
+    #[test]
+    fn test_point_in_polygon() {
+        // Denver area polygon (Downtown/RiNo/LoHi)
+        let polygon = [
+            (39.7800, -105.0300),
+            (39.7800, -104.9600),
+            (39.7300, -104.9600),
+            (39.7300, -105.0300),
+        ];
+
+        // Point inside (Downtown Denver)
+        let inside = Coordinates::new(39.7456, -104.9894).unwrap();
+        assert!(inside.is_within_polygon(&polygon));
+
+        // Point outside (Boulder)
+        let outside = Coordinates::new(40.0176, -105.2789).unwrap();
+        assert!(!outside.is_within_polygon(&polygon));
+    }
+
+    #[test]
+    fn test_point_in_bounds() {
+        let point = Coordinates::new(39.75, -105.0).unwrap();
+
+        assert!(point.is_within_bounds(39.7, 39.8, -105.1, -104.9));
+        assert!(!point.is_within_bounds(40.0, 40.5, -105.1, -104.9));
     }
 }
