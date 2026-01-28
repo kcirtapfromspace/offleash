@@ -1,0 +1,18 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": [
+        {
+          "name": "auth_token",
+          "value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJvcmdfaWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJtZW1iZXJzaGlwX2lkIjoiMjIwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwicGxhdGZvcm1fYWRtaW4iOm51bGwsImV4cCI6MTc2OTQwMjA4MSwiaWF0IjoxNzY5MzE1NjgxfQ.KtQ4kZKOJy0Y3N7W2JP1y_KaNxPPodiLNzSoA1n0zkc"
+        },
+        {
+          "name": "user",
+          "value": "{\"id\":\"20000000-0000-0000-0000-000000000001\",\"email\":\"walker@test.offleash.world\",\"first_name\":\"Test\",\"last_name\":\"Walker\",\"role\":\"walker\"}"
+        }
+      ]
+    }
+  ]
+}

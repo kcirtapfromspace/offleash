@@ -1,0 +1,18 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": [
+        {
+          "name": "auth_token",
+          "value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJvcmdfaWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJtZW1iZXJzaGlwX2lkIjoiMTEwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwicGxhdGZvcm1fYWRtaW4iOm51bGwsImV4cCI6MTc2OTQwMjA4MSwiaWF0IjoxNzY5MzE1NjgxfQ.zWLWPVOj2VlMfSoN0vahXf11nmeP22xmgn93SYyWTiE"
+        },
+        {
+          "name": "user",
+          "value": "{\"id\":\"10000000-0000-0000-0000-000000000001\",\"email\":\"customer@test.offleash.world\",\"first_name\":\"Test\",\"last_name\":\"Customer\",\"role\":\"customer\"}"
+        }
+      ]
+    }
+  ]
+}
