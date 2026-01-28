@@ -1,0 +1,59 @@
+{
+  "cookies": [
+    {
+      "name": "token",
+      "value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIzMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJvcmdfaWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJtZW1iZXJzaGlwX2lkIjoiMzMwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwicGxhdGZvcm1fYWRtaW4iOm51bGwsImV4cCI6MTc2OTQwMjA4MSwiaWF0IjoxNzY5MzE1NjgxfQ.X69z27IdHxXcd29n51gXv9aJBGTqKaeVZcDMSWYEtGU",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1769402081.099,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "user",
+      "value": "{\"id\":\"30000000-0000-0000-0000-000000000001\",\"email\":\"admin@test.offleash.world\",\"first_name\":\"Test\",\"last_name\":\"Admin\",\"role\":\"admin\"}",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1769402081.099,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "membership",
+      "value": "{\"id\":\"33000000-0000-0000-0000-000000000001\",\"organization_id\":\"00000000-0000-0000-0000-000000000001\",\"organization_name\":\"OFFLEASH Demo\",\"organization_slug\":\"offleash-demo\",\"role\":\"admin\",\"title\":null,\"joined_at\":\"2026-01-24T07:53:31.264571+00:00\"}",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1769402081.099,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "memberships",
+      "value": "[{\"id\":\"33000000-0000-0000-0000-000000000001\",\"organization_id\":\"00000000-0000-0000-0000-000000000001\",\"organization_name\":\"OFFLEASH Demo\",\"organization_slug\":\"offleash-demo\",\"role\":\"admin\",\"is_default\":true}]",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1769402081.099,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:5174",
+      "localStorage": [
+        {
+          "name": "auth_token",
+          "value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIzMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJvcmdfaWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJtZW1iZXJzaGlwX2lkIjoiMzMwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwicGxhdGZvcm1fYWRtaW4iOm51bGwsImV4cCI6MTc2OTQwMjA4MSwiaWF0IjoxNzY5MzE1NjgxfQ.X69z27IdHxXcd29n51gXv9aJBGTqKaeVZcDMSWYEtGU"
+        },
+        {
+          "name": "user",
+          "value": "{\"id\":\"30000000-0000-0000-0000-000000000001\",\"email\":\"admin@test.offleash.world\",\"first_name\":\"Test\",\"last_name\":\"Admin\",\"role\":\"admin\"}"
+        }
+      ]
+    }
+  ]
+}

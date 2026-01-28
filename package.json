@@ -1,0 +1,32 @@
+{
+  "name": "offleash",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:e2e": "playwright test",
+    "test:api": "playwright test --project=api",
+    "test:customer": "playwright test --project=customer-web",
+    "test:admin": "playwright test --project=admin-dashboard",
+    "test:platform": "playwright test --project=platform-admin",
+    "test:ui": "playwright test --project=customer-web --project=admin-dashboard --project=platform-admin",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "test:staging": "STAGING=true playwright test --project=staging",
+    "db:reset": "./scripts/reset-test-db.sh",
+    "dev:all": "concurrently \"npm run dev:api\" \"npm run dev:customer\" \"npm run dev:admin\" \"npm run dev:platform\"",
+    "dev:api": "cd crates/api && cargo run",
+    "dev:customer": "cd apps/customer-web && npm run dev -- --port 5173",
+    "dev:admin": "cd apps/admin-dashboard && npm run dev -- --port 5174",
+    "dev:platform": "cd apps/platform-admin && npm run dev -- --port 5175"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "@types/node": "^22.15.21",
+    "concurrently": "^9.1.2",
+    "dotenv": "^16.4.7",
+    "typescript": "^5.9.3"
+  }
+}
