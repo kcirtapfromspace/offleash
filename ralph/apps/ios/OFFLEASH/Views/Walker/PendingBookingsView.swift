@@ -131,13 +131,9 @@ struct PendingBookingRow: View {
                     Spacer()
 
                     VStack(alignment: .trailing, spacing: 4) {
-                        Text(booking.priceDisplay)
+                        Text("\(booking.duration) min")
                             .font(.headline)
                             .foregroundColor(primaryColor)
-
-                        Text("\(booking.duration) min")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
                     }
                 }
             }

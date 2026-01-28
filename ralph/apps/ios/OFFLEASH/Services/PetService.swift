@@ -66,8 +66,10 @@ extension CreatePetRequest {
         emergencyContactPhone: String?,
         notes: String?
     ) -> CreatePetRequest {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withFullDate]
+        // Use simple date format that matches API expectations (YYYY-MM-DD)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone(identifier: "UTC")
 
         return CreatePetRequest(
             name: name,
@@ -112,8 +114,10 @@ extension UpdatePetRequest {
         emergencyContactPhone: String?,
         notes: String?
     ) -> UpdatePetRequest {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withFullDate]
+        // Use simple date format that matches API expectations (YYYY-MM-DD)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone(identifier: "UTC")
 
         return UpdatePetRequest(
             name: name,
