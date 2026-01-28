@@ -271,11 +271,11 @@ struct RecurringDetailRow: View {
                 id: "1",
                 customerId: "cust1",
                 walkerId: "walker1",
-                walkerName: "John Doe",
+                walkerName: "Mike Thompson",
                 serviceId: "svc1",
                 serviceName: "30-Minute Walk",
                 locationId: "loc1",
-                locationAddress: "123 Main St, San Francisco, CA",
+                locationAddress: "1301 Pearl St, Boulder, CO 80302",
                 frequency: .weekly,
                 dayOfWeek: 2,
                 timeSlot: "10:00 AM",
@@ -287,7 +287,7 @@ struct RecurringDetailRow: View {
                 nextBookingDate: Date().addingTimeInterval(86400 * 7),
                 priceCents: 2500,
                 priceDisplay: "$25.00",
-                notes: "My dog loves long walks!",
+                notes: "Luna loves exploring the creek trails!",
                 createdAt: Date()
             ),
             onCancel: {}

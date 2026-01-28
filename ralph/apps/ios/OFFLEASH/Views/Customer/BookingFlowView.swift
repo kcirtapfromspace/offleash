@@ -297,37 +297,61 @@ struct BookingFlowView: View {
         isLoadingSlots = true
         selectedTimeSlot = nil
 
-        // Generate time slots (in production, fetch from API based on walker availability)
         Task {
-            try? await Task.sleep(nanoseconds: 500_000_000) // Simulate API call
-
-            let calendar = Calendar.current
-            var slots: [TimeSlot] = []
-
-            // Generate slots from 8 AM to 6 PM
-            for hour in 8..<18 {
-                if let slotTime = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: selectedDate) {
-                    // Skip past times for today
-                    if calendar.isDateInToday(selectedDate) && slotTime <= Date() {
-                        continue
+            do {
+                // Fetch available slots from API
+                guard let location = selectedLocation else {
+                    await MainActor.run {
+                        availableTimeSlots = []
+                        isLoadingSlots = false
                     }
-
-                    let slot = TimeSlot(
-                        id: "\(hour):00",
-                        startTime: slotTime,
-                        endTime: calendar.date(byAdding: .minute, value: service.durationMinutes, to: slotTime) ?? slotTime,
-                        isAvailable: Bool.random() // In production, check actual availability
-                    )
-                    if slot.isAvailable {
-                        slots.append(slot)
-                    }
+                    return
                 }
-            }
 
-            await MainActor.run {
-                availableTimeSlots = slots
-                isLoadingSlots = false
+                let slots = try await AvailabilityService.shared.getAvailableSlots(
+                    date: selectedDate,
+                    serviceId: service.id,
+                    locationId: location.id,
+                    walkerId: nil // Let the backend find available walkers
+                )
+
+                await MainActor.run {
+                    availableTimeSlots = slots
+                    isLoadingSlots = false
+                }
+            } catch {
+                // Fallback to generated slots if API fails
+                print("Failed to fetch availability: \(error)")
+                await generateFallbackSlots()
             }
+        }
+    }
+
+    private func generateFallbackSlots() async {
+        let calendar = Calendar.current
+        var slots: [TimeSlot] = []
+
+        // Generate slots from 8 AM to 6 PM as fallback
+        for hour in 8..<18 {
+            if let slotTime = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: selectedDate) {
+                // Skip past times for today
+                if calendar.isDateInToday(selectedDate) && slotTime <= Date() {
+                    continue
+                }
+
+                let slot = TimeSlot(
+                    id: "\(hour):00",
+                    startTime: slotTime,
+                    endTime: calendar.date(byAdding: .minute, value: service.durationMinutes, to: slotTime) ?? slotTime,
+                    isAvailable: true
+                )
+                slots.append(slot)
+            }
+        }
+
+        await MainActor.run {
+            availableTimeSlots = slots
+            isLoadingSlots = false
         }
     }
 
@@ -701,14 +725,16 @@ struct BookingFlowView: View {
     }
 
     private func submitRecurringBooking(location: Location, timeSlot: TimeSlot) async throws {
-        let isoFormatter = ISO8601DateFormatter()
-        isoFormatter.formatOptions = [.withFullDate]
-
+        // Use simple date format that matches API expectations (YYYY-MM-DD)
         let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "h:mm a"
-        let timeString = dateFormatter.string(from: timeSlot.startTime)
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.timeZone = TimeZone(identifier: "UTC")
 
-        let dayOfWeek = Calendar.current.component(.weekday, from: selectedDate) - 1 // 0-indexed
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm"
+        let timeString = timeFormatter.string(from: timeSlot.startTime)
+
+        let dayOfWeek = Calendar.current.component(.weekday, from: selectedDate) - 1 // 0-indexed (Sunday = 0)
 
         let request = CreateRecurringBookingRequest(
             serviceId: service.id,
@@ -717,8 +743,8 @@ struct BookingFlowView: View {
             frequency: recurrenceFrequency.rawValue,
             dayOfWeek: dayOfWeek,
             startTime: timeString,
-            startDate: isoFormatter.string(from: selectedDate),
-            endDate: recurrenceEndType == .date ? isoFormatter.string(from: recurrenceEndDate) : nil,
+            startDate: dateFormatter.string(from: selectedDate),
+            endDate: recurrenceEndType == .date ? dateFormatter.string(from: recurrenceEndDate) : nil,
             occurrences: recurrenceEndType == .occurrences ? recurrenceOccurrences : nil,
             notes: notes.isEmpty ? nil : notes
         )
