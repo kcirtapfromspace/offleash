@@ -11,6 +11,7 @@ struct WorkingHoursView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = WorkingHoursViewModel()
+    @State private var showError = false
 
     var body: some View {
         List {
@@ -116,8 +117,12 @@ struct WorkingHoursView: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
                     Task {
-                        await viewModel.saveSchedule()
-                        dismiss()
+                        do {
+                            try await viewModel.saveSchedule()
+                            dismiss()
+                        } catch {
+                            showError = true
+                        }
                     }
                 }
                 .disabled(viewModel.isSaving)
@@ -125,6 +130,16 @@ struct WorkingHoursView: View {
         }
         .task {
             await viewModel.loadSchedule()
+        }
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(viewModel.errorMessage ?? "Failed to save working hours")
+        }
+        .overlay {
+            if viewModel.isLoading {
+                ProgressView()
+            }
         }
     }
 }
@@ -243,6 +258,29 @@ enum SchedulePreset {
     }
 }
 
+// MARK: - API Models
+
+struct WorkingHoursResponse: Decodable {
+    let id: String
+    let walkerId: String
+    let dayOfWeek: Int
+    let dayName: String
+    let startTime: String  // "HH:MM" format
+    let endTime: String    // "HH:MM" format
+    let isActive: Bool
+}
+
+struct DayScheduleInput: Encodable {
+    let dayOfWeek: Int
+    let startTime: String  // "HH:MM" format
+    let endTime: String    // "HH:MM" format
+    let isActive: Bool
+}
+
+struct UpdateScheduleRequest: Encodable {
+    let schedule: [DayScheduleInput]
+}
+
 // MARK: - View Model
 
 @MainActor
@@ -254,6 +292,13 @@ class WorkingHoursViewModel: ObservableObject {
     @Published var bufferMinutes = 15
     @Published var isSaving = false
     @Published var isLoading = false
+    @Published var errorMessage: String?
+
+    private let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
 
     init() {
         // Initialize with default schedule
@@ -271,20 +316,119 @@ class WorkingHoursViewModel: ObservableObject {
     }
 
     func loadSchedule() async {
+        guard let walkerId = UserSession.shared.currentUser?.id else {
+            errorMessage = "User not logged in"
+            return
+        }
+
         isLoading = true
+        errorMessage = nil
         defer { isLoading = false }
 
-        // TODO: Load from API when backend supports it
-        // For now, use defaults
+        do {
+            let hours: [WorkingHoursResponse] = try await APIClient.shared.get("/working-hours/\(walkerId)")
+
+            // If we got data from the API, update the schedule
+            if !hours.isEmpty {
+                updateScheduleFromAPI(hours)
+            }
+            // Otherwise keep the default schedule
+        } catch let error as APIError {
+            // If 404, the walker has no schedule yet - use defaults
+            if case .httpError(let statusCode, _) = error, statusCode == 404 {
+                // Keep defaults, no error
+                return
+            }
+            errorMessage = error.errorDescription
+            print("Failed to load working hours: \(error)")
+        } catch {
+            errorMessage = "Failed to load schedule"
+            print("Failed to load working hours: \(error)")
+        }
     }
 
-    func saveSchedule() async {
+    func saveSchedule() async throws {
+        guard let walkerId = UserSession.shared.currentUser?.id else {
+            errorMessage = "User not logged in"
+            throw APIError.unauthorized
+        }
+
         isSaving = true
+        errorMessage = nil
         defer { isSaving = false }
 
-        // TODO: Save to API when backend supports it
-        // For now, just simulate a save
-        try? await Task.sleep(nanoseconds: 500_000_000)
+        // Convert UI schedule to API format
+        let scheduleInput = weekSchedule.map { day -> DayScheduleInput in
+            DayScheduleInput(
+                dayOfWeek: day.id,
+                startTime: timeFormatter.string(from: day.startTime),
+                endTime: timeFormatter.string(from: day.endTime),
+                isActive: day.isEnabled
+            )
+        }
+
+        let request = UpdateScheduleRequest(schedule: scheduleInput)
+
+        do {
+            let _: [WorkingHoursResponse] = try await APIClient.shared.put("/working-hours/\(walkerId)", body: request)
+        } catch let error as APIError {
+            errorMessage = error.errorDescription
+            print("Failed to save working hours: \(error)")
+            throw error
+        } catch {
+            errorMessage = "Failed to save schedule"
+            print("Failed to save working hours: \(error)")
+            throw error
+        }
+    }
+
+    // MARK: - Private Helpers
+
+    private func updateScheduleFromAPI(_ hours: [WorkingHoursResponse]) {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        // Create a lookup by day of week
+        var hoursByDay: [Int: WorkingHoursResponse] = [:]
+        for hour in hours {
+            hoursByDay[hour.dayOfWeek] = hour
+        }
+
+        // Update or create schedule for each day
+        weekSchedule = (0..<7).map { dayIndex in
+            if let apiHour = hoursByDay[dayIndex] {
+                // Parse time strings from API
+                let startTime = parseTime(apiHour.startTime, on: today)
+                let endTime = parseTime(apiHour.endTime, on: today)
+
+                return DaySchedule(
+                    id: dayIndex,
+                    isEnabled: apiHour.isActive,
+                    startTime: startTime,
+                    endTime: endTime
+                )
+            } else {
+                // No data for this day - default to disabled
+                return DaySchedule(
+                    id: dayIndex,
+                    isEnabled: false,
+                    startTime: calendar.date(bySettingHour: 9, minute: 0, second: 0, of: today)!,
+                    endTime: calendar.date(bySettingHour: 17, minute: 0, second: 0, of: today)!
+                )
+            }
+        }
+    }
+
+    private func parseTime(_ timeString: String, on date: Date) -> Date {
+        let calendar = Calendar.current
+        let components = timeString.split(separator: ":").compactMap { Int($0) }
+
+        guard components.count >= 2 else {
+            // Fallback to noon if parsing fails
+            return calendar.date(bySettingHour: 12, minute: 0, second: 0, of: date)!
+        }
+
+        return calendar.date(bySettingHour: components[0], minute: components[1], second: 0, of: date)!
     }
 }
 

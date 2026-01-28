@@ -105,14 +105,14 @@ struct EditProfileView: View {
         let user = userSession.currentUser
         return firstName != (user?.firstName ?? "") ||
                lastName != (user?.lastName ?? "") ||
-               phone != "" // TODO: Compare with stored phone
+               phone != (user?.phone ?? "")
     }
 
     private func loadCurrentValues() {
         if let user = userSession.currentUser {
             firstName = user.firstName ?? ""
             lastName = user.lastName ?? ""
-            // TODO: Load phone from user
+            phone = user.phone ?? ""
         }
     }
 

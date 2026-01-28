@@ -6,6 +6,7 @@ interface Booking {
 	id: string;
 	customer_id: string;
 	walker_id: string;
+	walker_name: string;
 	service_id: string;
 	location_id: string;
 	status: string;
@@ -51,7 +52,7 @@ export const load: PageServerLoad = async ({ parent, params }) => {
 			booking,
 			service,
 			location,
-			walkerName: 'Alex Walker' // TODO: Fetch walker details
+			walkerName: booking.walker_name || 'Unknown Walker'
 		};
 	} catch (error) {
 		console.error('Failed to fetch booking:', error);

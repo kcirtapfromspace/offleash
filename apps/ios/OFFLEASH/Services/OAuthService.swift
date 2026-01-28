@@ -9,14 +9,18 @@ import Foundation
 
 // MARK: - OAuth Request/Response Models
 
+/// Google OAuth request
+/// org_slug is optional - if not provided, uses universal auth
 struct OAuthGoogleRequest: Encodable {
-    let orgSlug: String
+    let orgSlug: String?
     let idToken: String
     let role: String?
 }
 
+/// Apple OAuth request
+/// org_slug is optional - if not provided, uses universal auth
 struct OAuthAppleRequest: Encodable {
-    let orgSlug: String
+    let orgSlug: String?
     let idToken: String
     let firstName: String?
     let lastName: String?
@@ -33,6 +37,7 @@ struct OAuthUser: Decodable {
     let email: String
     let firstName: String?
     let lastName: String?
+    let phone: String?
     let role: String?
     let organizationId: String?
 }

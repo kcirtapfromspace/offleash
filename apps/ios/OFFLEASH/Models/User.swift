@@ -34,6 +34,7 @@ struct User: Codable, Identifiable {
     let email: String
     let firstName: String?
     let lastName: String?
+    let phone: String?
     let role: UserRole
     let organizationId: String?
 
