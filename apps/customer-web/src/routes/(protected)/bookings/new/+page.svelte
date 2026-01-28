@@ -3,22 +3,23 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
-	export let data: PageData;
-	export let form: ActionData;
+	let { data, form }: { data: PageData; form: ActionData } = $props();
 
-	let selectedServiceId = data.selectedServiceId || '';
+	let selectedServiceId = $state(data.selectedServiceId || '');
 	// Auto-select the default location if no location is specified in URL
-	let selectedLocationId = data.selectedLocationId || data.locations.find(l => l.is_default)?.id || '';
-	let selectedDate = data.selectedDate || '';
-	let selectedSlot: { walkerId: string; start: string } | null = null;
-	let notes = '';
+	let selectedLocationId = $state(
+		data.selectedLocationId || data.locations.find((l) => l.is_default)?.id || ''
+	);
+	let selectedDate = $state(data.selectedDate || '');
+	let selectedSlot = $state<{ walkerId: string; start: string } | null>(null);
+	let notes = $state('');
 
 	// Recurring booking options
-	let isRecurring = false;
-	let recurringFrequency = 'weekly';
-	let endConditionType: 'occurrences' | 'date' = 'occurrences';
-	let endOccurrences = 12;
-	let endDate = '';
+	let isRecurring = $state(false);
+	let recurringFrequency = $state('weekly');
+	let endConditionType = $state<'occurrences' | 'date'>('occurrences');
+	let endOccurrences = $state(12);
+	let endDate = $state('');
 
 	// Toast notification state
 	interface Toast {
@@ -27,8 +28,8 @@
 		message: string;
 		details?: string;
 	}
-	let toasts: Toast[] = [];
-	let toastId = 0;
+	let toasts = $state<Toast[]>([]);
+	let toastId = $state(0);
 
 	function addToast(type: Toast['type'], message: string, details?: string) {
 		const id = ++toastId;
@@ -38,30 +39,38 @@
 	}
 
 	function dismissToast(id: number) {
-		toasts = toasts.filter(t => t.id !== id);
+		toasts = toasts.filter((t) => t.id !== id);
 	}
 
 	// Handle form response
-	$: if (form?.success && form?.seriesId) {
-		// Show success toast with conflicts info
-		if (form.conflicts && form.conflicts.length > 0) {
-			addToast(
-				'warning',
-				form.message || `Created ${form.bookingsCreated} bookings`,
-				`${form.conflicts.length} dates had conflicts and were skipped.`
-			);
-		} else {
-			addToast('success', 'Recurring booking created successfully!');
+	$effect(() => {
+		if (form?.success && form?.seriesId) {
+			// Show success toast with conflicts info
+			if (form.conflicts && form.conflicts.length > 0) {
+				addToast(
+					'warning',
+					form.message || `Created ${form.bookingsCreated} bookings`,
+					`${form.conflicts.length} dates had conflicts and were skipped.`
+				);
+			} else {
+				addToast('success', 'Recurring booking created successfully!');
+			}
+			// Redirect after showing toast
+			setTimeout(() => {
+				goto(`/bookings/recurring/${form.seriesId}`);
+			}, 2000);
 		}
-		// Redirect after showing toast
-		setTimeout(() => {
-			goto(`/bookings/recurring/${form.seriesId}`);
-		}, 2000);
-	}
+	});
 
-	$: if (form?.error) {
-		addToast('error', form.error, form.errorType === 'api_error' ? 'Please try again or contact support.' : undefined);
-	}
+	$effect(() => {
+		if (form?.error) {
+			addToast(
+				'error',
+				form.error,
+				form.errorType === 'api_error' ? 'Please try again or contact support.' : undefined
+			);
+		}
+	});
 
 	// Get min date (today) and max date (30 days from now)
 	const today = new Date();
@@ -99,7 +108,7 @@
 		return new Date(isoString).toLocaleTimeString('en-US', {
 			hour: 'numeric',
 			minute: '2-digit',
-			hour12: true
+			hour12: true,
 		});
 	}
 
@@ -116,24 +125,28 @@
 		return `${minutes} min away`;
 	}
 
-	$: selectedService = data.services.find((s) => s.id === selectedServiceId);
-	$: canShowSlots = selectedServiceId && selectedDate && selectedLocationId;
+	let selectedService = $derived(data.services.find((s) => s.id === selectedServiceId));
+	let canShowSlots = $derived(selectedServiceId && selectedDate && selectedLocationId);
 
 	// Get selected slot's travel info
-	$: selectedSlotData = (() => {
+	let selectedSlotData = $derived.by(() => {
 		const slot = selectedSlot;
 		if (!slot) return null;
-		return data.availability
-			.find((w) => w.walkerId === slot.walkerId)
-			?.slots.find((s) => s.start === slot.start) ?? null;
-	})();
+		return (
+			data.availability
+				.find((w) => w.walkerId === slot.walkerId)
+				?.slots.find((s) => s.start === slot.start) ?? null
+		);
+	});
 
 	// Calculate total price for recurring bookings
-	$: totalOccurrences = endConditionType === 'occurrences' ? endOccurrences : estimatedOccurrences;
-	$: estimatedOccurrences = calculateEstimatedOccurrences();
-	$: totalPrice = selectedService
-		? (selectedService.price_cents * totalOccurrences) / 100
-		: 0;
+	let estimatedOccurrences = $derived(calculateEstimatedOccurrences());
+	let totalOccurrences = $derived(
+		endConditionType === 'occurrences' ? endOccurrences : estimatedOccurrences
+	);
+	let totalPrice = $derived(
+		selectedService ? (selectedService.price_cents * totalOccurrences) / 100 : 0
+	);
 
 	function calculateEstimatedOccurrences(): number {
 		if (!selectedDate || !endDate) return 0;
@@ -166,11 +179,13 @@
 	}
 
 	// Generate max end date (1 year from start)
-	$: maxEndDate = selectedDate
-		? new Date(new Date(selectedDate).getTime() + 365 * 24 * 60 * 60 * 1000)
-				.toISOString()
-				.split('T')[0]
-		: '';
+	let maxEndDate = $derived(
+		selectedDate
+			? new Date(new Date(selectedDate).getTime() + 365 * 24 * 60 * 60 * 1000)
+					.toISOString()
+					.split('T')[0]
+			: ''
+	);
 </script>
 
 <!-- Toast Notifications -->
@@ -178,42 +193,76 @@
 	<div class="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
 		{#each toasts as toast (toast.id)}
 			<div
-				class="rounded-lg shadow-lg p-4 flex items-start gap-3 animate-slide-in {
-					toast.type === 'success' ? 'bg-green-50 border border-green-200' :
-					toast.type === 'warning' ? 'bg-yellow-50 border border-yellow-200' :
-					'bg-red-50 border border-red-200'
-				}"
+				class="rounded-lg shadow-lg p-4 flex items-start gap-3 animate-slide-in {toast.type ===
+				'success'
+					? 'bg-green-50 border border-green-200'
+					: toast.type === 'warning'
+						? 'bg-yellow-50 border border-yellow-200'
+						: 'bg-red-50 border border-red-200'}"
 			>
 				<!-- Icon -->
 				<div class="flex-shrink-0">
 					{#if toast.type === 'success'}
-						<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+						<svg
+							class="w-5 h-5 text-green-600"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M5 13l4 4L19 7"
+							/>
 						</svg>
 					{:else if toast.type === 'warning'}
-						<svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+						<svg
+							class="w-5 h-5 text-yellow-600"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+							/>
 						</svg>
 					{:else}
 						<svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M6 18L18 6M6 6l12 12"
+							/>
 						</svg>
 					{/if}
 				</div>
 
 				<!-- Content -->
 				<div class="flex-1">
-					<p class="font-medium {
-						toast.type === 'success' ? 'text-green-800' :
-						toast.type === 'warning' ? 'text-yellow-800' :
-						'text-red-800'
-					}">{toast.message}</p>
+					<p
+						class="font-medium {toast.type === 'success'
+							? 'text-green-800'
+							: toast.type === 'warning'
+								? 'text-yellow-800'
+								: 'text-red-800'}"
+					>
+						{toast.message}
+					</p>
 					{#if toast.details}
-						<p class="text-sm mt-1 {
-							toast.type === 'success' ? 'text-green-600' :
-							toast.type === 'warning' ? 'text-yellow-600' :
-							'text-red-600'
-						}">{toast.details}</p>
+						<p
+							class="text-sm mt-1 {toast.type === 'success'
+								? 'text-green-600'
+								: toast.type === 'warning'
+									? 'text-yellow-600'
+									: 'text-red-600'}"
+						>
+							{toast.details}
+						</p>
 					{/if}
 				</div>
 
@@ -221,14 +270,19 @@
 				<button
 					aria-label="Dismiss notification"
 					onclick={() => dismissToast(toast.id)}
-					class="flex-shrink-0 {
-						toast.type === 'success' ? 'text-green-400 hover:text-green-600' :
-						toast.type === 'warning' ? 'text-yellow-400 hover:text-yellow-600' :
-						'text-red-400 hover:text-red-600'
-					}"
+					class="flex-shrink-0 {toast.type === 'success'
+						? 'text-green-400 hover:text-green-600'
+						: toast.type === 'warning'
+							? 'text-yellow-400 hover:text-yellow-600'
+							: 'text-red-400 hover:text-red-600'}"
 				>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M6 18L18 6M6 6l12 12"
+						/>
 					</svg>
 				</button>
 			</div>
@@ -243,8 +297,18 @@
 	{#if form?.error}
 		<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
 			<div class="flex items-start gap-2">
-				<svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+				<svg
+					class="w-5 h-5 flex-shrink-0 mt-0.5"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+					/>
 				</svg>
 				<div>
 					<p class="font-medium">{form.error}</p>
@@ -260,8 +324,18 @@
 	{#if form?.success && form?.conflicts && form.conflicts.length > 0}
 		<div class="bg-yellow-50 border border-yellow-200 rounded-lg mb-6 overflow-hidden">
 			<div class="px-4 py-3 flex items-start gap-2">
-				<svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+				<svg
+					class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+					/>
 				</svg>
 				<div class="flex-1">
 					<p class="font-medium text-yellow-800">
@@ -294,7 +368,12 @@
 				>
 					View your recurring series
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M9 5l7 7-7 7"
+						/>
 					</svg>
 				</a>
 			</div>
@@ -311,7 +390,10 @@
 		<!-- Step 1: Select Service -->
 		<div class="bg-white border border-gray-200 rounded-xl p-6">
 			<h2 class="text-lg font-semibold mb-4 flex items-center">
-				<span class="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm mr-3">1</span>
+				<span
+					class="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm mr-3"
+					>1</span
+				>
 				Select Service
 			</h2>
 			<select
@@ -333,13 +415,18 @@
 		<!-- Step 2: Select Location -->
 		<div class="bg-white border border-gray-200 rounded-xl p-6">
 			<h2 class="text-lg font-semibold mb-4 flex items-center">
-				<span class="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm mr-3">2</span>
+				<span
+					class="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm mr-3"
+					>2</span
+				>
 				Select Pickup Location
 			</h2>
 			{#if data.locations.length === 0}
 				<div class="text-center py-6 bg-gray-50 rounded-lg">
 					<p class="text-gray-600 mb-3">You haven't added any locations yet.</p>
-					<a href="/locations" class="text-blue-600 hover:underline font-medium">Add a location first</a>
+					<a href="/locations" class="text-blue-600 hover:underline font-medium"
+						>Add a location first</a
+					>
 				</div>
 			{:else}
 				<select
@@ -356,14 +443,19 @@
 						</option>
 					{/each}
 				</select>
-				<a href="/locations" class="text-sm text-blue-600 hover:underline mt-2 inline-block">+ Add new location</a>
+				<a href="/locations" class="text-sm text-blue-600 hover:underline mt-2 inline-block"
+					>+ Add new location</a
+				>
 			{/if}
 		</div>
 
 		<!-- Step 3: Select Date -->
 		<div class="bg-white border border-gray-200 rounded-xl p-6">
 			<h2 class="text-lg font-semibold mb-4 flex items-center">
-				<span class="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm mr-3">3</span>
+				<span
+					class="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm mr-3"
+					>3</span
+				>
 				Select Date
 			</h2>
 			<input
@@ -380,26 +472,36 @@
 		<!-- Step 4: Select Time -->
 		<div class="bg-white border border-gray-200 rounded-xl p-6">
 			<h2 class="text-lg font-semibold mb-4 flex items-center">
-				<span class="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm mr-3">4</span>
+				<span
+					class="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm mr-3"
+					>4</span
+				>
 				Select Time
 			</h2>
 
 			{#if !canShowSlots}
-				<p class="text-gray-500 text-center py-6">Please complete the steps above to see available times.</p>
+				<p class="text-gray-500 text-center py-6">
+					Please complete the steps above to see available times.
+				</p>
 			{:else if data.availability.length === 0}
 				<div class="text-center py-6 bg-yellow-50 rounded-lg">
-					<p class="text-yellow-800">No available time slots for this date. Please try another date.</p>
+					<p class="text-yellow-800">
+						No available time slots for this date. Please try another date.
+					</p>
 				</div>
 			{:else}
 				{#each data.availability as walker}
 					<div class="mb-6">
-						<h3 class="text-sm font-medium text-gray-700 mb-3">Available with {walker.walkerName}</h3>
+						<h3 class="text-sm font-medium text-gray-700 mb-3">
+							Available with {walker.walkerName}
+						</h3>
 						<div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
 							{#each walker.slots as slot}
 								<button
 									type="button"
 									onclick={() => selectSlot(walker.walkerId, slot.start)}
-									class="relative px-3 py-3 text-sm rounded-lg border transition-colors text-left {selectedSlot?.start === slot.start && selectedSlot?.walkerId === walker.walkerId
+									class="relative px-3 py-3 text-sm rounded-lg border transition-colors text-left {selectedSlot?.start ===
+										slot.start && selectedSlot?.walkerId === walker.walkerId
 										? 'bg-blue-600 text-white border-blue-600'
 										: slot.is_tight
 											? 'bg-yellow-50 text-gray-700 border-yellow-300 hover:border-yellow-500'
@@ -407,20 +509,49 @@
 								>
 									<div class="font-medium">{formatTime(slot.start)}</div>
 									{#if slot.travel_minutes !== null && slot.travel_minutes !== undefined}
-										<div class="text-xs mt-1 flex items-center gap-1 {selectedSlot?.start === slot.start && selectedSlot?.walkerId === walker.walkerId ? 'text-blue-100' : 'text-gray-500'}">
+										<div
+											class="text-xs mt-1 flex items-center gap-1 {selectedSlot?.start ===
+												slot.start && selectedSlot?.walkerId === walker.walkerId
+												? 'text-blue-100'
+												: 'text-gray-500'}"
+										>
 											<!-- Car/travel icon -->
 											<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+												/>
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+												/>
 											</svg>
 											<span>{formatTravelTime(slot.travel_minutes)}</span>
 										</div>
 									{/if}
 									{#if slot.is_tight}
 										<!-- Warning indicator -->
-										<div class="absolute top-1 right-1" title={slot.warning || 'Schedule may be tight'}>
-											<svg class="w-4 h-4 {selectedSlot?.start === slot.start && selectedSlot?.walkerId === walker.walkerId ? 'text-yellow-200' : 'text-yellow-500'}" fill="currentColor" viewBox="0 0 20 20">
-												<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+										<div
+											class="absolute top-1 right-1"
+											title={slot.warning || 'Schedule may be tight'}
+										>
+											<svg
+												class="w-4 h-4 {selectedSlot?.start === slot.start &&
+												selectedSlot?.walkerId === walker.walkerId
+													? 'text-yellow-200'
+													: 'text-yellow-500'}"
+												fill="currentColor"
+												viewBox="0 0 20 20"
+											>
+												<path
+													fill-rule="evenodd"
+													d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+													clip-rule="evenodd"
+												/>
 											</svg>
 										</div>
 									{/if}
@@ -429,8 +560,18 @@
 						</div>
 						{#if walker.travelBufferMinutes}
 							<p class="text-xs text-gray-500 mt-2">
-								<svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+								<svg
+									class="w-3 h-3 inline mr-1"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+									/>
 								</svg>
 								{walker.travelBufferMinutes} min travel buffer between appointments
 							</p>
@@ -448,7 +589,10 @@
 		<!-- Step 5: Notes (Optional) -->
 		<div class="bg-white border border-gray-200 rounded-xl p-6">
 			<h2 class="text-lg font-semibold mb-4 flex items-center">
-				<span class="w-7 h-7 bg-gray-400 text-white rounded-full flex items-center justify-center text-sm mr-3">5</span>
+				<span
+					class="w-7 h-7 bg-gray-400 text-white rounded-full flex items-center justify-center text-sm mr-3"
+					>5</span
+				>
 				Additional Notes (Optional)
 			</h2>
 			<textarea
@@ -463,7 +607,10 @@
 		<!-- Step 6: Make Recurring (Optional) -->
 		<div class="bg-white border border-gray-200 rounded-xl p-6">
 			<h2 class="text-lg font-semibold mb-4 flex items-center">
-				<span class="w-7 h-7 bg-gray-400 text-white rounded-full flex items-center justify-center text-sm mr-3">6</span>
+				<span
+					class="w-7 h-7 bg-gray-400 text-white rounded-full flex items-center justify-center text-sm mr-3"
+					>6</span
+				>
 				Make This Recurring (Optional)
 			</h2>
 
@@ -481,7 +628,9 @@
 				<div class="space-y-4 pt-4 border-t border-gray-200">
 					<!-- Frequency Selection -->
 					<div>
-						<label for="recurring_frequency" class="block text-sm font-medium text-gray-700 mb-2">Frequency</label>
+						<label for="recurring_frequency" class="block text-sm font-medium text-gray-700 mb-2"
+							>Frequency</label
+						>
 						<select
 							id="recurring_frequency"
 							name="recurring_frequency"
@@ -545,7 +694,11 @@
 						<div class="bg-blue-50 rounded-lg p-4 mt-4">
 							<p class="text-sm text-blue-800">
 								<strong>{totalOccurrences}</strong> bookings will be created on
-								<strong>{new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' })}s</strong>
+								<strong
+									>{new Date(selectedDate).toLocaleDateString('en-US', {
+										weekday: 'long',
+									})}s</strong
+								>
 								{getFrequencyLabel(recurringFrequency).toLowerCase()}.
 							</p>
 						</div>
@@ -575,8 +728,18 @@
 						<div class="flex justify-between">
 							<dt class="text-gray-600">Walker arrival:</dt>
 							<dd class="font-medium flex items-center gap-1">
-								<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+								<svg
+									class="w-4 h-4 text-gray-500"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+									/>
 								</svg>
 								{formatTravelTime(selectedSlotData.travel_minutes)}
 								{#if selectedSlotData.travel_from}
@@ -587,8 +750,16 @@
 					{/if}
 					{#if selectedSlotData?.is_tight && selectedSlotData?.warning}
 						<div class="bg-yellow-100 rounded-lg p-2 flex items-start gap-2">
-							<svg class="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-								<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+							<svg
+								class="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5"
+								fill="currentColor"
+								viewBox="0 0 20 20"
+							>
+								<path
+									fill-rule="evenodd"
+									d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+									clip-rule="evenodd"
+								/>
 							</svg>
 							<span class="text-yellow-800 text-xs">{selectedSlotData.warning}</span>
 						</div>
