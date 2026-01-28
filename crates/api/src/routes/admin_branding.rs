@@ -242,21 +242,20 @@ pub async fn update_payment_config(
     };
 
     // Parse and validate fee structure
-    let fee_structure = if let Some(ref fs) = req.fee_structure {
-        match fs.as_str() {
-            "customer_pays" => FeeStructure::CustomerPays,
-            "split_fees" => FeeStructure::SplitFees,
-            "owner_subscription" => FeeStructure::OwnerSubscription,
-            _ => {
-                return Err(ApiError::from(shared::AppError::Validation(
+    let fee_structure =
+        if let Some(ref fs) = req.fee_structure {
+            match fs.as_str() {
+                "customer_pays" => FeeStructure::CustomerPays,
+                "split_fees" => FeeStructure::SplitFees,
+                "owner_subscription" => FeeStructure::OwnerSubscription,
+                _ => return Err(ApiError::from(shared::AppError::Validation(
                     "fee_structure must be 'customer_pays', 'split_fees', or 'owner_subscription'"
                         .to_string(),
-                )))
+                ))),
             }
-        }
-    } else {
-        current_config.fee_structure
-    };
+        } else {
+            current_config.fee_structure
+        };
 
     // Parse and validate billing frequency
     let billing_frequency = if let Some(ref bf) = req.billing_frequency {
@@ -287,8 +286,12 @@ pub async fn update_payment_config(
         business_model,
         fee_structure,
         billing_frequency,
-        apple_pay_enabled: req.apple_pay_enabled.unwrap_or(current_config.apple_pay_enabled),
-        google_pay_enabled: req.google_pay_enabled.unwrap_or(current_config.google_pay_enabled),
+        apple_pay_enabled: req
+            .apple_pay_enabled
+            .unwrap_or(current_config.apple_pay_enabled),
+        google_pay_enabled: req
+            .google_pay_enabled
+            .unwrap_or(current_config.google_pay_enabled),
         preferred_provider: req.preferred_provider.or(current_config.preferred_provider),
     };
 
