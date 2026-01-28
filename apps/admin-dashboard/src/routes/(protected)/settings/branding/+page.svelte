@@ -158,7 +158,7 @@
 							src={logoUrl}
 							alt="Logo preview"
 							class="max-h-12 object-contain"
-							onerror="this.style.display='none'"
+							onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
 						/>
 					</div>
 				{/if}
