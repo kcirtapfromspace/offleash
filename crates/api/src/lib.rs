@@ -311,6 +311,11 @@ pub fn create_app(state: AppState) -> Router {
             "/contexts/join-as-customer/:org_slug",
             post(routes::contexts::join_as_customer),
         )
+        // Organization deletion (owner-only)
+        .route(
+            "/contexts/organization",
+            delete(routes::contexts::delete_organization),
+        )
         .route(
             "/admin/walkers/:walker_id/profile",
             get(routes::walker_profiles::get_walker_profile)

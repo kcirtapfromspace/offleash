@@ -7,8 +7,8 @@ use axum::{
     extract::{Path, State},
     Json,
 };
-use db::models::{CreateMembership, MembershipRole, MembershipStatus};
-use db::{MembershipRepository, OrganizationRepository, UserRepository};
+use db::models::{CreateMembership, MembershipRole, MembershipStatus, TenantDbStatus};
+use db::{MembershipRepository, OrganizationRepository, TenantDatabaseRepository, UserRepository};
 use serde::{Deserialize, Serialize};
 use shared::types::OrganizationId;
 use shared::DomainError;
@@ -366,4 +366,64 @@ fn create_token_with_membership(
             "Token creation failed".to_string(),
         ))
     })
+}
+
+// ============================================================================
+// Organization Management (Owner-only)
+// ============================================================================
+
+#[derive(Debug, Serialize)]
+pub struct DeleteOrganizationResponse {
+    pub message: String,
+    pub organization_id: String,
+    pub status: String,
+}
+
+/// Delete (deactivate) the current organization
+/// DELETE /contexts/organization
+///
+/// Only organization owners can delete their organization.
+/// This is a soft-delete that marks the org as inactive.
+pub async fn delete_organization(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+) -> ApiResult<Json<DeleteOrganizationResponse>> {
+    // Require organization context
+    let org_id = auth_user.org_id.ok_or_else(|| {
+        ApiError::from(DomainError::Unauthorized(
+            "Organization context required".to_string(),
+        ))
+    })?;
+
+    // Get user's membership in this org
+    let memberships =
+        MembershipRepository::find_with_org_by_user(&state.pool, auth_user.user_id).await?;
+
+    let current_membership = memberships.iter().find(|m| m.organization_id == org_id);
+
+    // Check if user is an owner
+    let is_owner = current_membership
+        .map(|m| m.role == MembershipRole::Owner)
+        .unwrap_or(false);
+
+    if !is_owner {
+        return Err(ApiError::from(DomainError::Unauthorized(
+            "Only organization owners can delete the organization".to_string(),
+        )));
+    }
+
+    // Verify org exists
+    let org = OrganizationRepository::find_by_id(&state.pool, org_id)
+        .await?
+        .ok_or_else(|| ApiError::from(DomainError::OrganizationNotFound(org_id.to_string())))?;
+
+    // Soft-delete: Update tenant_database status to 'inactive'
+    TenantDatabaseRepository::update_status_by_org_id(&state.pool, org_id, TenantDbStatus::Inactive)
+        .await?;
+
+    Ok(Json(DeleteOrganizationResponse {
+        message: "Organization deactivated successfully".to_string(),
+        organization_id: org_id.to_string(),
+        status: "inactive".to_string(),
+    }))
 }
