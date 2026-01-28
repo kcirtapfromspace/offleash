@@ -90,7 +90,7 @@ services:
     rootDir: apps/customer-web
     buildCommand: npm ci --include=dev && npm run build
     startCommand: node build
-    healthCheckPath: /
+    healthCheckPath: /onboarding
     envVars:
       - key: NODE_ENV
         value: production
@@ -126,7 +126,7 @@ services:
     rootDir: apps/admin-dashboard
     buildCommand: npm ci --include=dev && npm run build
     startCommand: node build
-    healthCheckPath: /
+    healthCheckPath: /login
     envVars:
       - key: NODE_ENV
         value: production
@@ -160,7 +160,7 @@ services:
     rootDir: apps/platform-admin
     buildCommand: npm ci --include=dev && npm run build
     startCommand: node build
-    healthCheckPath: /
+    healthCheckPath: /login
     envVars:
       - key: NODE_ENV
         value: production
