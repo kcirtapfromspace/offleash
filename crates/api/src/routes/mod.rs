@@ -23,6 +23,7 @@ pub mod phone_auth;
 pub mod platform_auth;
 pub mod prometheus;
 pub mod recurring_bookings;
+pub mod route_optimization;
 pub mod service_areas;
 pub mod services;
 pub mod subscriptions;

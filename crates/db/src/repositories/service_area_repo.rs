@@ -189,4 +189,48 @@ impl ServiceAreaRepository {
         .fetch_all(pool)
         .await
     }
+
+    /// Find active service areas for a specific walker
+    pub async fn find_active_by_walker(
+        pool: &PgPool,
+        org_id: OrganizationId,
+        walker_id: UserId,
+    ) -> Result<Vec<ServiceArea>, sqlx::Error> {
+        sqlx::query_as::<_, ServiceArea>(
+            r#"
+            SELECT id, organization_id, walker_id, name, color, polygon,
+                   min_latitude, max_latitude, min_longitude, max_longitude,
+                   is_active, priority, price_adjustment_percent, notes,
+                   created_at, updated_at
+            FROM service_areas
+            WHERE walker_id = $1 AND organization_id = $2 AND is_active = TRUE
+            ORDER BY priority ASC
+            "#,
+        )
+        .bind(walker_id.as_uuid())
+        .bind(org_id.as_uuid())
+        .fetch_all(pool)
+        .await
+    }
+
+    /// List all active service areas for an organization
+    pub async fn list_active(
+        pool: &PgPool,
+        org_id: OrganizationId,
+    ) -> Result<Vec<ServiceArea>, sqlx::Error> {
+        sqlx::query_as::<_, ServiceArea>(
+            r#"
+            SELECT id, organization_id, walker_id, name, color, polygon,
+                   min_latitude, max_latitude, min_longitude, max_longitude,
+                   is_active, priority, price_adjustment_percent, notes,
+                   created_at, updated_at
+            FROM service_areas
+            WHERE organization_id = $1 AND is_active = TRUE
+            ORDER BY walker_id, priority ASC
+            "#,
+        )
+        .bind(org_id.as_uuid())
+        .fetch_all(pool)
+        .await
+    }
 }

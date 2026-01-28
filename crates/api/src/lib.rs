@@ -255,6 +255,15 @@ pub fn create_app(state: AppState) -> Router {
             "/availability/slots",
             get(routes::travel_time::get_availability_slots),
         )
+        // Route optimization
+        .route(
+            "/walkers/:id/route",
+            get(routes::route_optimization::get_route),
+        )
+        .route(
+            "/walkers/:id/route/optimize",
+            post(routes::route_optimization::optimize_route),
+        )
         // Walker profile routes
         .route(
             "/walker/profile",

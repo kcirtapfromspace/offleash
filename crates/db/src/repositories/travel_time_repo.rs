@@ -105,6 +105,101 @@ impl TravelTimeCacheRepository {
 
         Ok(result.rows_affected())
     }
+
+    /// Get cached travel times for multiple location pairs
+    /// Used to build a travel matrix for a walker's daily bookings
+    pub async fn get_batch(
+        pool: &PgPool,
+        location_ids: &[LocationId],
+    ) -> Result<Vec<TravelTimeCache>, sqlx::Error> {
+        if location_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let ids: Vec<uuid::Uuid> = location_ids.iter().map(|id| *id.as_uuid()).collect();
+
+        let cache = sqlx::query_as::<_, TravelTimeCache>(
+            r#"
+            SELECT id, origin_location_id, destination_location_id,
+                   travel_seconds, distance_meters, calculated_at
+            FROM travel_time_cache
+            WHERE origin_location_id = ANY($1)
+              AND destination_location_id = ANY($1)
+            "#,
+        )
+        .bind(&ids)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(cache)
+    }
+
+    /// Get fresh cached travel times for multiple location pairs
+    pub async fn get_batch_fresh(
+        pool: &PgPool,
+        location_ids: &[LocationId],
+        max_age_minutes: i64,
+    ) -> Result<Vec<TravelTimeCache>, sqlx::Error> {
+        if location_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let ids: Vec<uuid::Uuid> = location_ids.iter().map(|id| *id.as_uuid()).collect();
+        let cutoff = Utc::now() - Duration::minutes(max_age_minutes);
+
+        let cache = sqlx::query_as::<_, TravelTimeCache>(
+            r#"
+            SELECT id, origin_location_id, destination_location_id,
+                   travel_seconds, distance_meters, calculated_at
+            FROM travel_time_cache
+            WHERE origin_location_id = ANY($1)
+              AND destination_location_id = ANY($1)
+              AND calculated_at > $2
+            "#,
+        )
+        .bind(&ids)
+        .bind(cutoff)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(cache)
+    }
+
+    /// Batch upsert travel times
+    pub async fn upsert_batch(
+        pool: &PgPool,
+        entries: &[(LocationId, LocationId, i32, i32)], // (origin, dest, seconds, meters)
+    ) -> Result<u64, sqlx::Error> {
+        if entries.is_empty() {
+            return Ok(0);
+        }
+
+        let mut count = 0u64;
+        for (origin_id, destination_id, travel_seconds, distance_meters) in entries {
+            let result = sqlx::query(
+                r#"
+                INSERT INTO travel_time_cache
+                    (origin_location_id, destination_location_id, travel_seconds, distance_meters, calculated_at)
+                VALUES ($1, $2, $3, $4, NOW())
+                ON CONFLICT (origin_location_id, destination_location_id)
+                DO UPDATE SET
+                    travel_seconds = EXCLUDED.travel_seconds,
+                    distance_meters = EXCLUDED.distance_meters,
+                    calculated_at = NOW()
+                "#,
+            )
+            .bind(origin_id)
+            .bind(destination_id)
+            .bind(travel_seconds)
+            .bind(distance_meters)
+            .execute(pool)
+            .await?;
+
+            count += result.rows_affected();
+        }
+
+        Ok(count)
+    }
 }
 
 pub struct WalkerLocationRepository;
