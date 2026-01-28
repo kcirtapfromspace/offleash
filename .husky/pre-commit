@@ -1,0 +1,27 @@
+#!/bin/sh
+
+# Run lint-staged for JS/TS/Svelte files
+npx lint-staged
+
+# Check if any Rust files are staged
+RUST_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.rs$' || true)
+
+if [ -n "$RUST_FILES" ]; then
+    echo "🦀 Checking Rust files..."
+
+    # Check formatting
+    cargo fmt --check
+    if [ $? -ne 0 ]; then
+        echo "❌ Rust formatting check failed. Run 'cargo fmt' to fix."
+        exit 1
+    fi
+
+    # Run clippy
+    cargo clippy -- -D warnings
+    if [ $? -ne 0 ]; then
+        echo "❌ Clippy found issues. Please fix them before committing."
+        exit 1
+    fi
+
+    echo "✅ Rust checks passed"
+fi

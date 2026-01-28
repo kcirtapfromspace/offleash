@@ -1,36 +1,59 @@
 {
-  "name": "offleash",
-  "private": true,
-  "version": "1.0.0",
-  "type": "module",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "scripts": {
-    "test": "playwright test",
-    "test:e2e": "playwright test",
-    "test:api": "playwright test --project=api",
-    "test:customer": "playwright test --project=customer-web",
-    "test:admin": "playwright test --project=admin-dashboard",
-    "test:platform": "playwright test --project=platform-admin",
-    "test:ui": "playwright test --project=customer-web --project=admin-dashboard --project=platform-admin",
-    "test:headed": "playwright test --headed",
-    "test:debug": "playwright test --debug",
-    "test:report": "playwright show-report",
-    "test:staging": "STAGING=true playwright test --project=staging",
-    "db:reset": "./scripts/reset-test-db.sh",
-    "dev:all": "concurrently \"npm run dev:api\" \"npm run dev:customer\" \"npm run dev:admin\" \"npm run dev:platform\"",
-    "dev:api": "cd crates/api && cargo run",
-    "dev:customer": "cd apps/customer-web && npm run dev -- --port 5173",
-    "dev:admin": "cd apps/admin-dashboard && npm run dev -- --port 5174",
-    "dev:platform": "cd apps/platform-admin && npm run dev -- --port 5175"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.57.0",
-    "@types/node": "^22.15.21",
-    "concurrently": "^9.1.2",
-    "dotenv": "^16.4.7",
-    "typescript": "^5.9.3"
-  }
+	"name": "offleash",
+	"private": true,
+	"version": "1.0.0",
+	"type": "module",
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
+	"scripts": {
+		"test": "playwright test",
+		"test:e2e": "playwright test",
+		"test:api": "playwright test --project=api",
+		"test:customer": "playwright test --project=customer-web",
+		"test:admin": "playwright test --project=admin-dashboard",
+		"test:platform": "playwright test --project=platform-admin",
+		"test:ui": "playwright test --project=customer-web --project=admin-dashboard --project=platform-admin",
+		"test:headed": "playwright test --headed",
+		"test:debug": "playwright test --debug",
+		"test:report": "playwright show-report",
+		"test:staging": "STAGING=true playwright test --project=staging",
+		"db:reset": "./scripts/reset-test-db.sh",
+		"dev:all": "concurrently \"npm run dev:api\" \"npm run dev:customer\" \"npm run dev:admin\" \"npm run dev:platform\"",
+		"dev:api": "cd crates/api && cargo run",
+		"dev:customer": "cd apps/customer-web && npm run dev -- --port 5173",
+		"dev:admin": "cd apps/admin-dashboard && npm run dev -- --port 5174",
+		"dev:platform": "cd apps/platform-admin && npm run dev -- --port 5175",
+		"format": "prettier --write \"apps/**/*.{ts,js,svelte,json,css}\" \"tests/**/*.ts\" \"*.{json,ts}\"",
+		"format:check": "prettier --check \"apps/**/*.{ts,js,svelte,json,css}\" \"tests/**/*.ts\" \"*.{json,ts}\"",
+		"lint:rust": "cargo clippy -- -D warnings",
+		"lint:rust:fix": "cargo clippy --fix --allow-dirty",
+		"format:rust": "cargo fmt",
+		"format:rust:check": "cargo fmt --check",
+		"check": "npm run format:check && npm run format:rust:check",
+		"prepare": "husky"
+	},
+	"devDependencies": {
+		"@playwright/test": "^1.57.0",
+		"@types/node": "^22.15.21",
+		"concurrently": "^9.1.2",
+		"dotenv": "^16.4.7",
+		"husky": "^9.1.7",
+		"lint-staged": "^16.2.7",
+		"prettier": "^3.8.1",
+		"prettier-plugin-svelte": "^3.4.1",
+		"typescript": "^5.9.3"
+	},
+	"lint-staged": {
+		"*.{js,ts}": [
+			"prettier --write"
+		],
+		"*.svelte": [
+			"prettier --write"
+		],
+		"*.{json,css,html}": [
+			"prettier --write"
+		]
+	}
 }
