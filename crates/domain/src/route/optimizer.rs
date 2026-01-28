@@ -223,15 +223,20 @@ impl RouteOptimizer {
             routes[merge_from].clear();
         }
 
-        // Find the non-empty route (should be exactly one)
-        for route in routes {
-            if !route.is_empty() {
-                return route;
-            }
+        // Collect all non-empty routes
+        let mut non_empty: Vec<Vec<usize>> = routes.into_iter().filter(|r| !r.is_empty()).collect();
+
+        // If multiple routes remain (e.g., due to zero savings for depot pairs),
+        // merge them sequentially in chronological order
+        if non_empty.len() > 1 {
+            // Sort routes by their first element (chronological order)
+            non_empty.sort_by_key(|r| r.first().copied().unwrap_or(0));
+            // Flatten into a single route
+            return non_empty.into_iter().flatten().collect();
         }
 
-        // Fallback to chronological order
-        (0..n).collect()
+        // Return the single merged route
+        non_empty.into_iter().next().unwrap_or_else(|| (0..n).collect())
     }
 
     /// Build a distance matrix for all booking pairs
