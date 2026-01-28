@@ -3,7 +3,62 @@ use serde::{Deserialize, Serialize};
 use shared::types::OrganizationId;
 use sqlx::FromRow;
 
-/// Organization settings including branding configuration
+/// Business model type for the organization
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum BusinessModel {
+    /// Booking management only - no customer payments processed
+    #[default]
+    BookingOnly,
+    /// Full service with customer payments
+    FullService,
+}
+
+/// Fee structure for organizations using customer payments
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum FeeStructure {
+    /// Service fees passed to customer (owner pays no fees)
+    #[default]
+    CustomerPays,
+    /// Fees split between customer and owner
+    SplitFees,
+    /// Owner pays subscription, no fees to customer
+    OwnerSubscription,
+}
+
+/// Billing frequency for booking-only plans
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum BillingFrequency {
+    #[default]
+    Monthly,
+    Yearly,
+}
+
+/// Payment configuration for the organization
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PaymentConfig {
+    /// Business model type
+    #[serde(default)]
+    pub business_model: BusinessModel,
+    /// Fee structure (only relevant for full_service)
+    #[serde(default)]
+    pub fee_structure: FeeStructure,
+    /// Billing frequency (only relevant for booking_only)
+    #[serde(default)]
+    pub billing_frequency: BillingFrequency,
+    /// Whether Apple Pay is enabled
+    #[serde(default)]
+    pub apple_pay_enabled: bool,
+    /// Whether Google Pay is enabled
+    #[serde(default)]
+    pub google_pay_enabled: bool,
+    /// Preferred payment provider (stripe, square)
+    pub preferred_provider: Option<String>,
+}
+
+/// Organization settings including branding and payment configuration
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OrganizationSettings {
     /// Primary brand color (hex format, e.g., "#FF5733")
@@ -16,6 +71,9 @@ pub struct OrganizationSettings {
     pub favicon_url: Option<String>,
     /// Custom font family for the organization
     pub font_family: Option<String>,
+    /// Payment and business model configuration
+    #[serde(default)]
+    pub payment_config: PaymentConfig,
 }
 
 /// Organization database model
