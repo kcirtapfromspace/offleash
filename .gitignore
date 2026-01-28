@@ -40,6 +40,13 @@ logs/
 lcov.info
 coverage/
 
+# Node
+node_modules/
+
+# Playwright
+playwright-report/
+test-results/
+
 # Local secrets (never commit these)
 k8s/dev/secrets.yaml.local
 *.pem
