@@ -183,7 +183,18 @@ export default defineConfig({
   ],
 
   // Web server configuration for local testing
+  // Note: API server must be running on port 8080
+  // Start with: npm run dev:api (or cargo run from crates/api)
   webServer: isCI || isStaging ? undefined : [
+    // Rust API server - uses cargo run
+    {
+      command: 'cd crates/api && cargo run',
+      port: 8080,
+      reuseExistingServer: true,
+      timeout: 180000, // Rust compilation can take time
+      stdout: 'pipe',
+      stderr: 'pipe',
+    },
     {
       command: 'cd apps/customer-web && npm run dev -- --port 5173',
       port: 5173,

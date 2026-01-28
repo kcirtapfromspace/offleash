@@ -29,6 +29,7 @@ struct RegisterUser: Decodable {
     let email: String
     let firstName: String?
     let lastName: String?
+    let phone: String?
     let role: String?
     let organizationId: String?
 }
@@ -346,8 +347,9 @@ struct RegisterView: View {
 
         Task {
             do {
-                // TODO: Make org_slug configurable or derive from app configuration
-                let orgSlug = ProcessInfo.processInfo.environment["ORG_SLUG"] ?? "demo"
+                // Use AppConfiguration for organization slug
+                // Reads from Info.plist (white-label) or environment, defaults to demo org
+                let orgSlug = AppConfiguration.shared.defaultOrganizationSlug
                 let request = RegisterRequest(
                     orgSlug: orgSlug,
                     firstName: firstName.trimmingCharacters(in: .whitespaces),
@@ -368,6 +370,7 @@ struct RegisterView: View {
                         email: regUser.email,
                         firstName: regUser.firstName,
                         lastName: regUser.lastName,
+                        phone: regUser.phone,
                         role: role,
                         organizationId: regUser.organizationId
                     )

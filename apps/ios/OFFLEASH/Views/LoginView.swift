@@ -12,8 +12,9 @@ import GoogleSignIn
 
 // MARK: - Login Request/Response Models
 
+/// Universal login request - no org_slug required
+/// Uses /auth/login/universal endpoint which finds user globally
 struct LoginRequest: Encodable {
-    let orgSlug: String
     let email: String
     let password: String
 }
@@ -28,6 +29,7 @@ struct LoginUser: Decodable {
     let email: String
     let firstName: String?
     let lastName: String?
+    let phone: String?
     let role: String?
     let organizationId: String?
 }
@@ -361,10 +363,9 @@ struct LoginView: View {
 
         Task {
             do {
-                // TODO: Make org_slug configurable or derive from app configuration
-                let orgSlug = ProcessInfo.processInfo.environment["ORG_SLUG"] ?? "demo"
-                let request = LoginRequest(orgSlug: orgSlug, email: email.trimmingCharacters(in: .whitespaces), password: password)
-                let response: LoginResponse = try await APIClient.shared.post("/auth/login", body: request)
+                // Use universal login - finds user across all organizations
+                let request = LoginRequest(email: email.trimmingCharacters(in: .whitespaces), password: password)
+                let response: LoginResponse = try await APIClient.shared.post("/auth/login/universal", body: request)
 
                 await APIClient.shared.setAuthToken(response.token)
 
@@ -376,6 +377,7 @@ struct LoginView: View {
                         email: loginUser.email,
                         firstName: loginUser.firstName,
                         lastName: loginUser.lastName,
+                        phone: loginUser.phone,
                         role: role,
                         organizationId: loginUser.organizationId
                     )
@@ -433,10 +435,11 @@ struct LoginView: View {
 
             Task {
                 do {
-                    let orgSlug = ProcessInfo.processInfo.environment["ORG_SLUG"] ?? "demo"
+                    // Universal OAuth - no org_slug required for existing users
+                    // New users will be auto-assigned to a default organization
                     let roleString = selectedRole == .walker ? "walker" : "customer"
                     let request = OAuthAppleRequest(
-                        orgSlug: orgSlug,
+                        orgSlug: nil,
                         idToken: identityToken,
                         firstName: firstName,
                         lastName: lastName,
@@ -453,6 +456,7 @@ struct LoginView: View {
                         email: response.user.email,
                         firstName: response.user.firstName,
                         lastName: response.user.lastName,
+                        phone: response.user.phone,
                         role: role,
                         organizationId: response.user.organizationId
                     )
@@ -540,10 +544,10 @@ struct LoginView: View {
             // Send the ID token to the backend
             Task {
                 do {
-                    let orgSlug = ProcessInfo.processInfo.environment["ORG_SLUG"] ?? "demo"
+                    // Universal OAuth - no org_slug required for existing users
                     let roleString = selectedRole == .walker ? "walker" : "customer"
                     let request = OAuthGoogleRequest(
-                        orgSlug: orgSlug,
+                        orgSlug: nil,
                         idToken: idToken,
                         role: roleString
                     )
@@ -558,6 +562,7 @@ struct LoginView: View {
                         email: response.user.email,
                         firstName: response.user.firstName,
                         lastName: response.user.lastName,
+                        phone: response.user.phone,
                         role: role,
                         organizationId: response.user.organizationId
                     )
