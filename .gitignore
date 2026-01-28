@@ -51,3 +51,6 @@ test-results/
 k8s/dev/secrets.yaml.local
 *.pem
 *.key
+
+# Ralph agent workspace
+.ralph/
