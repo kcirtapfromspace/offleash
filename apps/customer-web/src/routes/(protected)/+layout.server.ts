@@ -123,7 +123,13 @@ export const load: LayoutServerLoad = async ({ cookies, url, request }) => {
 			}
 		} catch (err) {
 			if (err instanceof ApiError && err.status === 401) {
-				// Token is invalid or expired - redirect to login
+				// Token is invalid or expired - delete it and redirect to login
+				const host = request.headers.get('host') || '';
+				deleteAuthCookie(cookies, 'token', host);
+				deleteAuthCookie(cookies, 'user', host);
+				deleteAuthCookie(cookies, 'membership', host);
+				deleteAuthCookie(cookies, 'memberships', host);
+				deleteAuthCookie(cookies, 'token_has_org_id', host);
 				throw redirect(303, `/login?redirect=${encodeURIComponent(url.pathname)}`);
 			}
 			throw err;
