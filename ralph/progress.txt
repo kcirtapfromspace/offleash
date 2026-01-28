@@ -1,7 +1,0 @@
-# Ralph Progress Log
-# Project: OFFLEASH
-# Branch: ralph/ios-auth-reliability-observability
-# Started: 2026-01-20
-
----
-

@@ -622,7 +622,7 @@ STAGING_TEST_PASSWORD=...
 ├── playwright.config.ts
 └── README.md
 
-/ralph/apps/ios/OFFLEASHUITests/
+/apps/ios/OFFLEASHUITests/
 ├── AuthenticationTests.swift
 ├── BookingFlowTests.swift
 ├── ProfileTests.swift

@@ -4,12 +4,12 @@ on:
   push:
     branches: [main]
     paths:
-      - 'ralph/apps/ios/**'
+      - 'apps/ios/**'
       - '.github/workflows/build-ios.yml'
   pull_request:
     branches: [main]
     paths:
-      - 'ralph/apps/ios/**'
+      - 'apps/ios/**'
   workflow_dispatch:
 
 env:
@@ -25,7 +25,7 @@ jobs:
     if: github.event_name == 'pull_request'
     defaults:
       run:
-        working-directory: ralph/apps/ios
+        working-directory: apps/ios
 
     steps:
       - uses: actions/checkout@v4
@@ -34,8 +34,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ralph/apps/ios/build/DerivedData
-          key: ${{ runner.os }}-deriveddata-${{ hashFiles('ralph/apps/ios/**/*.swift', 'ralph/apps/ios/**/*.xcodeproj/**') }}
+            apps/ios/build/DerivedData
+          key: ${{ runner.os }}-deriveddata-${{ hashFiles('apps/ios/**/*.swift', 'apps/ios/**/*.xcodeproj/**') }}
           restore-keys: |
             ${{ runner.os }}-deriveddata-
 
@@ -44,7 +44,7 @@ jobs:
         with:
           path: |
             ~/Library/Caches/org.swift.swiftpm
-          key: ${{ runner.os }}-spm-${{ hashFiles('ralph/apps/ios/OFFLEASH.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          key: ${{ runner.os }}-spm-${{ hashFiles('apps/ios/OFFLEASH.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-spm-
 
@@ -89,7 +89,7 @@ jobs:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     defaults:
       run:
-        working-directory: ralph/apps/ios
+        working-directory: apps/ios
 
     steps:
       - uses: actions/checkout@v4
@@ -98,8 +98,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ralph/apps/ios/build/DerivedData
-          key: ${{ runner.os }}-deriveddata-${{ hashFiles('ralph/apps/ios/**/*.swift', 'ralph/apps/ios/**/*.xcodeproj/**') }}
+            apps/ios/build/DerivedData
+          key: ${{ runner.os }}-deriveddata-${{ hashFiles('apps/ios/**/*.swift', 'apps/ios/**/*.xcodeproj/**') }}
           restore-keys: |
             ${{ runner.os }}-deriveddata-
 
@@ -108,7 +108,7 @@ jobs:
         with:
           path: |
             ~/Library/Caches/org.swift.swiftpm
-          key: ${{ runner.os }}-spm-${{ hashFiles('ralph/apps/ios/OFFLEASH.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          key: ${{ runner.os }}-spm-${{ hashFiles('apps/ios/OFFLEASH.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-spm-
 
@@ -124,7 +124,7 @@ jobs:
         with:
           ruby-version: '3.2'
           bundler-cache: true
-          working-directory: ralph/apps/ios
+          working-directory: apps/ios
 
       - name: Create App Store Connect API Key
         env:
