@@ -46,6 +46,7 @@ struct BookingDetailView: View {
                 }
                 .padding()
             }
+            .accessibilityIdentifier("request-detail")
             .navigationTitle("Booking Details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -260,6 +261,7 @@ struct BookingDetailView: View {
                     .foregroundColor(.white)
                     .cornerRadius(12)
                 }
+                .accessibilityIdentifier("accept-booking-button")
 
                 Button(action: { showCancelConfirmation = true }) {
                     HStack {
@@ -272,6 +274,7 @@ struct BookingDetailView: View {
                     .foregroundColor(.red)
                     .cornerRadius(12)
                 }
+                .accessibilityIdentifier("decline-booking-button")
 
             case .confirmed:
                 if booking.isToday || booking.scheduledStart <= Date() {

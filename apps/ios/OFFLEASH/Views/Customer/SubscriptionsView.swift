@@ -77,22 +77,29 @@ struct SubscriptionsView: View {
     }
 
     private var subscriptionList: some View {
-        List {
-            ForEach(subscriptions) { subscription in
-                SubscriptionCard(subscription: subscription)
-                    .swipeActions(edge: .trailing) {
-                        if subscription.isActive && !subscription.cancelAtPeriodEnd {
-                            Button(role: .destructive) {
-                                subscriptionToCancel = subscription
-                            } label: {
-                                Label("Cancel", systemImage: "xmark.circle")
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Subscriptions")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .accessibilityIdentifier("subscriptions-list")
+
+            List {
+                ForEach(subscriptions) { subscription in
+                    SubscriptionCard(subscription: subscription)
+                        .swipeActions(edge: .trailing) {
+                            if subscription.isActive && !subscription.cancelAtPeriodEnd {
+                                Button(role: .destructive) {
+                                    subscriptionToCancel = subscription
+                                } label: {
+                                    Label("Cancel", systemImage: "xmark.circle")
+                                }
                             }
                         }
-                    }
+                }
             }
-        }
-        .refreshable {
-            await refreshSubscriptions()
+            .refreshable {
+                await refreshSubscriptions()
+            }
         }
     }
 

@@ -67,6 +67,7 @@ struct WalkerMapView: View {
                 MapCompass()
                 MapScaleView()
             }
+            .accessibilityIdentifier("map-view")
 
             // Bottom card with summary
             VStack {

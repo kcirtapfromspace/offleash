@@ -48,6 +48,7 @@ struct LocationSelectionView: View {
                         Image(systemName: "plus")
                             .foregroundColor(themeManager.primaryColor)
                     }
+                    .accessibilityIdentifier("booking-add-location")
                 }
             }
             .refreshable {
@@ -91,6 +92,7 @@ struct LocationSelectionView: View {
     private var loadingView: some View {
         VStack(spacing: 16) {
             ProgressView()
+                .accessibilityIdentifier("loading-indicator")
                 .scaleEffect(1.5)
             Text("Loading locations...")
                 .foregroundColor(.secondary)
@@ -128,7 +130,9 @@ struct LocationSelectionView: View {
                     .foregroundColor(.white)
                     .cornerRadius(8)
             }
+            .accessibilityIdentifier("retry-button")
         }
+        .accessibilityIdentifier("error-banner")
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -163,7 +167,9 @@ struct LocationSelectionView: View {
                 .foregroundColor(.white)
                 .cornerRadius(8)
             }
+            .accessibilityIdentifier("booking-add-location")
         }
+        .accessibilityIdentifier("empty-state")
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -204,7 +210,9 @@ struct LocationSelectionView: View {
                     }
                     .padding(.vertical, 8)
                 }
+                .accessibilityIdentifier("booking-add-location")
             }
+            .accessibilityIdentifier("booking-location-picker")
             .listStyle(.plain)
         }
     }

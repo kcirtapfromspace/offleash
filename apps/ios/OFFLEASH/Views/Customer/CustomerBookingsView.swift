@@ -42,6 +42,7 @@ struct CustomerBookingsView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .accessibilityIdentifier("booking-filter-button")
             .padding()
 
             // Content
@@ -137,6 +138,7 @@ struct CustomerBookingsView: View {
     private var loadingView: some View {
         VStack(spacing: 16) {
             ProgressView()
+                .accessibilityIdentifier("loading-indicator")
                 .scaleEffect(1.5)
             Text("Loading bookings...")
                 .foregroundColor(.secondary)
@@ -174,7 +176,9 @@ struct CustomerBookingsView: View {
                     .foregroundColor(.white)
                     .cornerRadius(8)
             }
+            .accessibilityIdentifier("retry-button")
         }
+        .accessibilityIdentifier("error-banner")
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -195,6 +199,7 @@ struct CustomerBookingsView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
         }
+        .accessibilityIdentifier("empty-state")
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -225,6 +230,7 @@ struct CustomerBookingsView: View {
     private var bookingsList: some View {
         List(filteredBookings) { booking in
             CustomerBookingRowView(booking: booking, themeManager: themeManager)
+                .accessibilityIdentifier("booking-item-\(booking.id)")
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     if booking.canCancel {
                         Button(role: .destructive) {
@@ -247,6 +253,7 @@ struct CustomerBookingsView: View {
                     }
                 }
         }
+        .accessibilityIdentifier("bookings-list")
         .listStyle(.plain)
     }
 

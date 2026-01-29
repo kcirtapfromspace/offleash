@@ -64,6 +64,7 @@ struct WalkerCalendarView: View {
                 )
             }
         }
+        .accessibilityIdentifier("calendar-view")
         .navigationTitle("Schedule")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -120,6 +121,7 @@ struct WalkerCalendarView: View {
             }
         }
         .pickerStyle(.segmented)
+        .accessibilityIdentifier("calendar-toggle-week")
         .padding(.horizontal)
         .padding(.vertical, 8)
     }
@@ -648,6 +650,7 @@ struct DayButton: View {
                     .fill(isSelected ? primaryColor : Color.clear)
             )
         }
+        .accessibilityIdentifier("calendar-day-\(isoDateString)")
         .buttonStyle(.plain)
     }
 
@@ -660,6 +663,12 @@ struct DayButton: View {
     private var dayString: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "d"
+        return formatter.string(from: date)
+    }
+
+    private var isoDateString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: date)
     }
 }

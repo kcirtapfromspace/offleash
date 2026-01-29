@@ -14,6 +14,7 @@ struct WalkerTabView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             WalkerDashboardView()
+                .accessibilityIdentifier("walker-dashboard")
                 .tabItem {
                     Label("Home", systemImage: "house.fill")
                 }
@@ -22,6 +23,7 @@ struct WalkerTabView: View {
             NavigationStack {
                 WalkerCalendarView()
             }
+            .accessibilityIdentifier("tab-calendar")
             .tabItem {
                 Label("Calendar", systemImage: "calendar")
             }
@@ -30,6 +32,7 @@ struct WalkerTabView: View {
             NavigationStack {
                 WalkerMapView()
             }
+            .accessibilityIdentifier("tab-map")
             .tabItem {
                 Label("Map", systemImage: "map.fill")
             }
@@ -38,6 +41,7 @@ struct WalkerTabView: View {
             NavigationStack {
                 PendingBookingsView()
             }
+            .accessibilityIdentifier("tab-requests")
             .tabItem {
                 Label("Requests", systemImage: "tray.full.fill")
             }

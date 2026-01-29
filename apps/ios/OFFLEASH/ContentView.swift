@@ -51,6 +51,7 @@ struct ContentView: View {
                 VStack(spacing: 16) {
                     ProgressView()
                         .scaleEffect(1.5)
+                        .accessibilityIdentifier("loading-indicator")
                     Text("Loading...")
                         .foregroundColor(.secondary)
                 }
@@ -117,6 +118,7 @@ struct ContentView: View {
                     email: userData.email,
                     firstName: userData.firstName,
                     lastName: userData.lastName,
+                    phone: userData.phone,
                     role: UserRole(rawValue: userData.role ?? "customer") ?? .customer,
                     organizationId: userData.organizationId
                 )

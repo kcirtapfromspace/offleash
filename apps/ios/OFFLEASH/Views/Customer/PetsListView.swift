@@ -22,6 +22,7 @@ struct PetsListView: View {
         Group {
             if isLoading {
                 ProgressView()
+                    .accessibilityIdentifier("loading-indicator")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if pets.isEmpty {
                 emptyState
@@ -37,6 +38,7 @@ struct PetsListView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityIdentifier("pet-add-button")
             }
         }
         .onAppear {
@@ -112,9 +114,11 @@ struct PetsListView: View {
                     .foregroundColor(.white)
                     .cornerRadius(12)
             }
+            .accessibilityIdentifier("pet-add-button")
             .padding(.horizontal, 40)
             .padding(.top, 8)
         }
+        .accessibilityIdentifier("empty-state")
         .padding()
     }
 
@@ -124,6 +128,7 @@ struct PetsListView: View {
         List {
             ForEach(pets) { pet in
                 PetRow(pet: pet, themeManager: themeManager)
+                    .accessibilityIdentifier("pet-item-\(pet.name)")
                     .contentShape(Rectangle())
                     .onTapGesture {
                         petToEdit = pet
@@ -134,6 +139,7 @@ struct PetsListView: View {
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
+                        .accessibilityIdentifier("pet-delete-button")
 
                         Button {
                             petToEdit = pet
@@ -151,6 +157,7 @@ struct PetsListView: View {
                     Label("Add Pet", systemImage: "plus.circle")
                         .foregroundColor(themeManager.primaryColor)
                 }
+                .accessibilityIdentifier("pet-add-button")
             }
         }
     }

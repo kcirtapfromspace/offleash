@@ -16,6 +16,7 @@ struct PendingBookingsView: View {
         Group {
             if viewModel.isLoading {
                 ProgressView()
+                    .accessibilityIdentifier("loading-indicator")
             } else if viewModel.pendingBookings.isEmpty {
                 emptyState
             } else {
@@ -59,6 +60,7 @@ struct PendingBookingsView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
         }
+        .accessibilityIdentifier("empty-state")
     }
 
     // MARK: - Bookings List
@@ -77,8 +79,10 @@ struct PendingBookingsView: View {
                         await viewModel.cancelBooking(booking)
                     }
                 }
+                .accessibilityIdentifier("request-item-\(booking.id)")
             }
         }
+        .accessibilityIdentifier("pending-requests-list")
         .listStyle(.plain)
     }
 }
@@ -151,6 +155,7 @@ struct PendingBookingRow: View {
                         .foregroundColor(.red)
                         .cornerRadius(8)
                 }
+                .accessibilityIdentifier("decline-booking-button")
 
                 Button(action: onAccept) {
                     Text("Accept")
@@ -162,6 +167,7 @@ struct PendingBookingRow: View {
                         .foregroundColor(.white)
                         .cornerRadius(8)
                 }
+                .accessibilityIdentifier("accept-booking-button")
             }
         }
         .padding(.vertical, 8)

@@ -20,6 +20,7 @@ struct TokenValidationUser: Decodable {
     let email: String
     let firstName: String?
     let lastName: String?
+    let phone: String?
     let role: String?
     let organizationId: String?
 }
