@@ -42,6 +42,38 @@ export class LoginPage extends BasePage {
 		await this.enterEmail(email);
 		await this.enterPassword(password);
 		await this.tapSubmit();
+		// Wait for login to complete - either navigate away or show error
+		await this.waitForLoginResult();
+	}
+
+	/**
+	 * Wait for login result - either navigation away from login page or error displayed
+	 */
+	private async waitForLoginResult(): Promise<void> {
+		const maxWait = 30000;
+		const pollInterval = 500;
+		let waited = 0;
+
+		while (waited < maxWait) {
+			// Check if we're still on login page
+			const loginFormVisible = await this.isVisible(this.emailField, 500);
+			if (!loginFormVisible) {
+				// Successfully navigated away
+				await browser.pause(1000); // Extra time for page to settle
+				return;
+			}
+
+			// Check if error banner appeared
+			const errorVisible = await this.isVisible(this.errorBanner, 500);
+			if (errorVisible) {
+				// Login failed with error
+				return;
+			}
+
+			await browser.pause(pollInterval);
+			waited += pollInterval;
+		}
+		// Timeout - continue anyway, test will fail if expected state not reached
 	}
 
 	async isErrorDisplayed(): Promise<boolean> {
