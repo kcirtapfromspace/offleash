@@ -61,6 +61,13 @@ export const testBooking = {
 	recurringCount: 4,
 };
 
+export const testSubscription = {
+	frequency: 'weekly',
+	dayOfWeek: 'Monday',
+	timeSlot: '09:00',
+	serviceName: 'Dog Walking',
+};
+
 export const testOrganization = {
 	name: 'Test Organization',
 	inviteCode: 'TEST-INVITE-CODE',
