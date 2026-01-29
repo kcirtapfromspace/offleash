@@ -96,6 +96,7 @@ struct OFFLEASHApp: App {
                     VStack {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle())
+                            .accessibilityIdentifier("loading-indicator")
                         if appState == .validating {
                             Text("Verifying session...")
                                 .font(.subheadline)
@@ -130,7 +131,13 @@ struct OFFLEASHApp: App {
                     case .roleSelection:
                         RoleSelectionView { role in
                             selectedRole = role
-                            authFlowState = .login
+                            if isAuthMockMode {
+                                Task {
+                                    await applyMockLogin(for: role)
+                                }
+                            } else {
+                                authFlowState = .login
+                            }
                         }
                         .withThemeManager(themeManager)
 
@@ -201,7 +208,42 @@ struct OFFLEASHApp: App {
         }
     }
 
+    private var isAuthMockMode: Bool {
+        TestAuthMode.isMock
+    }
+
     private func validateTokenOnLaunch() async {
+        let resetFlag = ProcessInfo.processInfo.environment["OFFLEASH_TEST_RESET"]?.lowercased()
+        if resetFlag == "1" || resetFlag == "true" {
+            await APIClient.shared.clearAuthToken()
+            await MainActor.run {
+                UserSession.shared.clearUser()
+                appState = .unauthenticated
+                authFlowState = .roleSelection
+                isFreshLogin = true
+            }
+            return
+        }
+
+        if isAuthMockMode {
+            if KeychainHelper.shared.hasToken || UserSession.shared.currentUser != nil || !UserSession.shared.memberships.isEmpty {
+                await MainActor.run {
+                    if let role = UserSession.shared.currentUser?.role {
+                        selectedRole = role == .walker ? .walker : .customer
+                    } else if UserSession.shared.currentMembership?.role.isWalkerOrAdmin == true {
+                        selectedRole = .walker
+                    } else {
+                        selectedRole = .customer
+                    }
+                    isFreshLogin = false
+                    appState = .authenticated
+                }
+            } else {
+                appState = .unauthenticated
+            }
+            return
+        }
+
         // Check if we have a stored token
         guard KeychainHelper.shared.hasToken else {
             appState = .unauthenticated
@@ -222,6 +264,7 @@ struct OFFLEASHApp: App {
                         email: userData.email,
                         firstName: userData.firstName,
                         lastName: userData.lastName,
+                        phone: userData.phone,
                         role: role,
                         organizationId: userData.organizationId
                     )
@@ -253,6 +296,38 @@ struct OFFLEASHApp: App {
                 isFreshLogin = false  // Returning user
                 appState = .authenticated
             }
+        }
+    }
+
+    private func applyMockLogin(for role: SelectedRole) async {
+        await APIClient.shared.setAuthToken("test-token")
+
+        let resolvedRole: UserRole = role == .walker ? .walker : .customer
+        let membershipRole: MembershipRole = role == .walker ? .walker : .customer
+        let user = User(
+            id: "test-user",
+            email: role == .walker ? "test-walker@offleash.test" : "test-customer@offleash.test",
+            firstName: "Test",
+            lastName: role == .walker ? "Walker" : "Customer",
+            phone: nil,
+            role: resolvedRole,
+            organizationId: "test-org"
+        )
+        let membership = Membership(
+            id: "test-membership",
+            organizationId: "test-org",
+            organizationName: "Test Org",
+            organizationSlug: "test-org",
+            role: membershipRole,
+            title: nil,
+            joinedAt: nil
+        )
+
+        await MainActor.run {
+            UserSession.shared.setUser(user)
+            UserSession.shared.setMemberships([membership], current: membership)
+            isFreshLogin = true
+            appState = .authenticated
         }
     }
 }

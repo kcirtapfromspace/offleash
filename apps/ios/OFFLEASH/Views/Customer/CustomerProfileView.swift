@@ -45,6 +45,7 @@ struct CustomerProfileView: View {
                     Spacer()
                 }
                 .padding(.vertical, 8)
+                .accessibilityIdentifier("profile-header")
             }
 
             // Persona/Organization Switcher (only if multiple memberships)
@@ -79,6 +80,7 @@ struct CustomerProfileView: View {
                         }
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .accessibilityIdentifier("org-switcher")
                 }
             }
 
@@ -89,36 +91,42 @@ struct CustomerProfileView: View {
                 } label: {
                     Label("Edit Profile", systemImage: "person.circle")
                 }
+                .accessibilityIdentifier("profile-edit-button")
 
                 NavigationLink {
                     PetsListView()
                 } label: {
                     Label("My Pets", systemImage: "pawprint.circle")
                 }
+                .accessibilityIdentifier("profile-pets-button")
 
                 NavigationLink {
                     MyLocationsView()
                 } label: {
                     Label("My Locations", systemImage: "mappin.circle")
                 }
+                .accessibilityIdentifier("profile-locations-button")
 
                 NavigationLink {
                     PaymentMethodsView()
                 } label: {
                     Label("Payment Methods", systemImage: "creditcard")
                 }
+                .accessibilityIdentifier("payments-tab")
 
                 NavigationLink {
                     TransactionHistoryView()
                 } label: {
                     Label("Transaction History", systemImage: "clock.arrow.circlepath")
                 }
+                .accessibilityIdentifier("payment-history-button")
 
                 NavigationLink {
                     SubscriptionsView()
                 } label: {
                     Label("Subscriptions", systemImage: "repeat.circle")
                 }
+                .accessibilityIdentifier("subscriptions-button")
 
                 NavigationLink {
                     RecurringBookingsListView()
@@ -184,6 +192,7 @@ struct CustomerProfileView: View {
                         Spacer()
                     }
                 }
+                .accessibilityIdentifier("logout-button")
                 .disabled(isLoggingOut)
             }
 

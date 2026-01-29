@@ -29,3 +29,19 @@ enum Validators {
         return regex.firstMatch(in: trimmedEmail, options: [], range: range) != nil
     }
 }
+
+enum TestAuthMode {
+    static var isMock: Bool {
+        if ProcessInfo.processInfo.environment["OFFLEASH_TEST_AUTH"] == "mock" {
+            return true
+        }
+        if UserDefaults.standard.string(forKey: "OFFLEASH_TEST_AUTH") == "mock" {
+            return true
+        }
+        let args = ProcessInfo.processInfo.arguments
+        if let index = args.firstIndex(of: "-OFFLEASH_TEST_AUTH"), index + 1 < args.count {
+            return args[index + 1].lowercased() == "mock"
+        }
+        return false
+    }
+}

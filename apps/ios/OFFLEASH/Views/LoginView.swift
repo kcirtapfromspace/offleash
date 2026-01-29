@@ -78,6 +78,7 @@ struct LoginView: View {
                                 }
                                 .foregroundColor(themeManager.primaryColor)
                             }
+                            .accessibilityIdentifier("nav-back-button")
                             Spacer()
                         }
                         .padding(.top, 16)
@@ -136,6 +137,7 @@ struct LoginView: View {
                                     .stroke(Color(.systemGray3), lineWidth: 1)
                             )
                         }
+                        .accessibilityIdentifier("login-google-button")
                         .disabled(isLoading || isOAuthLoading)
 
                         // Sign in with Phone
@@ -176,6 +178,21 @@ struct LoginView: View {
                     }
                     .padding(.vertical, 8)
 
+                    if showError {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.white)
+                            Text(errorMessage)
+                                .font(.subheadline)
+                                .foregroundColor(.white)
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.red.opacity(0.9))
+                        .cornerRadius(12)
+                        .accessibilityIdentifier("auth-error-banner")
+                    }
+
                     // Email Field
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Email")
@@ -189,6 +206,7 @@ struct LoginView: View {
                             .textContentType(.emailAddress)
                             .autocapitalization(.none)
                             .autocorrectionDisabled()
+                            .accessibilityIdentifier("login-email-field")
                             .padding()
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
@@ -219,6 +237,7 @@ struct LoginView: View {
                         SecureField("Enter your password", text: $password)
                             .textFieldStyle(.plain)
                             .textContentType(.password)
+                            .accessibilityIdentifier("login-password-field")
                             .padding()
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
@@ -249,6 +268,7 @@ struct LoginView: View {
                         )
                         .foregroundColor(.white)
                     }
+                    .accessibilityIdentifier("login-submit-button")
                     .disabled(!isLoginEnabled || isLoading || isOAuthLoading)
                     .padding(.top, 8)
 
@@ -265,6 +285,7 @@ struct LoginView: View {
                                     .fontWeight(.semibold)
                                     .foregroundColor(themeManager.primaryColor)
                             }
+                            .accessibilityIdentifier("register-link")
                         }
                         .padding(.top, 8)
                     }
@@ -300,6 +321,7 @@ struct LoginView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
+                .accessibilityIdentifier("auth-error-banner")
         }
         .onAppear {
             analyticsService.trackScreenView(screenName: "login")
@@ -355,11 +377,58 @@ struct LoginView: View {
 
     // MARK: - Actions
 
+    private var isAuthMockMode: Bool {
+        TestAuthMode.isMock
+    }
+
     private func login() {
         validateEmail()
         guard isLoginEnabled, emailError == nil else { return }
 
         isLoading = true
+
+        if isAuthMockMode {
+            Task {
+                if email.contains("invalid") || password == "WrongPass1!" {
+                    await MainActor.run {
+                        isLoading = false
+                        errorMessage = "Invalid credentials"
+                        showError = true
+                    }
+                    return
+                }
+
+                await APIClient.shared.setAuthToken("test-token")
+
+                let user = User(
+                    id: "test-user",
+                    email: email.trimmingCharacters(in: .whitespaces),
+                    firstName: "Test",
+                    lastName: selectedRole == .walker ? "Walker" : "Customer",
+                    phone: nil,
+                    role: selectedRole == .walker ? .walker : .customer,
+                    organizationId: "test-org"
+                )
+                let membership = Membership(
+                    id: "test-membership",
+                    organizationId: "test-org",
+                    organizationName: "Test Org",
+                    organizationSlug: "test-org",
+                    role: selectedRole == .walker ? .walker : .customer,
+                    title: nil,
+                    joinedAt: nil
+                )
+
+                await MainActor.run {
+                    UserSession.shared.setUser(user)
+                    UserSession.shared.setMemberships([membership], current: membership)
+                    isLoading = false
+                    analyticsService.trackEvent(name: "login_success", params: ["method": "email_mock"])
+                    onLoginSuccess()
+                }
+            }
+            return
+        }
 
         Task {
             do {
@@ -498,6 +567,12 @@ struct LoginView: View {
     }
 
     private func signInWithGoogle() {
+        if isAuthMockMode {
+            errorMessage = "Google Sign-In is not configured. Please use Apple Sign-In or email/password."
+            showError = true
+            return
+        }
+
         // Check if Google Sign-In is configured
         guard let clientID = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String,
               !clientID.isEmpty,

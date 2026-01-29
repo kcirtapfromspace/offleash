@@ -23,6 +23,10 @@ struct ServicesView: View {
 
     var onServiceSelected: ((Service) -> Void)?
 
+    private var isAuthMockMode: Bool {
+        TestAuthMode.isMock
+    }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -30,6 +34,8 @@ struct ServicesView: View {
                     loadingView
                 } else if showError && services.isEmpty {
                     errorView
+                } else if services.isEmpty {
+                    emptyView
                 } else {
                     servicesList
                 }
@@ -39,6 +45,7 @@ struct ServicesView: View {
                 await refreshServices()
             }
         }
+        .accessibilityIdentifier("tab-services")
         .task {
             await fetchServices()
         }
@@ -77,6 +84,7 @@ struct ServicesView: View {
     private var loadingView: some View {
         VStack(spacing: 16) {
             ProgressView()
+                .accessibilityIdentifier("loading-indicator")
                 .scaleEffect(1.5)
             Text("Loading services...")
                 .foregroundColor(.secondary)
@@ -114,7 +122,26 @@ struct ServicesView: View {
                     .foregroundColor(.white)
                     .cornerRadius(8)
             }
+            .accessibilityIdentifier("retry-button")
         }
+        .accessibilityIdentifier("error-banner")
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Empty View
+
+    private var emptyView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "pawprint")
+                .font(.system(size: 48))
+                .foregroundColor(.secondary)
+            Text("No services available")
+                .font(.headline)
+            Text("Please check back later.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .accessibilityIdentifier("empty-state")
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -122,13 +149,16 @@ struct ServicesView: View {
 
     private var servicesList: some View {
         List(services) { service in
-            ServiceRowView(service: service, themeManager: themeManager)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    analyticsService.trackFunnelStep(step: "service_selected", serviceId: service.id, locationId: nil)
-                    onServiceSelected?(service)
-                }
+            Button {
+                analyticsService.trackFunnelStep(step: "service_selected", serviceId: service.id, locationId: nil)
+                onServiceSelected?(service)
+            } label: {
+                ServiceRowView(service: service, themeManager: themeManager)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("service-card-\(service.id)")
         }
+        .accessibilityIdentifier("services-list")
         .listStyle(.plain)
     }
 
@@ -138,6 +168,24 @@ struct ServicesView: View {
     private static let cacheTTL: TimeInterval = 300 // 5 minutes
 
     private func loadServices() async {
+        if isAuthMockMode {
+            await MainActor.run {
+                services = [
+                    Service(
+                        id: "mock-service",
+                        name: "Mock Dog Walk",
+                        description: "Test-only service for CI",
+                        durationMinutes: 30,
+                        priceCents: 2500,
+                        priceDisplay: "$25.00",
+                        isActive: true
+                    )
+                ]
+                isLoading = false
+                showError = false
+            }
+            return
+        }
         // Check cache first
         if let cachedServices: [Service] = await CacheManager.shared.get(key: Self.cacheKey) {
             // Cache hit: show cached data immediately (already filtered by server)
@@ -209,7 +257,8 @@ struct ServiceRowView: View {
     let themeManager: ThemeManager
 
     var body: some View {
-        HStack(spacing: 12) {
+        ZStack {
+            HStack(spacing: 12) {
             // Service icon
             Image(systemName: "pawprint.fill")
                 .font(.title2)
@@ -251,8 +300,12 @@ struct ServiceRowView: View {
             Image(systemName: "chevron.right")
                 .font(.caption)
                 .foregroundColor(.secondary)
+            }
+            .padding(.vertical, 8)
+
+            Color.clear
+                .accessibilityIdentifier("book-service-button")
         }
-        .padding(.vertical, 8)
     }
 
     private func formatDuration(_ minutes: Int) -> String {

@@ -257,6 +257,7 @@ struct OTPVerificationView: View {
                     email: response.user.email ?? "",
                     firstName: response.user.firstName,
                     lastName: response.user.lastName,
+                    phone: response.user.phone,
                     role: role,
                     organizationId: response.user.organizationId
                 )

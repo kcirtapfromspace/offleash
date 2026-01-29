@@ -43,6 +43,8 @@ struct AddLocationView: View {
     @State private var isSubmitting = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var showToast = false
+    @State private var toastMessage = ""
 
     // Validation
     @State private var nameError: String?
@@ -53,6 +55,10 @@ struct AddLocationView: View {
 
     private let geocoder = CLGeocoder()
 
+    private var isAuthMockMode: Bool {
+        TestAuthMode.isMock
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -60,6 +66,7 @@ struct AddLocationView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         TextField("Location Name (e.g., Home, Work)", text: $name)
                             .textContentType(.name)
+                            .accessibilityIdentifier("location-name-field")
                         if let error = nameError {
                             Text(error)
                                 .font(.caption)
@@ -70,6 +77,7 @@ struct AddLocationView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         TextField("Street Address", text: $address)
                             .textContentType(.streetAddressLine1)
+                            .accessibilityIdentifier("location-address-field")
                         if let error = addressError {
                             Text(error)
                                 .font(.caption)
@@ -140,6 +148,7 @@ struct AddLocationView: View {
                     .listRowBackground(isFormValid ? themeManager.primaryColor : Color(.systemGray4))
                     .foregroundColor(.white)
                     .disabled(!isFormValid || isSubmitting)
+                    .accessibilityIdentifier("location-save-button")
                 }
             }
             .navigationTitle("Add Location")
@@ -159,12 +168,26 @@ struct AddLocationView: View {
             } message: {
                 Text(errorMessage)
             }
+            .overlay(alignment: .top) {
+                if showToast {
+                    ToastBanner(message: toastMessage)
+                        .padding(.top, 8)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
         }
     }
 
     private var isFormValid: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !address.trimmingCharacters(in: .whitespaces).isEmpty &&
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let trimmedAddress = address.trimmingCharacters(in: .whitespaces)
+
+        if isAuthMockMode {
+            return !trimmedName.isEmpty && !trimmedAddress.isEmpty
+        }
+
+        return !trimmedName.isEmpty &&
+        !trimmedAddress.isEmpty &&
         !city.trimmingCharacters(in: .whitespaces).isEmpty &&
         !state.trimmingCharacters(in: .whitespaces).isEmpty &&
         !zipCode.trimmingCharacters(in: .whitespaces).isEmpty
@@ -188,6 +211,10 @@ struct AddLocationView: View {
         if address.trimmingCharacters(in: .whitespaces).isEmpty {
             addressError = "Street address is required"
             isValid = false
+        }
+
+        if isAuthMockMode {
+            return isValid
         }
 
         if city.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -225,6 +252,34 @@ struct AddLocationView: View {
         let trimmedZipCode = zipCode.trimmingCharacters(in: .whitespaces)
         let trimmedNotes = notes.isEmpty ? nil : notes.trimmingCharacters(in: .whitespaces)
         let setAsDefault = isDefault
+
+        if isAuthMockMode {
+            let request = CreateLocationRequest(
+                name: trimmedName,
+                address: trimmedAddress,
+                city: trimmedCity.isEmpty ? "San Francisco" : trimmedCity,
+                state: trimmedState.isEmpty ? "CA" : trimmedState,
+                zipCode: trimmedZipCode.isEmpty ? "94107" : trimmedZipCode,
+                latitude: 37.7749,
+                longitude: -122.4194,
+                notes: trimmedNotes,
+                isDefault: setAsDefault
+            )
+            Task {
+                let savedLocation = await MockDataStore.shared.createLocation(request)
+                await MainActor.run {
+                    isSubmitting = false
+                    toastMessage = "Location saved"
+                    showToast = true
+                    onLocationAdded?(savedLocation)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        showToast = false
+                        dismiss()
+                    }
+                }
+            }
+            return
+        }
 
         // Build full address for geocoding
         let fullAddress = "\(trimmedAddress), \(trimmedCity), \(trimmedState) \(trimmedZipCode)"

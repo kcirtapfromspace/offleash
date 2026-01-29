@@ -72,6 +72,8 @@ struct AddEditPetView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var showDeleteConfirmation = false
+    @State private var showToast = false
+    @State private var toastMessage = ""
 
     // MARK: - Computed Properties
 
@@ -91,6 +93,7 @@ struct AddEditPetView: View {
             Section("Basic Information") {
                 TextField("Pet Name", text: $name)
                     .textContentType(.name)
+                    .accessibilityIdentifier("pet-name-field")
 
                 Picker("Species", selection: $species) {
                     ForEach(PetSpecies.allCases, id: \.self) { species in
@@ -186,6 +189,7 @@ struct AddEditPetView: View {
                             Spacer()
                         }
                     }
+                    .accessibilityIdentifier("pet-delete-button")
                 }
             }
         }
@@ -209,6 +213,18 @@ struct AddEditPetView: View {
                     }
                 }
                 .disabled(!isValid || isSaving)
+                .accessibilityIdentifier("pet-save-button")
+            }
+
+            if case .edit = mode {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(role: .destructive) {
+                        showDeleteConfirmation = true
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .accessibilityIdentifier("pet-delete-button")
+                }
             }
         }
         .onAppear {
@@ -228,8 +244,16 @@ struct AddEditPetView: View {
             Button("Delete", role: .destructive) {
                 deletePet()
             }
+            .accessibilityIdentifier("pet-delete-confirm")
         } message: {
             Text("Are you sure you want to delete this pet? This action cannot be undone.")
+        }
+        .overlay(alignment: .top) {
+            if showToast {
+                ToastBanner(message: toastMessage)
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
         }
     }
 
@@ -356,8 +380,13 @@ struct AddEditPetView: View {
 
                 await MainActor.run {
                     isSaving = false
+                    toastMessage = "Pet saved"
+                    showToast = true
                     onSave()
-                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        showToast = false
+                        dismiss()
+                    }
                 }
             } catch let error as APIError {
                 await MainActor.run {
@@ -388,8 +417,13 @@ struct AddEditPetView: View {
                 await MainActor.run {
                     analyticsService.trackEvent(name: "pet_deleted", params: ["pet_id": pet.id])
                     isSaving = false
+                    toastMessage = "Pet deleted"
+                    showToast = true
                     onSave()
-                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        showToast = false
+                        dismiss()
+                    }
                 }
             } catch let error as APIError {
                 await MainActor.run {

@@ -233,6 +233,7 @@ struct PersonaSwitcherSheet: View {
                                                 .padding(.vertical, 2)
                                                 .background(roleColor(for: membership.role))
                                                 .cornerRadius(4)
+                                                .accessibilityIdentifier("org-role-badge")
                                         }
                                     }
                                 }
@@ -251,6 +252,7 @@ struct PersonaSwitcherSheet: View {
                             .padding(.vertical, 4)
                         }
                         .buttonStyle(PlainButtonStyle())
+                        .accessibilityIdentifier("org-item-\(membership.organizationName)")
                         .disabled(isLoading || membership.id == session.currentMembership?.id)
                     }
                 }

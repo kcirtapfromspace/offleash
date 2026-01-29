@@ -28,6 +28,12 @@ struct EditProfileView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var showSuccess = false
+    @State private var showToast = false
+    @State private var toastMessage = ""
+
+    private var isAuthMockMode: Bool {
+        TestAuthMode.isMock
+    }
 
     var body: some View {
         Form {
@@ -35,16 +41,19 @@ struct EditProfileView: View {
                 TextField("First Name", text: $firstName)
                     .textContentType(.givenName)
                     .autocapitalization(.words)
+                    .accessibilityIdentifier("profile-name-field")
 
                 TextField("Last Name", text: $lastName)
                     .textContentType(.familyName)
                     .autocapitalization(.words)
+                    .accessibilityIdentifier("profile-last-name-field")
             }
 
             Section("Contact") {
                 TextField("Phone Number", text: $phone)
                     .textContentType(.telephoneNumber)
                     .keyboardType(.phonePad)
+                    .accessibilityIdentifier("profile-phone-field")
             }
 
             Section {
@@ -79,6 +88,7 @@ struct EditProfileView: View {
                 .listRowBackground(hasChanges ? themeManager.primaryColor : Color(.systemGray4))
                 .foregroundColor(.white)
                 .disabled(!hasChanges || isSaving)
+                .accessibilityIdentifier("profile-save-button")
             }
         }
         .navigationTitle("Edit Profile")
@@ -98,6 +108,13 @@ struct EditProfileView: View {
             }
         } message: {
             Text("Your profile has been updated.")
+        }
+        .overlay(alignment: .top) {
+            if showToast {
+                ToastBanner(message: toastMessage)
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
         }
     }
 
@@ -127,6 +144,30 @@ struct EditProfileView: View {
 
         Task {
             do {
+                if isAuthMockMode {
+                    let existing = userSession.currentUser
+                    let updated = User(
+                        id: existing?.id ?? "test-user",
+                        email: existing?.email ?? "test-customer@offleash.test",
+                        firstName: request.firstName ?? existing?.firstName,
+                        lastName: request.lastName ?? existing?.lastName,
+                        phone: request.phone ?? existing?.phone,
+                        role: existing?.role ?? .customer,
+                        organizationId: existing?.organizationId
+                    )
+                    await MainActor.run {
+                        userSession.setUser(updated)
+                        isSaving = false
+                        toastMessage = "Profile updated"
+                        showToast = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            showToast = false
+                            dismiss()
+                        }
+                    }
+                    return
+                }
+
                 let updatedUser: User = try await APIClient.shared.put("/users/me", body: request)
 
                 await MainActor.run {
@@ -156,4 +197,21 @@ struct EditProfileView: View {
         EditProfileView()
     }
     .withThemeManager()
+}
+
+// MARK: - Toast Banner
+
+struct ToastBanner: View {
+    let message: String
+
+    var body: some View {
+        Text(message)
+            .font(.footnote)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color.black.opacity(0.85))
+            .foregroundColor(.white)
+            .cornerRadius(8)
+            .accessibilityIdentifier("toast-message")
+    }
 }

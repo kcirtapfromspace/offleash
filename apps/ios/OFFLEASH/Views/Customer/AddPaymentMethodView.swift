@@ -76,6 +76,7 @@ struct AddPaymentMethodView: View {
                     .listRowBackground(isValid ? themeManager.primaryColor : Color(.systemGray4))
                     .foregroundColor(.white)
                     .disabled(!isValid || isSaving)
+                    .accessibilityIdentifier("card-save-button")
                 }
             }
             .navigationTitle("Add Payment")
@@ -104,6 +105,7 @@ struct AddPaymentMethodView: View {
                 TextField("Cardholder Name", text: $cardholderName)
                     .textContentType(.name)
                     .autocapitalization(.words)
+                    .accessibilityIdentifier("cardholder-name-field")
 
                 TextField("Card Number", text: $cardNumber)
                     .keyboardType(.numberPad)
@@ -113,6 +115,7 @@ struct AddPaymentMethodView: View {
                             cardNumber = formatted
                         }
                     }
+                    .accessibilityIdentifier("card-number-field")
 
                 HStack {
                     TextField("MM", text: $cardExpMonth)
@@ -124,6 +127,7 @@ struct AddPaymentMethodView: View {
                                 cardExpMonth = cleaned
                             }
                         }
+                        .accessibilityIdentifier("card-exp-month-field")
 
                     Text("/")
                         .foregroundColor(.secondary)
@@ -137,6 +141,7 @@ struct AddPaymentMethodView: View {
                                 cardExpYear = cleaned
                             }
                         }
+                        .accessibilityIdentifier("card-exp-year-field")
 
                     Spacer()
 
@@ -149,6 +154,7 @@ struct AddPaymentMethodView: View {
                                 cardCVV = cleaned
                             }
                         }
+                        .accessibilityIdentifier("card-cvc-field")
                 }
             }
 
@@ -270,7 +276,7 @@ struct AddPaymentMethodView: View {
                     )
                 }
 
-                let _: PaymentMethod = try await APIClient.shared.post("/payment-methods", body: request)
+                let _: PaymentMethod = try await PaymentService.shared.addPaymentMethod(request)
 
                 await MainActor.run {
                     isSaving = false

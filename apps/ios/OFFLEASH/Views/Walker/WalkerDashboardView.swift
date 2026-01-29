@@ -78,6 +78,7 @@ struct WalkerDashboardView: View {
                 icon: "calendar.day.timeline.left",
                 color: themeManager.primaryColor
             )
+            .accessibilityIdentifier("today-bookings-count")
 
             StatCard(
                 title: "Pending",
@@ -94,6 +95,7 @@ struct WalkerDashboardView: View {
                 icon: "calendar.badge.clock",
                 color: .blue
             )
+            .accessibilityIdentifier("weekly-earnings")
 
             StatCard(
                 title: "Completed",
@@ -103,6 +105,7 @@ struct WalkerDashboardView: View {
                 color: .green
             )
         }
+        .accessibilityIdentifier("performance-metrics")
     }
 
     // MARK: - Next Appointment Section
@@ -547,6 +550,7 @@ struct WalkerSettingsView: View {
                             }
                         }
                         .buttonStyle(PlainButtonStyle())
+                        .accessibilityIdentifier("org-switcher")
                     }
                 }
 
@@ -557,6 +561,7 @@ struct WalkerSettingsView: View {
                     } label: {
                         Label("Profile", systemImage: "person.circle")
                     }
+                    .accessibilityIdentifier("settings-profile-update")
 
                     NavigationLink {
                         WorkingHoursView()
@@ -564,6 +569,7 @@ struct WalkerSettingsView: View {
                     } label: {
                         Label("Working Hours", systemImage: "clock")
                     }
+                    .accessibilityIdentifier("settings-working-hours")
 
                     NavigationLink {
                         ServiceAreasView()
@@ -571,6 +577,7 @@ struct WalkerSettingsView: View {
                     } label: {
                         Label("Service Areas", systemImage: "map")
                     }
+                    .accessibilityIdentifier("settings-service-areas")
                 }
 
                 Section("Notifications") {

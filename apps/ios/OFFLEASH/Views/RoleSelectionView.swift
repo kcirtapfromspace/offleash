@@ -52,6 +52,7 @@ struct RoleSelectionView: View {
                         analyticsService.trackEvent(name: "role_selected", params: ["role": "customer"])
                         onRoleSelected(.customer)
                     }
+                    .accessibilityIdentifier("role-selection-customer-button")
 
                     // Walker Card
                     RoleCard(
@@ -63,6 +64,7 @@ struct RoleSelectionView: View {
                         analyticsService.trackEvent(name: "role_selected", params: ["role": "walker"])
                         onRoleSelected(.walker)
                     }
+                    .accessibilityIdentifier("role-selection-walker-button")
                 }
                 .padding(.horizontal, 24)
 

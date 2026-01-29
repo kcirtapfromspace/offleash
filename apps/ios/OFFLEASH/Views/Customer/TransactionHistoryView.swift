@@ -64,16 +64,23 @@ struct TransactionHistoryView: View {
     }
 
     private var transactionList: some View {
-        List {
-            ForEach(transactions) { transaction in
-                TransactionRow(transaction: transaction, themeManager: themeManager)
-                    .onTapGesture {
-                        selectedTransaction = transaction
-                    }
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Transactions")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .accessibilityIdentifier("payment-history-list")
+
+            List {
+                ForEach(transactions) { transaction in
+                    TransactionRow(transaction: transaction, themeManager: themeManager)
+                        .onTapGesture {
+                            selectedTransaction = transaction
+                        }
+                }
             }
-        }
-        .refreshable {
-            await refreshTransactions()
+            .refreshable {
+                await refreshTransactions()
+            }
         }
     }
 
