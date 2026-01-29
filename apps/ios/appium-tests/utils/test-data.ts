@@ -1,28 +1,41 @@
 /**
  * Test account credentials and data
+ * Uses environment variables with fallbacks to default seed data values
  */
 
 export const testAccounts = {
 	customer: {
-		email: 'test-customer@offleash.test',
-		password: 'TestPass123!',
-		firstName: 'Test',
-		lastName: 'Customer',
+		email: process.env.TEST_CUSTOMER_EMAIL || 'appium-test@test.com',
+		password: process.env.TEST_CUSTOMER_PASSWORD || 'TestPassword123!',
+		firstName: 'Appium',
+		lastName: 'Test',
 	},
 	walker: {
-		email: 'test-walker@offleash.test',
-		password: 'TestPass123!',
-		firstName: 'Test',
+		email: process.env.TEST_WALKER_EMAIL || 'appium-walker@test.com',
+		password: process.env.TEST_WALKER_PASSWORD || 'TestPassword123!',
+		firstName: 'Appium',
 		lastName: 'Walker',
 	},
 	multiOrg: {
-		email: 'test-multi@offleash.test',
-		password: 'TestPass123!',
-		orgs: ['Org A', 'Org B'],
+		email: 'customer@demo.com',
+		password: 'TestPassword123!',
+		orgs: ['OFFLEASH Demo'],
 	},
 	invalid: {
 		email: 'invalid@offleash.test',
 		password: 'wrongpassword',
+	},
+	demoCustomer: {
+		email: 'customer@demo.com',
+		password: 'TestPassword123!',
+		firstName: 'Demo',
+		lastName: 'Customer',
+	},
+	demoAdmin: {
+		email: process.env.TEST_ADMIN_EMAIL || 'admin@demo.com',
+		password: process.env.TEST_ADMIN_PASSWORD || 'TestPassword123!',
+		firstName: 'Demo',
+		lastName: 'Admin',
 	},
 };
 
@@ -36,10 +49,10 @@ export const testPet = {
 
 export const testLocation = {
 	name: 'Home',
-	address: '123 Test Street',
-	city: 'San Francisco',
-	state: 'CA',
-	zip: '94102',
+	address: '1234 Test Street',
+	city: 'Denver',
+	state: 'CO',
+	zip: '80202',
 };
 
 export const testBooking = {

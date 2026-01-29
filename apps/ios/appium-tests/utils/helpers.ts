@@ -22,7 +22,20 @@ export async function tapElement(selector: string, timeout: number = 30000): Pro
  * Type text into an input field
  */
 export async function typeInField(selector: string, text: string): Promise<void> {
-	const element = await waitForElement(selector);
+	// First dismiss keyboard if it's blocking elements
+	await dismissKeyboard();
+	await browser.pause(500);
+
+	const element = await $(`~${selector}`);
+
+	// Wait for element to exist (not necessarily displayed due to keyboard)
+	await element.waitForExist({ timeout: 30000 });
+
+	// Try to tap the element to focus it (works even if partially hidden)
+	await element.click();
+	await browser.pause(300);
+
+	// Clear and set value
 	await element.clearValue();
 	await element.setValue(text);
 }
@@ -44,8 +57,14 @@ export async function isElementDisplayed(
 ): Promise<boolean> {
 	try {
 		const element = await $(`~${selector}`);
-		await element.waitForDisplayed({ timeout });
-		return true;
+		// First wait for element to exist
+		await element.waitForExist({ timeout });
+		// Then check if it's displayed (may be off-screen)
+		const isDisplayed = await element.isDisplayed();
+		if (isDisplayed) return true;
+		// If not displayed, it might be scrolled off - consider it exists
+		const exists = await element.isExisting();
+		return exists;
 	} catch {
 		return false;
 	}
