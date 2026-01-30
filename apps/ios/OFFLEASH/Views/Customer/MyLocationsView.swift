@@ -15,11 +15,18 @@ struct MyLocationsView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var showAddLocation = false
+    @State private var showToast = false
+    @State private var toastMessage = ""
+
+    private var isAuthMockMode: Bool {
+        TestAuthMode.isMock
+    }
 
     var body: some View {
         Group {
             if isLoading {
                 ProgressView("Loading locations...")
+                    .accessibilityIdentifier("loading-indicator")
             } else if locations.isEmpty {
                 emptyState
             } else {
@@ -34,12 +41,16 @@ struct MyLocationsView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityIdentifier("location-add-button")
             }
         }
         .sheet(isPresented: $showAddLocation) {
             AddLocationView { newLocation in
                 locations.insert(newLocation, at: 0)
                 showAddLocation = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    showToastMessage("Location saved")
+                }
             }
         }
         .task {
@@ -55,6 +66,13 @@ struct MyLocationsView: View {
         }
         .onAppear {
             analyticsService.trackScreenView(screenName: "my_locations")
+        }
+        .overlay(alignment: .top) {
+            if showToast {
+                ToastBanner(message: toastMessage)
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
         }
     }
 
@@ -81,25 +99,39 @@ struct MyLocationsView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(themeManager.primaryColor)
+            .accessibilityIdentifier("location-add-button")
             .padding(.top, 8)
         }
+        .accessibilityIdentifier("empty-state")
         .padding()
     }
 
     private var locationsList: some View {
-        List {
-            ForEach(locations) { location in
-                LocationRow(location: location, onSetDefault: {
-                    await setDefault(location)
-                }, onDelete: {
-                    await deleteLocation(location)
-                })
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Locations")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .accessibilityIdentifier("locations-list")
+
+            List {
+                ForEach(locations) { location in
+                    LocationRow(location: location, onSetDefault: {
+                        await setDefault(location)
+                    }, onDelete: {
+                        await deleteLocation(location)
+                    })
+                }
             }
         }
     }
 
     private func loadLocations() async {
         isLoading = true
+        if isAuthMockMode {
+            locations = await MockDataStore.shared.getLocations()
+            isLoading = false
+            return
+        }
         do {
             locations = try await APIClient.shared.get("/locations")
             isLoading = false
@@ -111,9 +143,16 @@ struct MyLocationsView: View {
     }
 
     private func setDefault(_ location: Location) async {
+        if isAuthMockMode {
+            _ = await MockDataStore.shared.setDefaultLocation(id: location.id)
+            locations = await MockDataStore.shared.getLocations()
+            showToastMessage("Default location updated")
+            return
+        }
         do {
             let _: Location = try await APIClient.shared.put("/locations/\(location.id)/default")
             await loadLocations()
+            showToastMessage("Default location updated")
         } catch {
             errorMessage = "Failed to set default location"
             showError = true
@@ -121,12 +160,27 @@ struct MyLocationsView: View {
     }
 
     private func deleteLocation(_ location: Location) async {
+        if isAuthMockMode {
+            await MockDataStore.shared.deleteLocation(id: location.id)
+            locations = await MockDataStore.shared.getLocations()
+            showToastMessage("Location deleted")
+            return
+        }
         do {
             try await APIClient.shared.delete("/locations/\(location.id)")
             locations.removeAll { $0.id == location.id }
+            showToastMessage("Location deleted")
         } catch {
             errorMessage = "Failed to delete location"
             showError = true
+        }
+    }
+
+    private func showToastMessage(_ message: String) {
+        toastMessage = message
+        showToast = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            showToast = false
         }
     }
 }
@@ -139,6 +193,9 @@ struct LocationRow: View {
     let onDelete: () async -> Void
 
     @State private var isProcessing = false
+    private var isAuthMockMode: Bool {
+        TestAuthMode.isMock
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -158,6 +215,23 @@ struct LocationRow: View {
                 }
 
                 Spacer()
+
+                if isAuthMockMode && !location.isDefault {
+                    Button {
+                        Task {
+                            isProcessing = true
+                            await onSetDefault()
+                            isProcessing = false
+                        }
+                    } label: {
+                        Text("Set Default")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                    .buttonStyle(.borderless)
+                    .tint(.orange)
+                    .accessibilityIdentifier("location-default-button")
+                }
             }
 
             Text(location.fullAddress)
@@ -182,7 +256,7 @@ struct LocationRow: View {
                 Label("Delete", systemImage: "trash")
             }
 
-            if !location.isDefault {
+            if !location.isDefault && !isAuthMockMode {
                 Button {
                     Task {
                         isProcessing = true
@@ -193,6 +267,7 @@ struct LocationRow: View {
                     Label("Set Default", systemImage: "star")
                 }
                 .tint(.orange)
+                .accessibilityIdentifier("location-default-button")
             }
         }
         .disabled(isProcessing)

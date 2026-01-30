@@ -13,6 +13,8 @@ pub struct FeedbackRequest {
     pub feedback_type: FeedbackType,
     pub title: String,
     pub description: String,
+    #[serde(default)]
+    pub screenshots: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy)]
@@ -105,6 +107,30 @@ pub async fn submit_feedback(
         .clone()
         .unwrap_or_else(|| "kcirtapfromspace/offleash".to_string());
 
+    // Format screenshots section if any
+    let screenshots_section = if !req.screenshots.is_empty() {
+        let screenshot_images: Vec<String> = req
+            .screenshots
+            .iter()
+            .enumerate()
+            .map(|(i, data_url)| {
+                format!(
+                    "<details>\n<summary>Screenshot {}</summary>\n\n![Screenshot {}]({})\n\n</details>",
+                    i + 1,
+                    i + 1,
+                    data_url
+                )
+            })
+            .collect();
+
+        format!(
+            "\n\n### Screenshots\n\n{}\n",
+            screenshot_images.join("\n\n")
+        )
+    } else {
+        String::new()
+    };
+
     // Format the issue body
     let issue_body = format!(
         r#"## :{}: {} Report
@@ -113,7 +139,7 @@ pub async fn submit_feedback(
 
 ### Description
 
-{}
+{}{}
 
 ---
 
@@ -125,7 +151,8 @@ pub async fn submit_feedback(
             FeedbackType::Feature => "Feature Request",
         },
         auth_user.user_id,
-        req.description.trim()
+        req.description.trim(),
+        screenshots_section
     );
 
     // Create the GitHub issue

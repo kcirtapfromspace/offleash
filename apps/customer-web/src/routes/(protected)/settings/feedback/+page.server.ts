@@ -20,6 +20,16 @@ export const actions: Actions = {
 		const title = formData.get('title')?.toString();
 		const description = formData.get('description')?.toString();
 
+		// Collect screenshots (base64 data URLs)
+		const screenshotCount = parseInt(formData.get('screenshot_count')?.toString() || '0');
+		const screenshots: string[] = [];
+		for (let i = 0; i < screenshotCount; i++) {
+			const screenshot = formData.get(`screenshot_${i}`)?.toString();
+			if (screenshot) {
+				screenshots.push(screenshot);
+			}
+		}
+
 		if (!feedbackType || !title || !description) {
 			return fail(400, { error: 'All fields are required' });
 		}
@@ -36,13 +46,14 @@ export const actions: Actions = {
 			const response = await fetch(`${API_URL}/feedback`, {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${token}`,
+					Authorization: `Bearer ${token}`,
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
 					feedback_type: feedbackType,
 					title,
 					description,
+					screenshots,
 				}),
 			});
 

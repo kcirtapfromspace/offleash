@@ -63,13 +63,14 @@ VALUES
 
 -- =====================================================
 -- Tenant Databases (point to same test database)
+-- Connection string must include credentials for CI
 -- =====================================================
 INSERT INTO tenant_databases (id, organization_id, connection_string, status, created_at, updated_at)
 VALUES
     (
         '70000000-0000-0000-0000-000000000001',
         '00000000-0000-0000-0000-000000000001',
-        'postgres://localhost:5432/offleash_test',
+        'postgres://offleash:offleash@localhost:5432/offleash_test',
         'active',
         NOW(),
         NOW()
@@ -77,7 +78,7 @@ VALUES
     (
         '70000000-0000-0000-0000-000000000002',
         '00000000-0000-0000-0000-000000000002',
-        'postgres://localhost:5432/offleash_test',
+        'postgres://offleash:offleash@localhost:5432/offleash_test',
         'active',
         NOW(),
         NOW()
@@ -468,10 +469,10 @@ SELECT email FROM platform_admins WHERE email = 'platform@test.offleash.world';
 \echo ''
 \echo '============================================='
 \echo 'Test Credentials:'
-\echo '  customer@test.offleash.world / Test123!'
-\echo '  walker@test.offleash.world / Test123!'
-\echo '  admin@test.offleash.world / Test123!'
-\echo '  owner@test.offleash.world / Test123!'
-\echo '  platform@test.offleash.world / Test123!'
-\echo '  customer@org-b.test / Test123! (Org B)'
+\echo '  customer@test.offleash.world / TestPassword123!'
+\echo '  walker@test.offleash.world / TestPassword123!'
+\echo '  admin@test.offleash.world / TestPassword123!'
+\echo '  owner@test.offleash.world / TestPassword123!'
+\echo '  platform@test.offleash.world / TestPassword123!'
+\echo '  customer@org-b.test / TestPassword123! (Org B)'
 \echo '============================================='

@@ -79,6 +79,8 @@ struct BookingFlowView: View {
                     }
                 }
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("service-details")
             .navigationTitle(currentStep.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -87,6 +89,7 @@ struct BookingFlowView: View {
                         Button("Cancel") {
                             dismiss()
                         }
+                        .accessibilityIdentifier("booking-cancel-button")
                     }
                 }
 
@@ -103,6 +106,7 @@ struct BookingFlowView: View {
                 }
             }
         }
+        .accessibilityIdentifier("service-details")
         .onAppear {
             analyticsService.trackScreenView(screenName: "booking_flow")
             analyticsService.trackFunnelStep(step: "booking_started", serviceId: service.id, locationId: nil)
@@ -190,6 +194,8 @@ struct BookingFlowView: View {
                 showAddLocation = true
             }
         )
+        .accessibilityIdentifier("booking-location-picker")
+        .overlay(Color.clear.accessibilityIdentifier("service-details"))
     }
 
     // MARK: - Date & Time Step
@@ -210,6 +216,7 @@ struct BookingFlowView: View {
                     )
                     .datePickerStyle(.graphical)
                     .tint(themeManager.primaryColor)
+                    .accessibilityIdentifier("booking-date-picker")
                 }
                 .padding()
                 .background(Color(.systemGray6))
@@ -262,6 +269,7 @@ struct BookingFlowView: View {
                     TextField("Any special instructions...", text: $notes, axis: .vertical)
                         .textFieldStyle(.roundedBorder)
                         .lineLimit(3...6)
+                        .accessibilityIdentifier("booking-notes-field")
                 }
                 .padding()
                 .background(Color(.systemGray6))
@@ -472,6 +480,7 @@ struct BookingFlowView: View {
                         Spacer()
                         Toggle("", isOn: $makeRecurring)
                             .tint(themeManager.primaryColor)
+                            .accessibilityIdentifier("booking-recurring-toggle")
                     }
 
                     if makeRecurring {
@@ -562,10 +571,12 @@ struct BookingFlowView: View {
                     .foregroundColor(.white)
                     .cornerRadius(12)
                 }
+                .accessibilityIdentifier("booking-confirm-button")
                 .disabled(isSubmitting)
             }
             .padding()
         }
+        .accessibilityIdentifier("booking-review")
     }
 
     // MARK: - Confirmation View
@@ -866,6 +877,7 @@ struct TimeSlotButton: View {
                 .foregroundColor(isSelected ? .white : .primary)
                 .cornerRadius(8)
         }
+        .accessibilityIdentifier("booking-time-slot-\(slot.id)")
     }
 }
 

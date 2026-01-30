@@ -18,11 +18,31 @@ env:
   BUNDLE_ID: com.offleash.ios
 
 jobs:
+  changes:
+    name: Detect Auth Changes
+    runs-on: ubuntu-latest
+    outputs:
+      auth: ${{ steps.filter.outputs.auth }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Filter Paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            auth:
+              - 'apps/api/**'
+              - 'apps/api/config/**'
+              - 'apps/api/routes/auth/**'
+              - 'apps/api/services/auth/**'
+              - 'crates/auth/**'
+              - 'migrations/**'
+
   # Build and test on PRs only (no signing required)
   build:
     name: Build & Test
     runs-on: macos-14  # M1 runner - significantly faster than Intel
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     defaults:
       run:
         working-directory: apps/ios
@@ -77,16 +97,99 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             2>&1 | tee build.log
 
+          APP_PATH=$(find ./build/DerivedData -name "*.app" -type d | head -1)
+          echo "app-path=$APP_PATH" >> $GITHUB_OUTPUT
+
           BUILD_END=$(date +%s)
           BUILD_DURATION=$((BUILD_END - BUILD_START))
           echo "build_duration=${BUILD_DURATION}" >> $GITHUB_OUTPUT
           echo "::notice::Build completed in ${BUILD_DURATION}s"
 
+      - name: Upload App Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app
+          path: apps/ios/${{ steps.build.outputs.app-path }}
+          retention-days: 1
+
+  appium-tests:
+    name: Appium Tests
+    needs: [build, changes]
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        test-suite:
+          - auth
+          - customer-booking
+          - customer-profile
+          - walker-core
+          - walker-settings
+          - error-handling
+          - multi-tenant
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download App
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-app
+          path: apps/ios/build
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/ios/appium-tests/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: apps/ios/appium-tests
+        run: npm ci
+
+      - name: Install Appium
+        run: |
+          npm install -g appium
+          appium driver install xcuitest
+
+      - name: Boot Simulator
+        run: |
+          SIMULATOR_NAME=$(xcrun simctl list devices available | grep -m 1 "iPhone" | sed -E 's/^[[:space:]]+([^(]+).*/\\1/' | xargs)
+          echo "Using simulator: $SIMULATOR_NAME"
+          xcrun simctl boot "$SIMULATOR_NAME" || true
+          xcrun simctl bootstatus "$SIMULATOR_NAME" -b
+
+      - name: Coverage Gate
+        working-directory: apps/ios/appium-tests
+        run: npm run coverage:check
+
+      - name: Run Appium Tests
+        working-directory: apps/ios/appium-tests
+        run: |
+          APP_PATH=$(find ${{ github.workspace }}/apps/ios/build -name "*.app" -type d | head -1)
+          AUTH_MODE="mock"
+          if [[ "${{ matrix.test-suite }}" == "auth" && "${{ needs.changes.outputs.auth }}" == "true" ]]; then
+            AUTH_MODE="real"
+          fi
+          echo "Using auth mode: $AUTH_MODE"
+          OFFLEASH_TEST_AUTH="$AUTH_MODE" IOS_APP_PATH="$APP_PATH" npm run test:${{ matrix.test-suite }}
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.test-suite }}
+          path: |
+            apps/ios/appium-tests/allure-results
+            apps/ios/appium-tests/screenshots
+          retention-days: 7
+
   # Deploy to TestFlight on main branch pushes (runs in parallel, no wait)
   deploy-testflight:
     name: Deploy to TestFlight
     runs-on: macos-14  # M1 runner - significantly faster than Intel
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    needs: [appium-tests]
+    if: ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch') && needs.appium-tests.result == 'success'
     defaults:
       run:
         working-directory: apps/ios

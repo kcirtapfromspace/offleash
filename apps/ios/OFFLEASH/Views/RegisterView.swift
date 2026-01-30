@@ -29,6 +29,7 @@ struct RegisterUser: Decodable {
     let email: String
     let firstName: String?
     let lastName: String?
+    let phone: String?
     let role: String?
     let organizationId: String?
 }
@@ -47,6 +48,7 @@ struct RegisterView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var emailError: String?
+    @State private var showVerifyBanner = false
 
     let selectedRole: SelectedRole
     var onRegisterSuccess: () -> Void
@@ -78,6 +80,7 @@ struct RegisterView: View {
                                 }
                                 .foregroundColor(themeManager.primaryColor)
                             }
+                            .accessibilityIdentifier("nav-back-button")
                             Spacer()
                         }
                         .padding(.top, 16)
@@ -115,6 +118,7 @@ struct RegisterView: View {
                             .textContentType(.givenName)
                             .autocapitalization(.words)
                             .autocorrectionDisabled()
+                            .accessibilityIdentifier("register-first-name")
                             .padding()
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
@@ -138,6 +142,7 @@ struct RegisterView: View {
                             .textContentType(.familyName)
                             .autocapitalization(.words)
                             .autocorrectionDisabled()
+                            .accessibilityIdentifier("register-last-name")
                             .padding()
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
@@ -162,6 +167,7 @@ struct RegisterView: View {
                             .textContentType(.emailAddress)
                             .autocapitalization(.none)
                             .autocorrectionDisabled()
+                            .accessibilityIdentifier("register-email")
                             .padding()
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
@@ -193,6 +199,7 @@ struct RegisterView: View {
                             .textFieldStyle(.plain)
                             .keyboardType(.phonePad)
                             .textContentType(.telephoneNumber)
+                            .accessibilityIdentifier("register-phone")
                             .padding()
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
@@ -214,6 +221,7 @@ struct RegisterView: View {
                         SecureField("Create a password", text: $password)
                             .textFieldStyle(.plain)
                             .textContentType(.newPassword)
+                            .accessibilityIdentifier("register-password")
                             .padding()
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
@@ -247,6 +255,7 @@ struct RegisterView: View {
                         )
                         .foregroundColor(.white)
                     }
+                    .accessibilityIdentifier("register-submit-button")
                     .disabled(!isRegisterEnabled || isLoading)
                     .padding(.top, 16)
 
@@ -262,6 +271,7 @@ struct RegisterView: View {
                                 .fontWeight(.semibold)
                                 .foregroundColor(themeManager.primaryColor)
                         }
+                        .accessibilityIdentifier("login-link")
                     }
                     .padding(.top, 8)
 
@@ -287,6 +297,18 @@ struct RegisterView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
+        }
+        .overlay(alignment: .top) {
+            if showVerifyBanner {
+                Text("Check your email to verify your account.")
+                    .font(.subheadline)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
+                    .padding(.top, 12)
+                    .accessibilityIdentifier("register-verify-banner")
+            }
         }
         .onAppear {
             analyticsService.trackScreenView(screenName: "register")
@@ -338,16 +360,69 @@ struct RegisterView: View {
 
     // MARK: - Actions
 
+    private var isAuthMockMode: Bool {
+        TestAuthMode.isMock
+    }
+
     private func register() {
         validateEmail()
         guard isRegisterEnabled, emailError == nil else { return }
 
         isLoading = true
 
+        if isAuthMockMode {
+            Task {
+                await APIClient.shared.setAuthToken("test-token")
+
+                let role: UserRole = selectedRole == .walker ? .walker : .customer
+                let user = User(
+                    id: "test-user",
+                    email: email.trimmingCharacters(in: .whitespaces),
+                    firstName: firstName.trimmingCharacters(in: .whitespaces),
+                    lastName: lastName.trimmingCharacters(in: .whitespaces),
+                    phone: phone.trimmingCharacters(in: .whitespaces),
+                    role: role,
+                    organizationId: "test-org"
+                )
+                let membershipRole: MembershipRole = role == .walker ? .walker : .customer
+                let membership = Membership(
+                    id: "test-membership",
+                    organizationId: "test-org",
+                    organizationName: "Test Org",
+                    organizationSlug: "test-org",
+                    role: membershipRole,
+                    title: nil,
+                    joinedAt: nil
+                )
+
+                await MainActor.run {
+                    UserSession.shared.setUser(user)
+                    UserSession.shared.setMemberships([membership], current: membership)
+                    isLoading = false
+                    showVerifyBanner = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        onRegisterSuccess()
+                    }
+                }
+            }
+            return
+        }
+
         Task {
             do {
-                // TODO: Make org_slug configurable or derive from app configuration
-                let orgSlug = ProcessInfo.processInfo.environment["ORG_SLUG"] ?? "demo"
+                // Organization slug from Info.plist or environment, defaults to demo org
+                let orgSlug: String = {
+                    if let plistValue = Bundle.main.object(forInfoDictionaryKey: "OFFLEASH_ORG_SLUG") as? String,
+                       !plistValue.isEmpty,
+                       !plistValue.hasPrefix("$(") {
+                        return plistValue
+                    }
+                    if let envValue = ProcessInfo.processInfo.environment["ORG_SLUG"],
+                       !envValue.isEmpty {
+                        return envValue
+                    }
+                    return "offleash-demo"
+                }()
                 let request = RegisterRequest(
                     orgSlug: orgSlug,
                     firstName: firstName.trimmingCharacters(in: .whitespaces),
@@ -368,6 +443,7 @@ struct RegisterView: View {
                         email: regUser.email,
                         firstName: regUser.firstName,
                         lastName: regUser.lastName,
+                        phone: regUser.phone,
                         role: role,
                         organizationId: regUser.organizationId
                     )
@@ -382,7 +458,10 @@ struct RegisterView: View {
 
                 await MainActor.run {
                     isLoading = false
-                    onRegisterSuccess()
+                    showVerifyBanner = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        onRegisterSuccess()
+                    }
                 }
             } catch let error as APIError {
                 await MainActor.run {

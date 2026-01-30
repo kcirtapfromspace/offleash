@@ -12,8 +12,9 @@ import GoogleSignIn
 
 // MARK: - Login Request/Response Models
 
+/// Universal login request - no org_slug required
+/// Uses /auth/login/universal endpoint which finds user globally
 struct LoginRequest: Encodable {
-    let orgSlug: String
     let email: String
     let password: String
 }
@@ -28,6 +29,7 @@ struct LoginUser: Decodable {
     let email: String
     let firstName: String?
     let lastName: String?
+    let phone: String?
     let role: String?
     let organizationId: String?
 }
@@ -76,6 +78,7 @@ struct LoginView: View {
                                 }
                                 .foregroundColor(themeManager.primaryColor)
                             }
+                            .accessibilityIdentifier("nav-back-button")
                             Spacer()
                         }
                         .padding(.top, 16)
@@ -134,6 +137,7 @@ struct LoginView: View {
                                     .stroke(Color(.systemGray3), lineWidth: 1)
                             )
                         }
+                        .accessibilityIdentifier("login-google-button")
                         .disabled(isLoading || isOAuthLoading)
 
                         // Sign in with Phone
@@ -174,6 +178,21 @@ struct LoginView: View {
                     }
                     .padding(.vertical, 8)
 
+                    if showError {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.white)
+                            Text(errorMessage)
+                                .font(.subheadline)
+                                .foregroundColor(.white)
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.red.opacity(0.9))
+                        .cornerRadius(12)
+                        .accessibilityIdentifier("auth-error-banner")
+                    }
+
                     // Email Field
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Email")
@@ -187,6 +206,7 @@ struct LoginView: View {
                             .textContentType(.emailAddress)
                             .autocapitalization(.none)
                             .autocorrectionDisabled()
+                            .accessibilityIdentifier("login-email-field")
                             .padding()
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
@@ -217,6 +237,7 @@ struct LoginView: View {
                         SecureField("Enter your password", text: $password)
                             .textFieldStyle(.plain)
                             .textContentType(.password)
+                            .accessibilityIdentifier("login-password-field")
                             .padding()
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
@@ -247,6 +268,7 @@ struct LoginView: View {
                         )
                         .foregroundColor(.white)
                     }
+                    .accessibilityIdentifier("login-submit-button")
                     .disabled(!isLoginEnabled || isLoading || isOAuthLoading)
                     .padding(.top, 8)
 
@@ -263,6 +285,7 @@ struct LoginView: View {
                                     .fontWeight(.semibold)
                                     .foregroundColor(themeManager.primaryColor)
                             }
+                            .accessibilityIdentifier("register-link")
                         }
                         .padding(.top, 8)
                     }
@@ -298,6 +321,7 @@ struct LoginView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
+                .accessibilityIdentifier("auth-error-banner")
         }
         .onAppear {
             analyticsService.trackScreenView(screenName: "login")
@@ -353,18 +377,64 @@ struct LoginView: View {
 
     // MARK: - Actions
 
+    private var isAuthMockMode: Bool {
+        TestAuthMode.isMock
+    }
+
     private func login() {
         validateEmail()
         guard isLoginEnabled, emailError == nil else { return }
 
         isLoading = true
 
+        if isAuthMockMode {
+            Task {
+                if email.contains("invalid") || password == "WrongPass1!" {
+                    await MainActor.run {
+                        isLoading = false
+                        errorMessage = "Invalid credentials"
+                        showError = true
+                    }
+                    return
+                }
+
+                await APIClient.shared.setAuthToken("test-token")
+
+                let user = User(
+                    id: "test-user",
+                    email: email.trimmingCharacters(in: .whitespaces),
+                    firstName: "Test",
+                    lastName: selectedRole == .walker ? "Walker" : "Customer",
+                    phone: nil,
+                    role: selectedRole == .walker ? .walker : .customer,
+                    organizationId: "test-org"
+                )
+                let membership = Membership(
+                    id: "test-membership",
+                    organizationId: "test-org",
+                    organizationName: "Test Org",
+                    organizationSlug: "test-org",
+                    role: selectedRole == .walker ? .walker : .customer,
+                    title: nil,
+                    joinedAt: nil
+                )
+
+                await MainActor.run {
+                    UserSession.shared.setUser(user)
+                    UserSession.shared.setMemberships([membership], current: membership)
+                    isLoading = false
+                    analyticsService.trackEvent(name: "login_success", params: ["method": "email_mock"])
+                    onLoginSuccess()
+                }
+            }
+            return
+        }
+
         Task {
             do {
-                // TODO: Make org_slug configurable or derive from app configuration
-                let orgSlug = ProcessInfo.processInfo.environment["ORG_SLUG"] ?? "demo"
-                let request = LoginRequest(orgSlug: orgSlug, email: email.trimmingCharacters(in: .whitespaces), password: password)
-                let response: LoginResponse = try await APIClient.shared.post("/auth/login", body: request)
+                // Use universal login - finds user across all organizations
+                let request = LoginRequest(email: email.trimmingCharacters(in: .whitespaces), password: password)
+                let response: LoginResponse = try await APIClient.shared.post("/auth/login/universal", body: request)
 
                 await APIClient.shared.setAuthToken(response.token)
 
@@ -376,6 +446,7 @@ struct LoginView: View {
                         email: loginUser.email,
                         firstName: loginUser.firstName,
                         lastName: loginUser.lastName,
+                        phone: loginUser.phone,
                         role: role,
                         organizationId: loginUser.organizationId
                     )
@@ -433,10 +504,11 @@ struct LoginView: View {
 
             Task {
                 do {
-                    let orgSlug = ProcessInfo.processInfo.environment["ORG_SLUG"] ?? "demo"
+                    // Universal OAuth - no org_slug required for existing users
+                    // New users will be auto-assigned to a default organization
                     let roleString = selectedRole == .walker ? "walker" : "customer"
                     let request = OAuthAppleRequest(
-                        orgSlug: orgSlug,
+                        orgSlug: nil,
                         idToken: identityToken,
                         firstName: firstName,
                         lastName: lastName,
@@ -453,6 +525,7 @@ struct LoginView: View {
                         email: response.user.email,
                         firstName: response.user.firstName,
                         lastName: response.user.lastName,
+                        phone: response.user.phone,
                         role: role,
                         organizationId: response.user.organizationId
                     )
@@ -494,6 +567,12 @@ struct LoginView: View {
     }
 
     private func signInWithGoogle() {
+        if isAuthMockMode {
+            errorMessage = "Google Sign-In is not configured. Please use Apple Sign-In or email/password."
+            showError = true
+            return
+        }
+
         // Check if Google Sign-In is configured
         guard let clientID = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String,
               !clientID.isEmpty,
@@ -540,10 +619,10 @@ struct LoginView: View {
             // Send the ID token to the backend
             Task {
                 do {
-                    let orgSlug = ProcessInfo.processInfo.environment["ORG_SLUG"] ?? "demo"
+                    // Universal OAuth - no org_slug required for existing users
                     let roleString = selectedRole == .walker ? "walker" : "customer"
                     let request = OAuthGoogleRequest(
-                        orgSlug: orgSlug,
+                        orgSlug: nil,
                         idToken: idToken,
                         role: roleString
                     )
@@ -558,6 +637,7 @@ struct LoginView: View {
                         email: response.user.email,
                         firstName: response.user.firstName,
                         lastName: response.user.lastName,
+                        phone: response.user.phone,
                         role: role,
                         organizationId: response.user.organizationId
                     )

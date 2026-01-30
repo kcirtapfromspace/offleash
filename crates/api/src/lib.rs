@@ -78,6 +78,12 @@ pub fn create_app(state: AppState) -> Router {
             "/admin/branding",
             get(routes::admin_branding::get_branding).put(routes::admin_branding::update_branding),
         )
+        // Tenant admin payment configuration routes
+        .route(
+            "/admin/payment-config",
+            get(routes::admin_branding::get_payment_config)
+                .put(routes::admin_branding::update_payment_config),
+        )
         // Dashboard metrics route (tenant admin)
         .route(
             "/admin/dashboard/metrics",
@@ -310,6 +316,11 @@ pub fn create_app(state: AppState) -> Router {
         .route(
             "/contexts/join-as-customer/:org_slug",
             post(routes::contexts::join_as_customer),
+        )
+        // Organization deletion (owner-only)
+        .route(
+            "/contexts/organization",
+            delete(routes::contexts::delete_organization),
         )
         .route(
             "/admin/walkers/:walker_id/profile",

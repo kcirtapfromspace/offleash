@@ -16,11 +16,17 @@ struct PaymentMethodsView: View {
     @State private var errorMessage = ""
     @State private var showAddPayment = false
     @State private var methodToDelete: PaymentMethod?
+    @State private var showToast = false
+    @State private var toastMessage = ""
+    private var isAuthMockMode: Bool {
+        TestAuthMode.isMock
+    }
 
     var body: some View {
         Group {
             if isLoading {
                 ProgressView()
+                    .accessibilityIdentifier("loading-indicator")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if paymentMethods.isEmpty {
                 emptyState
@@ -36,6 +42,7 @@ struct PaymentMethodsView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityIdentifier("payment-add-button")
             }
         }
         .onAppear {
@@ -44,6 +51,7 @@ struct PaymentMethodsView: View {
         }
         .sheet(isPresented: $showAddPayment) {
             AddPaymentMethodView(onSuccess: {
+                showToast(message: "Payment method added")
                 loadPaymentMethods()
             })
             .environmentObject(themeManager)
@@ -65,8 +73,15 @@ struct PaymentMethodsView: View {
                     deletePaymentMethod(method)
                 }
             }
+            .accessibilityIdentifier("confirm-button")
         } message: {
             Text("Are you sure you want to remove this payment method?")
+        }
+        .overlay(alignment: .top) {
+            if showToast {
+                ToastBanner(message: toastMessage)
+                    .padding(.top, 12)
+            }
         }
     }
 
@@ -97,6 +112,7 @@ struct PaymentMethodsView: View {
                     .foregroundColor(.white)
                     .cornerRadius(12)
             }
+            .accessibilityIdentifier("payment-add-button")
             .padding(.horizontal, 40)
             .padding(.top, 8)
         }
@@ -104,26 +120,69 @@ struct PaymentMethodsView: View {
     }
 
     private var methodsList: some View {
-        List {
-            ForEach(paymentMethods) { method in
-                PaymentMethodRow(method: method, onSetDefault: {
-                    setDefaultMethod(method)
-                })
-                .swipeActions(edge: .trailing) {
-                    Button(role: .destructive) {
-                        methodToDelete = method
-                    } label: {
-                        Label("Delete", systemImage: "trash")
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Payment Methods")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .accessibilityIdentifier("payment-methods-list")
+
+            List {
+                ForEach(paymentMethods) { method in
+                    if isAuthMockMode {
+                        PaymentMethodRow(
+                            method: method,
+                            onSetDefault: {
+                                setDefaultMethod(method)
+                            },
+                            onDelete: {
+                                methodToDelete = method
+                            },
+                            showsDeleteButton: true
+                        )
+                    } else {
+                        PaymentMethodRow(
+                            method: method,
+                            onSetDefault: {
+                                setDefaultMethod(method)
+                            },
+                            onDelete: nil,
+                            showsDeleteButton: false
+                        )
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                methodToDelete = method
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                            .accessibilityIdentifier("payment-remove-button")
+                        }
                     }
                 }
-            }
 
-            Section {
-                Button {
-                    showAddPayment = true
-                } label: {
-                    Label("Add Payment Method", systemImage: "plus.circle")
-                        .foregroundColor(themeManager.primaryColor)
+                Section {
+                    Button {
+                        showAddPayment = true
+                    } label: {
+                        Label("Add Payment Method", systemImage: "plus.circle")
+                            .foregroundColor(themeManager.primaryColor)
+                    }
+                    .accessibilityIdentifier("payment-add-button")
+                }
+
+                Section {
+                    NavigationLink {
+                        TransactionHistoryView()
+                    } label: {
+                        Label("Transaction History", systemImage: "clock.arrow.circlepath")
+                    }
+                    .accessibilityIdentifier("payment-history-button")
+
+                    NavigationLink {
+                        SubscriptionsView()
+                    } label: {
+                        Label("Subscriptions", systemImage: "repeat.circle")
+                    }
+                    .accessibilityIdentifier("subscriptions-button")
                 }
             }
         }
@@ -134,7 +193,7 @@ struct PaymentMethodsView: View {
 
         Task {
             do {
-                let methods: [PaymentMethod] = try await APIClient.shared.get("/payment-methods")
+                let methods = try await PaymentService.shared.getPaymentMethods()
                 await MainActor.run {
                     paymentMethods = methods
                     isLoading = false
@@ -158,7 +217,7 @@ struct PaymentMethodsView: View {
     private func setDefaultMethod(_ method: PaymentMethod) {
         Task {
             do {
-                let _: PaymentMethod = try await APIClient.shared.put("/payment-methods/\(method.id)/default", body: EmptyBody())
+                let _: PaymentMethod = try await PaymentService.shared.setDefaultPaymentMethod(method.id)
                 await MainActor.run {
                     loadPaymentMethods()
                 }
@@ -179,9 +238,10 @@ struct PaymentMethodsView: View {
     private func deletePaymentMethod(_ method: PaymentMethod) {
         Task {
             do {
-                let _: EmptyResponse = try await APIClient.shared.delete("/payment-methods/\(method.id)")
+                try await PaymentService.shared.deletePaymentMethod(method.id)
                 await MainActor.run {
                     methodToDelete = nil
+                    showToast(message: "Payment method removed")
                     loadPaymentMethods()
                 }
             } catch let error as APIError {
@@ -199,6 +259,18 @@ struct PaymentMethodsView: View {
             }
         }
     }
+
+    private func showToast(message: String) {
+        toastMessage = message
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showToast = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showToast = false
+            }
+        }
+    }
 }
 
 struct EmptyBody: Codable {}
@@ -207,6 +279,8 @@ struct PaymentMethodRow: View {
     @EnvironmentObject private var themeManager: ThemeManager
     let method: PaymentMethod
     let onSetDefault: () -> Void
+    let onDelete: (() -> Void)?
+    let showsDeleteButton: Bool
 
     var body: some View {
         HStack(spacing: 12) {
@@ -267,6 +341,18 @@ struct PaymentMethodRow: View {
                         .foregroundColor(themeManager.primaryColor)
                 }
                 .buttonStyle(.borderless)
+            }
+
+            if showsDeleteButton {
+                Button {
+                    onDelete?()
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityIdentifier("payment-remove-button")
             }
         }
         .padding(.vertical, 4)

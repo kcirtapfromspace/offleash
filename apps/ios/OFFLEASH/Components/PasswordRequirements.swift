@@ -41,6 +41,7 @@ struct PasswordRequirements: View {
                 isMet: hasNumber
             )
         }
+        .accessibilityIdentifier("password-strength-indicator")
     }
 }
 
